@@ -1,0 +1,50 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+module devrel/cloud/devrel-github-service/drghs-worker
+
+require (
+	cloud.google.com/go v0.40.0
+	devrel/cloud/devrel-github-service/drghs v0.0.0-00010101000000-000000000000
+	devrel/cloud/devrel-github-service/repos v0.0.0
+	devrel/cloud/devrel-github-service/rtr v0.0.0
+	devrel/cloud/devrel-github-service/sprvsr v0.0.0
+
+	github.com/deckarep/golang-set v1.7.1
+	github.com/golang/protobuf v1.3.2
+	github.com/google/cel-go v0.3.0
+	github.com/google/go-cmp v0.3.0
+	github.com/gorilla/mux v1.7.2
+	github.com/matryer/is v1.2.0
+	github.com/sirupsen/logrus v1.4.2
+	github.com/urfave/negroni v1.0.0
+	golang.org/x/build v0.0.0-20190201181641-63986c177d1f
+	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
+	google.golang.org/api v0.6.0
+	google.golang.org/grpc v1.23.1
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
+	k8s.io/api v0.0.0-20190528154508-67ef80593b24
+	k8s.io/apimachinery v0.0.0-20190528154326-e59c2fb0a8e5
+	k8s.io/client-go v0.0.0-20190528154735-79226fe1949a
+)
+
+replace devrel/cloud/devrel-github-service/drghs => ../drghs
+
+replace devrel/cloud/devrel-github-service/rtr => ../rtr
+
+replace devrel/cloud/devrel-github-service/sprvsr => ../sprvsr
+
+replace devrel/cloud/devrel-github-service/repos => ../repos
+
+go 1.13

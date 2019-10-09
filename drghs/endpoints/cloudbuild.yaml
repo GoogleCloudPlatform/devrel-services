@@ -1,0 +1,95 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+
+# Create samplr endpoint
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  id: 'samplr-endpoints-prep'
+  waitFor: ['-'] # Start Immediately
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Get the IP address to fill our spec with
+    IPADDR=`gcloud compute addresses describe samplr-ip --global --format=value\(address\)`
+
+    mkdir -p target
+    cat endpoints/samplr.yaml | \
+      sed s/PROJECT_ID/$PROJECT_ID/g | \
+      sed s/IP_ADDR/$$IPADDR/g | \
+      sed s/TYPE/$_TYPE/g \
+      > target/samplr.yaml
+
+# Create maintner endpoint
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  id: 'maintner-endpoints-prep'
+  waitFor: ['-'] # Start Immediately
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Get the IP address to fill our spec with
+    IPADDR=`gcloud compute addresses describe maintnerd-ip --global --format=value\(address\)`
+
+    mkdir -p target
+    cat endpoints/maintnerd.yaml | \
+      sed s/PROJECT_ID/$PROJECT_ID/g | \
+      sed s/IP_ADDR/$$IPADDR/g | \
+      sed s/TYPE/$_TYPE/g \
+      > target/maintnerd.yaml
+
+    # Copy our models directory
+    cp -r endpoints/models target/models
+
+# Create magic-github-proxy endpoint
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  id: 'magic-github-proxy-endpoints-prep'
+  waitFor: ['-'] # Start Immediately
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Get the IP address to fill our spec with
+    IPADDR=`gcloud compute addresses describe magic-github-proxy-ip --global --format=value\(address\)`
+
+    mkdir -p target
+    cat endpoints/magic-github-proxy.yaml | \
+      sed s/PROJECT_ID/$PROJECT_ID/g | \
+      sed s/IP_ADDR/$$IPADDR/g | \
+      sed s/TYPE/$_TYPE/g \
+      > target/magic-github-proxy.yaml
+
+# Deploy to endpoints
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  id: 'endpoints-deploy'
+  waitFor: ['magic-github-proxy-endpoints-prep', 'samplr-endpoints-prep', 'maintner-endpoints-prep']
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Deploy maintner
+    gcloud endpoints services deploy target/maintnerd.yaml
+
+    # Deploy samplr
+    gcloud endpoints services deploy v1/api_descriptor.pb target/samplr.yaml
+
+    # Deploy magic-github-proxy
+    gcloud endpoints services deploy target/magic-github-proxy.yaml
+
+images:

@@ -1,0 +1,145 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package drghs.v0;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+// DRGHS Service
+service DRGHSService {
+  rpc Update(UpdateRequest) returns (UpdateResponse) {
+    option (google.api.http) = {
+      post: "/update"
+    };
+  }
+
+  rpc GetIssue(GetIssueRequest) returns (Response) {
+    option (google.api.http) = {
+      post: "/api/v0/issue"
+    };
+  }
+
+  rpc ListIssues(ListIssuesRequest) returns (Response) {
+    option (google.api.http) = {
+      post: "/api/v0/issues"
+    };
+  }
+
+  rpc GetApprovedPRs(Request) returns (Response) {
+    option (google.api.http) = {
+      post: "/api/v0/approvedPRs"
+    };
+  }
+}
+
+message UpdateRequest {}
+
+message UpdateResponse {}
+
+message GetIssueRequest {
+  string repo = 1;
+  int32 issue = 2;
+  bool include_comments = 3;
+}
+
+message ListIssuesRequest {
+  string repo = 1;
+  bool pull_request = 2;
+  bool closed = 3;
+  bool include_comments = 4;
+}
+
+message Response {
+  string error = 1;
+  Status issue = 2;
+  repeated Status issues = 3;
+}
+
+message Request {
+  repeated string configs = 1;
+}
+
+message GitHubUser {
+  int32 id = 1;
+  string login = 2;
+}
+
+message GitHubComment {
+  int32 id = 1;
+  drghs.v0.GitHubUser user = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  string body = 5;
+}
+
+enum Priority {
+  P0 = 0;
+  P1 = 1;
+  P2 = 2;
+  P3 = 3;
+  P4 = 4;
+}
+
+enum IssueType {
+  UNKNOWN = 0;
+  BUG = 1;
+  FEATURE = 2;
+  QUESTION = 3;
+  CLEANUP = 4;
+  PROCESS = 5;
+}
+
+message Compliance {
+  bool compliant = 1;
+  int32 duration = 2;
+}
+
+message ComplianceResponse {
+  bool compliant = 1;
+  int32 duration = 2;
+}
+
+message Status {
+  int32 rule_id = 1;
+  int32 slo_id = 2;
+  string repo = 3;
+  Priority prioroty = 4;
+  IssueType type = 5;
+  bool PriorityUnknown = 6;
+  repeated string Labels = 7;
+  google.protobuf.Timestamp last_googler_update = 8;
+  google.protobuf.Timestamp last_user_update = 9;
+  google.protobuf.Timestamp created = 10;
+  bool pull_request = 11;
+  bool approved = 12;
+  bool closed = 13;
+  GitHubUser closed_by = 14;
+  bool blocked = 15;
+  bool release_blocking = 16;
+  bool body = 17;
+  string commit = 18;
+  ComplianceResponse updated_compliance = 19;
+  ComplianceResponse resolution_compliance = 20;
+  Compliance compliance_updates = 21;
+  Compliance compliance_resolution = 22;
+  int32 issue_id = 23;
+  string url = 24;
+  repeated GitHubUser assignees = 25;
+  GitHubUser reporter = 26;
+  string title = 27;
+  repeated GitHubComment comments = 28;
+}

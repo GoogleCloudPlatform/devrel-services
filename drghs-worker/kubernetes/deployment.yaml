@@ -1,0 +1,181 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maintnerd-rtr
+  labels:
+    app: maintnerd-rtr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: maintnerd-rtr
+  template:
+    metadata:
+      labels:
+        app: maintnerd-rtr
+    spec:
+      serviceAccountName: maintner-rtr-sa
+      containers:
+      - name: esp
+        image: gcr.io/endpoints-release/endpoints-runtime:1
+        args: [
+          "--http_port", "8080",
+          "--backend", "127.0.0.1:80",
+          "--service=SERVICE_NAME",
+          "--version=SERVICE_CONFIG_ID",
+          "--healthz=_healthz"
+        ]
+        ports:
+          - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /_healthz
+            port: 8080
+          initialDelaySeconds: 30
+      - name: maintnerd-rtr
+        image: gcr.io/PROJECT_ID/maintner-rtr:BUILD_ID
+        imagePullPolicy: Always
+        command: [
+          "/maintner-rtr",
+          "--listen=:80",
+          "--rmquery=key",
+          "--sprvsr=maintnerd-sprvsr-cip",
+          "--verbose",
+        ]
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        ports:
+        - containerPort: 80
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        volumeMounts:
+        - mountPath: /var/secrets/google
+          name: gcp-sa
+      volumes:
+      - name: gcp-sa
+        secret:
+          secretName: SERVICE_ACCOUNT_SECRET_NAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: esp-maintnerd-rtr-np
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: maintnerd-rtr
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maintnerd-sprvsr
+  labels:
+    app: maintnerd-sprvsr
+spec:
+  replicas: 1 # MUST BE 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: maintnerd-sprvsr
+  template:
+    metadata:
+      labels:
+        app: maintnerd-sprvsr
+    spec:
+      serviceAccountName: maintner-sprvsr-sa
+      containers:
+      - name: maintnerd-sprvsr
+        image: gcr.io/PROJECT_ID/maintner-sprvsr:BUILD_ID
+        imagePullPolicy: Always
+        command: [
+          "/maintner-sprvsr",
+          "--listen=:80",
+          "--verbose",
+          "--gcp-project=PROJECT_ID",
+          "--github-secret=GITHUB_SECRET_NAME",
+          "--settings-bucket=SETTINGS_BUCKET",
+          "--repos-file=REPOS_FILE",
+          "--service-account-secret=SERVICE_ACCOUNT_SECRET_NAME",
+          "--maint-image-name=gcr.io/PROJECT_ID/maintnerd:BUILD_ID",
+          "--mutation-bucket=PREFIX",
+        ]
+        livenessProbe:
+          httpGet:
+            path: /_healthz
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        ports:
+        - containerPort: 80
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        volumeMounts:
+        - mountPath: /var/secrets/google
+          name: gcp-sa
+      volumes:
+      - name: gcp-sa
+        secret:
+          secretName: SERVICE_ACCOUNT_SECRET_NAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maintnerd-sprvsr-cip
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  selector:
+    app: maintnerd-sprvsr
+  type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: esp-maintnerd-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: maintnerd-ip
+    networking.gke.io/managed-certificates: drghs-endpoints-cert
+  labels:
+    app: maintnerd
+spec:
+  backend:
+    serviceName: esp-maintnerd-rtr-np
+    servicePort: 80
+---
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: drghs-endpoints-cert
+spec:
+  domains:
+    - drghs.endpoints.PROJECT_ID.cloud.goog
+    # - drghs.devrelservices.app

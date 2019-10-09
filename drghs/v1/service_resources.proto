@@ -1,0 +1,72 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package drghs.v1;
+
+import "google/api/annotations.proto";
+import "resources.proto";
+
+// Request message for [SampleService.ListRepositories][].
+message ListRepositoriesRequest {
+  // Required. The resource name of the owner associated with the
+  // [Repositories][Repository], in the format `owners/*`.
+  string parent = 1;
+  // Optional. Limit the number of [Repositories][Repository] to include in the
+  // response. Fewer repositories than requested might be returned.
+  //
+  // The maximum page size is `100`. If unspecified, the page size will be the
+  // maximum. Further [Repositories][Repository] can subsequently be obtained
+  // by including the [ListRepositoriesResponse.next_page_token][] in a
+  // subsequent request.
+  int32 page_size = 2;
+  // Optional. To request the first page of results, `page_token` must be empty.
+  // To request the next page of results, page_token must be the value of
+  // [ListRepositoriesResponse.next_page_token][] returned by a previous call to
+  // [Repositorieservice.ListRepositories][].
+  //
+  // The page token is valid for only 2 hours.
+  string page_token = 3;
+  // Optional. Filter expression used to include in the response only those
+  // resources that match the filter. Filter must be in following the format:
+  //
+  //     field1=123
+  //     field2="Foo bar"
+  //     field3 IN ["value3", "value4"]
+  //
+  // Valid filter fields are: `repo` and `owner`.
+  //
+  string filter = 4;
+  // Optional. Specify how the results should be sorted. The fields supported
+  // for sorting are `name` and `size`.
+  // The default ordering is by `name`. Prefix with `-` to specify
+  // descending order, e.g. `-name`.
+  string order_by = 5;
+}
+
+//Response message for [SampleService.ListRepositories][].
+message ListRepositoriesResponse {
+  // The list of [Repositories][Repository].
+  repeated drghs.v1.Repository repositories = 1;
+
+  // A token to retrieve the next page of results, or empty if there are no
+  // more results in the list. Pass this value in
+  // [ListRepositoriesRequest.page_token][] to retrieve the next page of
+  // results.
+  string next_page_token =2;
+
+  // The total number of repositories that matched the query.
+  int32 total = 3;
+}

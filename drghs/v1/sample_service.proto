@@ -1,0 +1,302 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package drghs.v1;
+
+import "google/api/annotations.proto";
+import "resources.proto";
+import "service_resources.proto";
+
+// Sample Service
+service SampleService {
+  // Lists [GitCommits][GitCommit].
+  rpc ListGitCommits(ListGitCommitsRequest) returns (ListGitCommitsResponse) {
+    option (google.api.http) = {
+      get: "/v1/{parent=owners/*/repositories/*}/gitCommits"
+    };
+  }
+
+  // Gets a [GitCommit][].
+  rpc GetGitCommit(GetGitCommitRequest) returns (GitCommit) {
+    option (google.api.http) = {
+      get: "/v1/{name=owners/*/repositories/*/gitCommits/*}"
+    };
+  }
+
+  // Lists [Files][File].
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse) {
+    option (google.api.http) = {
+      get: "/v1/{parent=owners/*/repositories/*}/files"
+    };
+  }
+
+  // Lists [Snippets][Snippet].
+  rpc ListSnippets(ListSnippetsRequest) returns (ListSnippetsResponse) {
+    option (google.api.http) = {
+      get: "/v1/{parent=owners/*/repositories/*}/snippets"
+    };
+  }
+
+  // Lists [SnippetVersions][SnippetVersion].
+  rpc ListSnippetVersions(ListSnippetVersionsRequest) returns (ListSnippetVersionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/{parent=owners/*/repositories/*/snippets/*/languages/*}/snippetVersions"
+    };
+  }
+
+  // Lists [Repositories][Repository].
+  rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse) {
+    option (google.api.http) = {
+      get: "/v1/{parent=owners/*}/repositories"
+    };
+  }
+}
+
+// Request message for [SampleService.ListGitCommits][].
+message ListGitCommitsRequest {
+  // Required. The resource name of the repository associated with the
+  // [GitCommits][GitCommit], in the format `owners/*/repositories/*`.
+  string parent = 1;
+
+  // Optional. Limit the number of [GitCommits][GitCommit] to include in the
+  // response. Fewer gitCommits than requested might be returned.
+  //
+  // The maximum page size is `100`. If unspecified, the page size will be the
+  // maximum. Further [GitCommits][GitCommit] can subsequently be obtained
+  // by including the [ListGitCommitsResponse.next_page_token][] in a
+  // subsequent request.
+  int32 page_size = 2;
+
+  // Optional. To request the first page of results, `page_token` must be empty.
+  // To request the next page of results, page_token must be the value of
+  // [ListGitCommitsResponse.next_page_token][] returned by a previous call to
+  // [GitCommitservice.ListGitCommits][].
+  //
+  // The page token is valid for only 2 hours.
+  string page_token = 3;
+
+  // Optional. Filter expression used to only include resources that match the
+  // filter in the response. Filter must be in following the format:
+  //
+  //     field1=123
+  //     field2="Foo bar"
+  //     field3 IN (value3, value4)
+  //     field4 LIKE "%somestring%"
+  //
+  // Valid filter fields are: `name`, `repo`, and `size`.
+  //
+  string filter = 4;
+
+  // Optional. Specify how the results should be sorted. The fields supported
+  // for sorting are `name` and `size`.
+  // The default ordering is by `name`. Prefix with `-` to specify
+  // descending order, e.g. `-name`.
+  string order_by = 5;
+}
+
+// Response message for [SampleService.ListGitCommits][].
+message ListGitCommitsResponse {
+  // The list of [GitCommits][GitCommit].
+  repeated drghs.v1.GitCommit git_commits = 1;
+
+  // A token to retrieve the next page of results, or empty if there are no
+  // more results in the list. Pass this value in
+  // [ListGitCommitsRequest.page_token][] to retrieve the next page of
+  // results.
+  string next_page_token = 2;
+
+  // The total number of [GitCommits][GitCommit] that matched the query.
+  int32 total = 3;
+}
+
+// Response message for [SampleService.GetGitCommit][].
+message GetGitCommitRequest {
+  // Required. The fully qualified name of the [GitCommit][], in the format
+  // `owners/*/repositories/*/gitCommits/*`.
+  string name = 1;
+}
+
+// Request message for [SampleService.ListFiles][].
+message ListFilesRequest {
+  // Required. The resource name of the repository associated with the
+  // [Files][File], in the format `owners/*/repositories/*`.
+  string parent = 1;
+
+  // Optional. Limit the number of [Files][File] to include in the
+  // response. Fewer files than requested might be returned.
+  //
+  // The maximum page size is `100`. If unspecified, the page size will be the
+  // maximum. Further [Files][File] can subsequently be obtained
+  // by including the [ListFilesResponse.next_page_token][] in a
+  // subsequent request.
+  int32 page_size = 2;
+
+  // Optional. To request the first page of results, `page_token` must be empty.
+  // To request the next page of results, page_token must be the value of
+  // [ListFilesResponse.next_page_token][] returned by a previous call to
+  // [FileService.ListFiles][].
+  //
+  // The page token is valid for only 2 hours.
+  string page_token = 3;
+
+  // Optional. Filter expression used to only include resources that match the
+  // filter in the response. Filter must be in following the format:
+  //
+  //     field1=123
+  //     field2="Foo bar"
+  //     field3 IN (value3, value4)
+  //     field4 LIKE "%somestring%"
+  //
+  // Valid filter fields are: `name`, `repo`, and `size`.
+  //
+  string filter = 4;
+
+  // Optional. Specify how the results should be sorted. The fields supported
+  // for sorting are `name` and `size`.
+  // The default ordering is by `name`. Prefix with `-` to specify
+  // descending order, e.g. `-name`.
+  string order_by = 5;
+}
+
+// Response message for [SampleService.ListFiles][].
+message ListFilesResponse {
+  // The list of [Files][File].
+  repeated drghs.v1.File files = 1;
+
+  // A token to retrieve the next page of results, or empty if there are no
+  // more results in the list. Pass this value in
+  // [ListFilesRequest.page_token][] to retrieve the next page of
+  // results.
+  string next_page_token = 2;
+
+  // The total number of [Files][File] that matched the query.
+  int32 total = 3;
+}
+
+// Request message for [SampleService.ListSnippets][].
+message ListSnippetsRequest {
+  // Required. The resource name of the repository associated with the
+  // [Snippets][Snippet], in the format `owners/*/repositories/*`.
+  string parent = 1;
+
+  // Optional. Limit the number of [Snippets][Snippet] to include in the
+  // response. Fewer snippets than requested might be returned.
+  //
+  // The maximum page size is `100`. If unspecified, the page size will be the
+  // maximum. Further [Snippets][Snippet] can subsequently be obtained
+  // by including the [ListSnippetsResponse.next_page_token][] in a
+  // subsequent request.
+  int32 page_size = 2;
+
+  // Optional. To request the first page of results, `page_token` must be empty.
+  // To request the next page of results, page_token must be the value of
+  // [ListSnippetsResponse.next_page_token][] returned by a previous call to
+  // [SnippetService.ListSnippets][].
+  //
+  // The page token is valid for only 2 hours.
+  string page_token = 3;
+
+  // Optional. Filter expression used to only include resources that match the
+  // filter in the response. Filter must be in following the format:
+  //
+  //     field1=123
+  //     field2="Foo bar"
+  //     field3 IN (value3, value4)
+  //     field4 LIKE "%somestring%"
+  //
+  // Valid filter fields are: `region_tag`, `content`, `file.name`, `file.repo`.
+  //
+  string filter = 4;
+
+  // Optional. Specify how the results should be sorted. The fields supported
+  // for sorting are `name` and `size`.
+  // The default ordering is by `name`. Prefix with `-` to specify
+  // descending order, e.g. `-name`.
+  string order_by = 5;
+}
+
+// Response message for [SampleService.ListSnippets][].
+message ListSnippetsResponse {
+  // The list of [Snippets][Snippet].
+  repeated drghs.v1.Snippet snippets = 1;
+
+  // A token to retrieve the next page of results, or empty if there are no
+  // more results in the list. Pass this value in
+  // [ListSnippetsRequest.page_token][] to retrieve the next page of
+  // results.
+  string next_page_token = 2;
+
+  // The total number of [Snippets][Snippet] that matched the query.
+  int32 total = 3;
+}
+
+// Request message for [SampleService.ListSnippetVersions][].
+message ListSnippetVersionsRequest {
+  // Required. The resource name of the repository associated with the
+  // [SnippetVersions][Snippet], in the format `owners/*/repositories/*/snippets/*/languages/*`.
+  string parent = 1;
+
+  // Optional. Limit the number of [SnippetVersions][SnippetVersion] to include in the
+  // response. Fewer snippetVersions than requested might be returned.
+  //
+  // The maximum page size is `10`. If unspecified, the page size will be the
+  // maximum. Further [SnippetVersions][SnippetVersion] can subsequently be obtained
+  // by including the [ListSnippetVersionsResponse.next_page_token][] in a
+  // subsequent request.
+  int32 page_size = 2;
+
+  // Optional. To request the first page of results, `page_token` must be empty.
+  // To request the next page of results, page_token must be the value of
+  // [ListSnippetVersionsResponse.next_page_token][] returned by a previous call to
+  // [SnippetVersionService.ListSnippetVersions][].
+  //
+  // The page token is valid for only 2 hours.
+  string page_token = 3;
+
+  // Optional. Filter expression used to only include resources that match the
+  // filter in the response. Filter must be in following the format:
+  //
+  //     field1=123
+  //     field2="Foo bar"
+  //     field3 IN (value3, value4)
+  //     field4 LIKE "%somestring%"
+  //
+  // Valid filter fields are: `region_tag`, `content`, `file.name`, `file.repo`.
+  //
+  string filter = 4;
+
+  // Optional. Specify how the results should be sorted. The fields supported
+  // for sorting are `name` and `size`.
+  // The default ordering is by `name`. Prefix with `-` to specify
+  // descending order, e.g. `-name`.
+  string order_by = 5;
+}
+
+// Response message for [SampleService.ListSnippetVersions][].
+message ListSnippetVersionsResponse {
+  // The list of [SnippetVersions][SnippetVersion].
+  repeated drghs.v1.SnippetVersion snippet_versions = 1;
+
+  // A token to retrieve the next page of results, or empty if there are no
+  // more results in the list. Pass this value in
+  // [ListSnippetVersionsRequest.page_token][] to retrieve the next page of
+  // results.
+  string next_page_token = 2;
+
+  // The total number of [SnippetVersions][SnippetVersion] that matched the query.
+  int32 total = 3;
+}
+

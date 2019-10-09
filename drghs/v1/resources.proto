@@ -1,0 +1,130 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package drghs.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Repository {
+  string name = 1;
+}
+
+message GitCommit {
+  string name = 1;
+  string subject = 2;
+  string author_email = 3;
+  google.protobuf.Timestamp authored_time = 4;
+  string committer_email = 5;
+  google.protobuf.Timestamp committed_time = 6;
+  string sha = 7;
+}
+
+message GitHubUser {
+  int32 id = 1;
+  string login = 2;
+}
+
+message GitHubComment {
+  int32 id = 1;
+  drghs.v1.GitHubUser user = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  string body = 5;
+}
+
+message Issue {
+  string name = 1;
+  string title = 2;
+  string body = 3;
+
+  enum Priority {
+    PRIORITY_UNSPECIFIED = 0;
+    P0 = 1;
+    P1 = 2;
+    P2 = 3;
+    P3 = 4;
+    P4 = 5;
+  }
+
+  Priority priority = 4;
+
+  enum IssueType {
+    GITHUB_ISSUE_TYPE_UNSPECIFIED = 0;
+    BUG = 1;
+    FEATURE = 2;
+    QUESTION = 3;
+    CLEANUP = 4;
+    PROCESS = 5;
+  }
+
+  drghs.v1.Issue.IssueType issue_type = 5;
+  repeated string labels = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  google.protobuf.Timestamp closed_at = 9;
+  bool closed = 10;
+  drghs.v1.GitHubUser closed_by = 11;
+  bool is_pr = 12;
+  bool approved = 13;
+  drghs.v1.GitCommit git_commit = 14;
+  int32 issue_id = 15;
+  string url = 16;
+  repeated drghs.v1.GitHubUser assignees = 17;
+  drghs.v1.GitHubUser reporter = 18;
+  repeated drghs.v1.GitHubComment comments = 19;
+}
+
+message File {
+  // Output only. The full path of the  [File][] within its [Repository][].
+  string filepath = 1;
+
+  // Output only. The [GitCommit][] of the file.
+  drghs.v1.GitCommit git_commit = 2;
+  int32 size = 3;
+}
+
+message SnippetVersionMeta {
+  // Output only. Used as metadata information on the [SnipeptVersion[
+  string title = 1;
+  string description = 2;
+  string usage = 3;
+  string api_version = 4;
+}
+
+message SnippetVersion {
+  // Output only. The resource name for the [SnippetVersion][] in the format
+  // `owners/*/repositories/*/snippets/*/snippetVersions/*`.
+  string name = 1;
+  drghs.v1.File file = 2;
+  repeated string lines = 3;
+  string content = 4;
+  SnippetVersionMeta meta = 5;
+}
+
+message Snippet {
+  // Output only. The resource name for the [Snippet][] in the format
+  // `owners/*/repositories/*/snippets/*/languages/*`.
+  string name = 1;
+
+  // Output only. The programming language of the snippet.
+  // TODO(jdobry): Switch this from a string to an enum of the languages from
+  // https://github.com/src-d/enry.
+  string language = 2;
+
+  // Output only. A copy of the most recent [SnippetVersion][] of the
+  // [Snippet][].
+  SnippetVersion primary = 3;
+}
