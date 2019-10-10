@@ -414,13 +414,13 @@ func processPreviouslySeenSnippets(cmt *GitCommit, snippets map[string]*Snippet,
 				// if in this commit, the snippet exists
 				// for this file
 				found := false
-				foundFile := false
+				var foundFile *File = nil
 				for fle, snippetVersions := range snippetVersionsInThisCommit {
 					if found || fle.FilePath != seenFile {
 						continue
 					}
 
-					foundFile = true
+					foundFile = fle
 					for _, version := range snippetVersions {
 						if version.Name != seenSnippet {
 							continue
@@ -431,7 +431,7 @@ func processPreviouslySeenSnippets(cmt *GitCommit, snippets map[string]*Snippet,
 
 				// If we found it, or if the file it was in was not changed in this commit,
 				// then this snippet is unmodified
-				if found || !foundFile {
+				if found || foundFile == nil {
 					continue
 				}
 
@@ -439,11 +439,10 @@ func processPreviouslySeenSnippets(cmt *GitCommit, snippets map[string]*Snippet,
 
 				seenSnps[seenSnippet] = false
 				// Insert an "empty" snippet version for this
-				pFile := snippets[seenSnippet].Versions[len(snippets[seenSnippet].Versions)-1].File
 				nFile := File{
-					FilePath:  pFile.FilePath,
+					FilePath:  foundFile.FilePath,
 					GitCommit: cmt,
-					Size:      pFile.Size,
+					Size:      foundFile.Size,
 				}
 
 				snippets[seenSnippet].Versions = append(snippets[seenSnippet].Versions, SnippetVersion{

@@ -743,7 +743,7 @@ func TestProcessSeenSnippets(t *testing.T) {
 							Name: "foosnp/1",
 							File: &File{
 								FilePath: "foofile",
-								Size:     1234,
+								Size:     0,
 								GitCommit: &GitCommit{
 									Hash: "aHash",
 								},
@@ -756,7 +756,7 @@ func TestProcessSeenSnippets(t *testing.T) {
 						Name: "foosnp/1",
 						File: &File{
 							FilePath: "foofile",
-							Size:     1234,
+							Size:     0,
 							GitCommit: &GitCommit{
 								Hash: "aHash",
 							},
@@ -1074,6 +1074,79 @@ func TestSnippetsEquivalent(t *testing.T) {
 
 		if gotBA != gotAB {
 			t.Errorf("snippetsEquivalent: %v\n\tIs not isomorphic", c.Name)
+		}
+	}
+}
+
+func TestProcessPreviouslySeenSnippets(t *testing.T) {
+	cases := []struct {
+		Name                        string
+		cmt                         *GitCommit
+		snippets                    map[string]*Snippet
+		snippetVersionsInThisCommit map[*File]map[string]SnippetVersion
+		seenSnippets                map[string]map[string]bool
+		WantSnippets                map[string]*Snippet
+	}{
+		{
+			Name: "Deletes to to correct file",
+			cmt: &GitCommit{
+				Hash: "foo",
+			},
+			snippets: map[string]*Snippet{
+				"foo": &Snippet{
+					Name: "foo",
+				},
+			},
+			snippetVersionsInThisCommit: map[*File]map[string]SnippetVersion{
+				&File{
+					FilePath: "bar.sh",
+				}: map[string]SnippetVersion{
+					"bar": SnippetVersion{},
+				},
+				&File{
+					FilePath: "foo.sh",
+				}: map[string]SnippetVersion{},
+			},
+			seenSnippets: map[string]map[string]bool{
+				"foo.sh": map[string]bool{
+					"foo": true,
+				},
+			},
+			WantSnippets: map[string]*Snippet{
+				"foo": &Snippet{
+					Name: "foo",
+					Versions: []SnippetVersion{
+						{
+							Name: "foo/0",
+							File: &File{
+								FilePath: "foo.sh",
+								GitCommit: &GitCommit{
+									Hash: "foo",
+								},
+							},
+							Lines: []string{},
+						},
+					},
+					Primary: SnippetVersion{
+						Name: "foo/0",
+						File: &File{
+							FilePath: "foo.sh",
+							GitCommit: &GitCommit{
+								Hash: "foo",
+							},
+						},
+						Lines:   []string{},
+						Content: "",
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		processPreviouslySeenSnippets(c.cmt, c.snippets, c.snippetVersionsInThisCommit, c.seenSnippets)
+		if diff := cmp.Diff(c.WantSnippets, c.snippets); diff != "" {
+			t.Errorf("%v failed. Diff (-want, +got) \n%v", c.Name, diff)
 		}
 	}
 }
