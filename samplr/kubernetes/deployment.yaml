@@ -54,7 +54,6 @@ spec:
         command: [
           "/samplr-rtr",
           "--listen=:80",
-          "--supervisor=samplrd-sprvsr-cip", # TODO(colnnelson): Replace this with a label?
           "--verbose",
         ]
         ports:
