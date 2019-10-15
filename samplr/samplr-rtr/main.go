@@ -36,9 +36,8 @@ import (
 
 // Flags
 var (
-	listen     = flag.String("listen", ":6343", "listen address")
-	verbose    = flag.Bool("verbose", false, "enable verbose debug output")
-	supervisor = flag.String("supervisor", "", "the name of the service that is hosting the supervisor")
+	listen  = flag.String("listen", ":6343", "listen address")
+	verbose = flag.Bool("verbose", false, "enable verbose debug output")
 )
 
 var (
@@ -77,10 +76,6 @@ func main() {
 		log.Level = logrus.TraceLevel
 	}
 
-	if *supervisor == "" {
-		log.Fatal("error: must specify --supervisor")
-	}
-
 	if *listen == "" {
 		log.Fatal("error: must specify --listen")
 	}
@@ -106,7 +101,7 @@ func main() {
 type reverseProxyServer struct{}
 
 func (s *reverseProxyServer) ListRepositories(ctx context.Context, req *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
-	// TODO(colnnelson): This will need to reach out to the k8s api server
+	// TODO(orthros): This will need to reach out to the k8s api server
 	// get all services with "owner" tag == request owner && then read the "repo"
 	// tag from them
 
