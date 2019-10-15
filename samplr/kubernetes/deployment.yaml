@@ -64,6 +64,15 @@ spec:
         volumeMounts:
         - mountPath: /var/secrets/google
           name: gcp-sa
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:80"]
+          periodSeconds: 10
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:80"]
+          initialDelaySeconds: 5
         resources:
           limits:
             cpu: "200m"

@@ -32,6 +32,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 // Flags
@@ -92,13 +96,24 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	reverseProxy := &reverseProxyServer{}
 	grpcServer := grpc.NewServer()
-	drghs_v1.RegisterSampleServiceServer(grpcServer, &reverseProxyServer{})
+	drghs_v1.RegisterSampleServiceServer(grpcServer, reverseProxy)
+	healthpb.RegisterHealthServer(grpcServer, reverseProxy)
 	log.Printf("gRPC server listening on: %s", *listen)
 	grpcServer.Serve(lis)
 }
 
 type reverseProxyServer struct{}
+
+// Check is for health checking.
+func (s *reverseProxyServer) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
+}
+
+func (s *reverseProxyServer) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
+	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
+}
 
 func (s *reverseProxyServer) ListRepositories(ctx context.Context, req *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
 	// TODO(orthros): This will need to reach out to the k8s api server

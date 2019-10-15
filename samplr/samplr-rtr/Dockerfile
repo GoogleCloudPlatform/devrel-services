@@ -23,8 +23,19 @@ WORKDIR /src/devrel/cloud/devrel-github-service/samplr/samplr-rtr
 
 RUN go install devrel/cloud/devrel-github-service/samplr/samplr-rtr
 
+FROM alpine as health
+
+RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
 FROM gcr.io/distroless/base
+
 COPY --from=build /go/bin/samplr-rtr /
+COPY --from=health /bin/grpc_health_probe /bin/grpc_health_probe
+
 WORKDIR /src
+
 COPY . .
+
 CMD ["/samplr-rtr"]
