@@ -25,7 +25,7 @@ add and delete `Deployment`s and `Service`s for each repository listed in the fi
 This process is a reverse proxy that takes the incoming request, parses out
 the Owner and Repository from the request and proxies it to the `Service` in the cluster that is responsible for the repository
 
-### cmd
+### maintnerd
 
 This is the "main" process that leverages the `corpus` from `maintner` and syncrhonizes the Issues and Pull Requests from GitHub and exposes the API to query them.
 
