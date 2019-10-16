@@ -106,7 +106,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	gl, err := gcslog.NewGCSLog(ctx, fmt.Sprintf("%v/%v/%v", *bucket, *owner, *repo))
+	gl, err := gcslog.NewGCSLog(ctx, fmt.Sprintf("%v/%v/%v/", *bucket, *owner, *repo))
 	if err != nil {
 		err := fmt.Errorf("NewGCSLog: %v", err)
 		logAndPrintError(err)
