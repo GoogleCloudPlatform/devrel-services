@@ -22,9 +22,9 @@ import (
 	"os"
 	"time"
 
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
-	"devrel/cloud/devrel-github-service/samplr"
-	"devrel/cloud/devrel-github-service/samplr/samplrd/samplrapi"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrd/samplrapi"
 
 	"cloud.google.com/go/profiler"
 	"github.com/sirupsen/logrus"

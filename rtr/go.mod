@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module devrel/cloud/devrel-github-service/rtr
+module github.com/GoogleCloudPlatform/devrel-services/rtr
 
 go 1.12
 

@@ -16,7 +16,7 @@ package main
 
 import (
 	"context"
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"flag"
 	"fmt"
 	"log"
@@ -26,9 +26,9 @@ import (
 	"strings"
 	"time"
 
-	"devrel/cloud/devrel-github-service/drghs-worker/maintnerd/api/v1beta1"
-	"devrel/cloud/devrel-github-service/drghs-worker/maintnerd/internal/apiroutes"
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/googlers"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/v1beta1"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/internal/apiroutes"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
 	"cloud.google.com/go/errorreporting"
 	"github.com/gorilla/mux"

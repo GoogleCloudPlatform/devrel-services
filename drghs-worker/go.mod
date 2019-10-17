@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module devrel/cloud/devrel-github-service/drghs-worker
+module github.com/GoogleCloudPlatform/devrel-services/drghs-worker
 
 require (
 	cloud.google.com/go v0.40.0
-	devrel/cloud/devrel-github-service/drghs v0.0.0-00010101000000-000000000000
-	devrel/cloud/devrel-github-service/repos v0.0.0
-	devrel/cloud/devrel-github-service/rtr v0.0.0
-	devrel/cloud/devrel-github-service/sprvsr v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-00010101000000-000000000000
+	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/rtr v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/sprvsr v0.0.0
 
 	github.com/deckarep/golang-set v1.7.1
 	github.com/golang/protobuf v1.3.2
@@ -39,12 +39,12 @@ require (
 	k8s.io/client-go v0.0.0-20190528154735-79226fe1949a
 )
 
-replace devrel/cloud/devrel-github-service/drghs => ../drghs
+replace github.com/GoogleCloudPlatform/devrel-services/drghs => ../drghs
 
-replace devrel/cloud/devrel-github-service/rtr => ../rtr
+replace github.com/GoogleCloudPlatform/devrel-services/rtr => ../rtr
 
-replace devrel/cloud/devrel-github-service/sprvsr => ../sprvsr
+replace github.com/GoogleCloudPlatform/devrel-services/sprvsr => ../sprvsr
 
-replace devrel/cloud/devrel-github-service/repos => ../repos
+replace github.com/GoogleCloudPlatform/devrel-services/repos => ../repos
 
 go 1.13

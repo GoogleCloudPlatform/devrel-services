@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/testutil"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/testutil"
 )
 
 const (

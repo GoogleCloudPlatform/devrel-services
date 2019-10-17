@@ -19,8 +19,8 @@ import (
 	"errors"
 	"strings"
 
-	git "devrel/cloud/devrel-github-service/git-go"
-	"devrel/cloud/devrel-github-service/samplr"
+	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
 
 	"golang.org/x/sync/errgroup"
 )

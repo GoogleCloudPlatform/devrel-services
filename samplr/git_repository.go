@@ -22,7 +22,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
-	git "devrel/cloud/devrel-github-service/git-go"
+	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 	"golang.org/x/sync/errgroup"
 )
 var urlReg = regexp.MustCompile("https://github.com/([\\w-_]+)/([\\w-_]+)")

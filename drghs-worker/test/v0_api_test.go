@@ -15,7 +15,7 @@
 package main
 
 import (
-	"devrel/cloud/devrel-github-service/drghs-worker/internal/apiroutes"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal/apiroutes"
 	"net/http"
 	"net/http/httptest"
 	"strings"

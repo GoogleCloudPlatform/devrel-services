@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"devrel/cloud/devrel-github-service/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"

@@ -15,9 +15,9 @@
 package apiroutes
 
 import (
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/googlers"
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/status"
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/utils"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/status"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/utils"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
