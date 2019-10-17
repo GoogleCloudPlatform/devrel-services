@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package tokens
 
 import (
-	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/tokens"
 	"fmt"
 	"testing"
 )
@@ -39,7 +38,7 @@ func TestGetstokens(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		store := tokens.NewRotatingVendor(test.tokens)
+		store := NewRotatingVendor(test.tokens)
 
 		for i := 0; i < len(test.tokens)*2; i++ {
 			token, err := store.GetToken()

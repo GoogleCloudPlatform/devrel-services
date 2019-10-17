@@ -12,21 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package apiroutes
 
 import (
-	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal/apiroutes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/gorilla/mux"
-
-	"golang.org/x/build/maintner"
-
 	"github.com/matryer/is"
+	"golang.org/x/build/maintner"
 )
 
 type googlerVoid struct {
@@ -38,12 +34,11 @@ func (gv googlerVoid) Update()                    {}
 func TestV1HandlesApprovedPRs(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV1Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -60,12 +55,11 @@ func TestV1HandlesApprovedPRs(t *testing.T) {
 func TestV1FailsSloViolationsBody(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV1Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -82,12 +76,11 @@ func TestV1FailsSloViolationsBody(t *testing.T) {
 func TestV1SloViolationsNoConfigs(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV1Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -104,12 +97,11 @@ func TestV1SloViolationsNoConfigs(t *testing.T) {
 func TestV1HandlesGetIssues(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV1Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -126,12 +118,11 @@ func TestV1HandlesGetIssues(t *testing.T) {
 func TestV1HandlesGetIssue(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV1Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -148,12 +139,11 @@ func TestV1HandlesGetIssue(t *testing.T) {
 func TestV1GetIssueMustBeDigits(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV1Api(cor, resolver, router)
 
 	is.NoErr(err)
 

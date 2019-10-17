@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package apiroutes
 
 import (
-	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal/apiroutes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -32,12 +30,11 @@ import (
 func TestHandlesApprovedPRs(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV0Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -54,12 +51,11 @@ func TestHandlesApprovedPRs(t *testing.T) {
 func TestFailsSloViolationsBody(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV0Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -76,12 +72,11 @@ func TestFailsSloViolationsBody(t *testing.T) {
 func TestSloViolationsNoConfigs(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV0Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -98,12 +93,11 @@ func TestSloViolationsNoConfigs(t *testing.T) {
 func TestHandlesGetIssues(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV0Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -120,12 +114,11 @@ func TestHandlesGetIssues(t *testing.T) {
 func TestHandlesGetIssue(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV0Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
