@@ -52,7 +52,7 @@ all: help
 
 .PHONY: build
 build: ## Builds the docker image locally
-	docker build -t maintnerd:dev -f cmd/Dockerfile ../
+	docker build -t maintnerd:dev -f maintnerd/Dockerfile ../
 	docker build -t maintnerd-rtr:dev -f maintner-rtr/Dockerfile ../
 	docker build -t maintnerd-sprvsr:dev -f maintner-sprvsr/Dockerfile ../
 

@@ -31,10 +31,10 @@ WORKDIR /src/devrel/cloud/devrel-github-service/drghs-worker
 
 # END Jank
 
-RUN go install devrel/cloud/devrel-github-service/drghs-worker/cmd
+RUN go install devrel/cloud/devrel-github-service/drghs-worker/maintnerd
 
 FROM golang:1.11
-COPY --from=build /go/bin/cmd /
+COPY --from=build /go/bin/maintnerd /
 WORKDIR /src
 COPY . .
-CMD ["/cmd"]
+CMD ["/maintnerd"]

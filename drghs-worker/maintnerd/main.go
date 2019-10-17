@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"devrel/cloud/devrel-github-service/drghs-worker/api/v1beta1"
-	"devrel/cloud/devrel-github-service/drghs-worker/internal/apiroutes"
+	"devrel/cloud/devrel-github-service/drghs-worker/maintnerd/api/v1beta1"
+	"devrel/cloud/devrel-github-service/drghs-worker/maintnerd/internal/apiroutes"
 	"devrel/cloud/devrel-github-service/drghs-worker/pkg/googlers"
 
 	"cloud.google.com/go/errorreporting"

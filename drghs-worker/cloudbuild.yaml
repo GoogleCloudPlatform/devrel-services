@@ -15,7 +15,7 @@
 steps:
 # Build Maintner
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintnerd:$BUILD_ID','-f', 'drghs-worker/cmd/Dockerfile', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintnerd:$BUILD_ID','-f', 'drghs-worker/maintnerd/Dockerfile', '.']
   id: 'maintnerd-build'
   waitFor: ['-'] # Start Immediately
 

@@ -306,7 +306,7 @@ func buildDeployment(sasecretname, githubsecretname, githubsecretkey string, ta 
 							Image:           *mimagename,
 							ImagePullPolicy: "Always",
 							Command: []string{
-								"/cmd",
+								"/maintnerd",
 								fmt.Sprintf("--bucket=%v", bucketName(ta)),
 								"--verbose",
 								"--token=$(GITHUB_TOKEN)",
