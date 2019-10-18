@@ -15,7 +15,7 @@
 package filter
 
 import (
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"testing"
 	"time"
 

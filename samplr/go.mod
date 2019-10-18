@@ -1,12 +1,12 @@
-module devrel/cloud/devrel-github-service/samplr
+module github.com/GoogleCloudPlatform/devrel-services/samplr
 
 require (
 	cloud.google.com/go v0.40.0
-	devrel/cloud/devrel-github-service/drghs v0.0.0
-	devrel/cloud/devrel-github-service/git-go v0.0.0
-	devrel/cloud/devrel-github-service/repos v0.0.0
-	devrel/cloud/devrel-github-service/rtr v0.0.0 // indirect
-	devrel/cloud/devrel-github-service/sprvsr v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/git-go v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/rtr v0.0.0 // indirect
+	github.com/GoogleCloudPlatform/devrel-services/sprvsr v0.0.0
 
 	github.com/cespare/trie v0.0.0-20150610204604-3fe1a95cbba9 // indirect
 	github.com/golang/protobuf v1.3.2
@@ -28,14 +28,14 @@ require (
 	k8s.io/client-go v0.0.0-20190528154735-79226fe1949a
 )
 
-replace devrel/cloud/devrel-github-service/drghs => ../drghs
+replace github.com/GoogleCloudPlatform/devrel-services/drghs => ../drghs
 
-replace devrel/cloud/devrel-github-service/git-go => ./git-go
+replace github.com/GoogleCloudPlatform/devrel-services/git-go => ./git-go
 
-replace devrel/cloud/devrel-github-service/repos => ../repos
+replace github.com/GoogleCloudPlatform/devrel-services/repos => ../repos
 
-replace devrel/cloud/devrel-github-service/rtr => ../rtr
+replace github.com/GoogleCloudPlatform/devrel-services/rtr => ../rtr
 
-replace devrel/cloud/devrel-github-service/sprvsr => ../sprvsr
+replace github.com/GoogleCloudPlatform/devrel-services/sprvsr => ../sprvsr
 
 go 1.13

@@ -18,7 +18,7 @@ package testutil
 import (
 	"bytes"
 
-	commands "devrel/cloud/devrel-github-service/samplr/samplrctl/cmd"
+	commands "github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/cmd"
 
 	"github.com/spf13/cobra"
 )

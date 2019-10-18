@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"sync"
 
-	"devrel/cloud/devrel-github-service/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"

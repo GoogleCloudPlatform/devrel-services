@@ -15,7 +15,7 @@
 package main
 
 import (
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/utils"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/utils"
 	"encoding/json"
 	"testing"
 )

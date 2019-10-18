@@ -16,22 +16,22 @@ FROM golang:1.13 as build
 
 ENV GO111MODULE=on
 
-WORKDIR /src/devrel/cloud/devrel-github-service
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
 COPY . .
 
 # BEGIN Jank to get an upstream patch into the build
-WORKDIR /src/devrel/cloud/devrel-github-service
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
 RUN git clone https://go.googlesource.com/build build
-WORKDIR /src/devrel/cloud/devrel-github-service/build
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/build
 RUN git fetch https://go.googlesource.com/build refs/changes/38/176638/5 && git checkout FETCH_HEAD
 
 RUN echo "replace golang.org/x/build => ../build " >> ../drghs-worker/go.mod
 
-WORKDIR /src/devrel/cloud/devrel-github-service/drghs-worker
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/drghs-worker
 
 # END Jank
 
-RUN go install devrel/cloud/devrel-github-service/drghs-worker/maintnerd
+RUN go install github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd
 
 FROM golang:1.11
 COPY --from=build /go/bin/maintnerd /

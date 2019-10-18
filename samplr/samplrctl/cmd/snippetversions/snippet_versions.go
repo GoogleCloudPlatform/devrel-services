@@ -18,10 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	"devrel/cloud/devrel-github-service/samplr"
-	commands "devrel/cloud/devrel-github-service/samplr/samplrctl/cmd"
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/snippetversions"
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/utils"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
+	commands "github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/cmd"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/snippetversions"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/utils"
 
 	"github.com/spf13/cobra"
 )

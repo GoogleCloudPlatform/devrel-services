@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	git "devrel/cloud/devrel-github-service/git-go"
+	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 
 	"github.com/google/go-cmp/cmp"
 )

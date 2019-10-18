@@ -18,9 +18,9 @@ import (
 	"context"
 	"strings"
 
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/googlers"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
 	"golang.org/x/build/maintner"
 

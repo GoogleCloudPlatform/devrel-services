@@ -16,12 +16,12 @@ FROM golang:1.13 as build
 
 ENV GO111MODULE=on
 
-WORKDIR /src/devrel/cloud/devrel-github-service
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
 COPY . .
 
-WORKDIR /src/devrel/cloud/devrel-github-service/drghs-worker/maintner-rtr
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintner-rtr
 
-RUN go install devrel/cloud/devrel-github-service/drghs-worker/maintner-rtr
+RUN go install github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintner-rtr
 
 FROM gcr.io/distroless/base
 COPY --from=build /go/bin/maintner-rtr /

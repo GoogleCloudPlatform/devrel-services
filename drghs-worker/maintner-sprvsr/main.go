@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	"devrel/cloud/devrel-github-service/repos"
-	"devrel/cloud/devrel-github-service/sprvsr"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/sprvsr"
 
 	"cloud.google.com/go/errorreporting"
 	"cloud.google.com/go/storage"
