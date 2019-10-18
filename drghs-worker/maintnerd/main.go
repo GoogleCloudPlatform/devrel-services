@@ -16,31 +16,31 @@ package main
 
 import (
 	"context"
-	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/v1beta1"
-	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/internal/apiroutes"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
 	"cloud.google.com/go/errorreporting"
-	"github.com/gorilla/mux"
-	"github.com/urfave/negroni"
 	"golang.org/x/build/maintner"
 	"golang.org/x/build/maintner/maintnerd/gcslog"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
-	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (
-	listen    = flag.String("listen", ":6343", "listen address")
+	listen    = flag.String("listen", "0.0.0.0:6343", "listen address")
 	verbose   = flag.Bool("verbose", false, "enable verbose debug output")
 	bucket    = flag.String("bucket", "cdpe-maintner", "Google Cloud Storage bucket to use for log storage")
 	token     = flag.String("token", "", "Token to Access GitHub with")
@@ -133,56 +133,44 @@ func main() {
 
 	googlerResolver = googlers.NewGooglersStatic()
 
-	go func() {
-		// In the golang.org/x/build/maintner syncloop the update loops
-		// are done every 30 seconds.
-		// We will go for a less agressive schedule and only sync once every
-		// 1 minutes.
-		ticker := time.NewTicker(10 * time.Minute)
-		for t := range ticker.C {
-			log.Printf("Corpus.SyncLoop at %d", t)
-			// Lock it for writes
-			// Sync
-			if err := corpus.Sync(ctx); err != nil {
-				logAndPrintError(err)
-				log.Printf("Error during corpus sync %v", err)
+	group, ctx := errgroup.WithContext(context.Background())
+	group.Go(
+		func() error {
+			// In the golang.org/x/build/maintner syncloop the update loops
+			// are done every 30 seconds.
+			// We will go for a less agressive schedule and only sync once every
+			// 10 minutes.
+			ticker := time.NewTicker(10 * time.Minute)
+			for t := range ticker.C {
+				log.Printf("Corpus.SyncLoop at %v", t)
+				// Lock it for writes
+				// Sync
+				if err := corpus.Sync(ctx); err != nil {
+					logAndPrintError(err)
+					log.Printf("Error during corpus sync %v", err)
+				}
+				// Unlock
 			}
-			// Unlock
+			return nil
+		})
+
+	group.Go(func() error {
+		// Add gRPC service for v1beta1
+		grpcServer := grpc.NewServer()
+		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver)
+		drghs_v1.RegisterIssueServiceServer(grpcServer, s)
+		healthpb.RegisterHealthServer(grpcServer, s)
+
+		lis, err := net.Listen("tcp", *listen)
+		if err != nil {
+			log.Fatalf("failed to listen %v", err)
 		}
-	}()
 
-	// Add gRPC service for v1beta1
-	grpcServer := grpc.NewServer()
-	drghs_v1.RegisterIssueServiceServer(grpcServer, v1beta1.NewIssueServiceV1(corpus, googlerResolver))
-
-	// Send everything through Mux
-	r := mux.NewRouter()
-	apiSR := r.PathPrefix("/api").Subrouter()
-
-	// Keep a handle on our Api Routers
-	apis := registerApis(apiSR)
-	log.Printf("Registered: %v Api Routes", len(apis))
-
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/grpc") {
-			grpcServer.ServeHTTP(w, r)
-			return
-		}
+		log.Printf("gRPC server listening on: %s", *listen)
+		return grpcServer.Serve(lis)
 	})
-
-	r.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-		w.Write([]byte("ok"))
-	})
-
-	// Add middleware support
-	n := negroni.New()
-	l := negroni.NewLogger()
-	n.Use(l)
-	n.Use(negroni.NewRecovery())
-	n.UseHandler(r)
-
-	log.Fatal(http.ListenAndServe(*listen, n))
+	err = group.Wait()
+	log.Fatal(err)
 }
 
 func logAndPrintError(err error) {
@@ -190,29 +178,4 @@ func logAndPrintError(err error) {
 		Error: err,
 	})
 	log.Print(err)
-}
-
-func registerApis(r *mux.Router) []apiroutes.ApiRoute {
-	apis := make([]apiroutes.ApiRoute, 0)
-	vzSR := r.PathPrefix("/v0").Subrouter()
-
-	api, err := apiroutes.NewV0Api(corpus, googlerResolver, vzSR)
-	if err != nil {
-		logAndPrintError(err)
-		log.Fatalf("Error registering v0 Api Routes %v", err)
-	}
-	api.Routes()
-	apis = append(apis, api)
-
-	vOSr := r.PathPrefix("/v1").Subrouter()
-	api, err = apiroutes.NewV1Api(corpus, googlerResolver, vOSr)
-	if err != nil {
-		logAndPrintError(err)
-		log.Fatalf("Error registering v1 Api Routes %v", err)
-	}
-
-	api.Routes()
-	apis = append(apis, api)
-
-	return apis
 }

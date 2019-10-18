@@ -15,31 +15,31 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"net"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/devrel-services/rtr"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"cloud.google.com/go/errorreporting"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
 )
 
 var (
 	listen      = flag.String("listen", ":6343", "listen address")
 	verbose     = flag.Bool("verbose", false, "enable verbose debug output")
-	rmQuery     = flag.String("rmquery", "", "query to remove from the URL before proxying. e.g. 'key'")
-	supervisor  = flag.String("sprvsr", "", "the name of the service that is hosting the supervisor")
 	errorClient *errorreporting.Client
-	pathRegex   = regexp.MustCompile(`^\/api\/v1\/([\w-]+)\/([\w-]+)\/issues[\w\/-]*$`)
+	pathRegex   = regexp.MustCompile(`^owners\/([\w-]+)\/repositories\/([\w-]+)[\w\/-]*$`)
 )
 
 const (
@@ -71,92 +71,88 @@ func main() {
 		log.Level = logrus.TraceLevel
 	}
 
-	if *supervisor == "" {
-		log.Fatal("error: must specify --supervisor")
-	}
-
 	if *listen == "" {
 		log.Fatal("error: must specify --listen")
 	}
 
-	rtr.ListenAndServe(*listen, *supervisor, []string{}, []string{*rmQuery}, calculateHost, log)
+	lis, err := net.Listen("tcp", *listen)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	drghs_v1.RegisterIssueServiceServer(grpcServer, &reverseProxyServer{})
+	log.Printf("gRPC server listening on: %s", *listen)
+	grpcServer.Serve(lis)
 }
 
-func calculateHost(req *http.Request) (string, error) {
-	path := req.URL.Path
+type reverseProxyServer struct{}
+
+// Check is for health checking.
+func (s *reverseProxyServer) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
+}
+
+func (s *reverseProxyServer) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
+	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
+}
+
+func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
+	// TODO(orthros): This will need to reach out to the k8s api server
+	// get all services with "owner" tag == request owner && then read the "repo"
+	// tag from them
+	resp := drghs_v1.ListRepositoriesResponse{}
+	return &resp, nil
+}
+
+func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
+	pth, err := calculateHost(r.Parent)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(pth, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	client := drghs_v1.NewIssueServiceClient(conn)
+	return client.ListIssues(ctx, r)
+}
+
+func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.Issue, error) {
+	pth, err := calculateHost(r.Name)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(pth, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	client := drghs_v1.NewIssueServiceClient(conn)
+	return client.GetIssue(ctx, r)
+}
+func calculateHost(path string) (string, error) {
 	// We might need to put some more real "smarts" to this logic
 	// in the event we need to handle the /v1/owners/*/repositories
 	// call, which asks for a list of all repositories in a given org.
 	// We might need to call out to a different API, but for now we can
 	// forward to "null"?
 
-	if path == "/update" {
-		return devnull, nil
-	}
-
 	// As of right now, this function assumes all calls into the
 	// proxy are of form /v1/owners/OWNERNAME/repositories/REPOSITORYNAME/issues/*
 	log.Tracef("Matching path againtst regex: %v", path)
 	mtches := pathRegex.FindAllStringSubmatch(path, -1)
 	if mtches != nil {
-		log.Tracef("have a v1 path: %v", path)
+		log.Tracef("Got a match!")
 		// This match will be of form:
 		// [["/v1/owners/foo/repositories/bar1/issues" "foo" "bar1"]]
 		// Therefore slice the array
-
 		ta := repos.TrackedRepository{
 			Owner: mtches[0][1],
-			Name: mtches[0][2],
-		}
-
-		sn, err := serviceName(ta)
-		if err != nil {
-			return "", err
-		}
-		return sn, nil
-	} else if strings.HasPrefix(path, "/api/v0") {
-		log.Tracef("have a v0 path: %v", path)
-		// Need to check the body (json) which will contain the owner
-		// and repository information
-		if req.Method != http.MethodPost {
-			return "", fmt.Errorf("api/v0 must be POST http methods. Got: %v", req.Method)
-		}
-		// Parse body
-		var dat map[string]interface{}
-
-		bodyBytes, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			return "", err
-		}
-
-		// This is because ioutil.ReadAll closes the body
-		// which will break the reverse-proxy
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-		if err := json.Unmarshal(bodyBytes, &dat); err != nil {
-			return "", err
-		}
-
-		repo := ""
-		// Grab the repository
-		if d, ok := dat["repo"]; ok {
-			repo = d.(string)
-		}
-		if d, ok := dat["Repo"]; ok && repo == "" {
-			repo = d.(string)
-		}
-
-		if repo == "" {
-			return "", fmt.Errorf("did not specify repository in body")
-		}
-
-		parts := strings.Split(repo,"/")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("bad format for repo")
-		}
-
-		ta := repos.TrackedRepository{
-			Owner: parts[0],
-			Name: parts[1],
+			Name:  mtches[0][2],
 		}
 
 		sn, err := serviceName(ta)
@@ -165,6 +161,7 @@ func calculateHost(req *http.Request) (string, error) {
 		}
 		return sn, nil
 	}
+	log.Tracef("No match... returning null: %v", devnull)
 	return devnull, nil
 }
 

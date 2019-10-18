@@ -52,9 +52,6 @@ steps:
       sed s/TYPE/$_TYPE/g \
       > target/maintnerd.yaml
 
-    # Copy our models directory
-    cp -r endpoints/models target/models
-
 # Create magic-github-proxy endpoint
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
@@ -84,7 +81,7 @@ steps:
   - '-c'
   - |
     # Deploy maintner
-    gcloud endpoints services deploy target/maintnerd.yaml
+    gcloud endpoints services deploy v1/api_descriptor.pb target/maintnerd.yaml
 
     # Deploy samplr
     gcloud endpoints services deploy v1/api_descriptor.pb target/samplr.yaml

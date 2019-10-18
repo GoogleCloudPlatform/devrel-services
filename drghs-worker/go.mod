@@ -28,9 +28,11 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/urfave/negroni v1.0.0
 	golang.org/x/build v0.0.0-20190201181641-63986c177d1f
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/api v0.6.0
-	google.golang.org/grpc v1.23.1
+	google.golang.org/grpc v1.24.0
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.0.0-20190528154508-67ef80593b24
 	k8s.io/apimachinery v0.0.0-20190528154326-e59c2fb0a8e5
 	k8s.io/client-go v0.0.0-20190528154735-79226fe1949a

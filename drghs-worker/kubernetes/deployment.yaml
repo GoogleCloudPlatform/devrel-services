@@ -36,7 +36,7 @@ spec:
         image: gcr.io/endpoints-release/endpoints-runtime:1
         args: [
           "--http_port", "8080",
-          "--backend", "127.0.0.1:80",
+          "--backend", "grpc:127.0.0.1:80",
           "--service=SERVICE_NAME",
           "--version=SERVICE_CONFIG_ID",
           "--healthz=_healthz"
@@ -48,20 +48,30 @@ spec:
             path: /_healthz
             port: 8080
           initialDelaySeconds: 30
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "100Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
       - name: maintnerd-rtr
         image: gcr.io/PROJECT_ID/maintner-rtr:BUILD_ID
         imagePullPolicy: Always
         command: [
           "/maintner-rtr",
           "--listen=:80",
-          "--rmquery=key",
           "--sprvsr=maintnerd-sprvsr-cip",
           "--verbose",
         ]
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:80"]
+          initialDelaySeconds: 10
+          periodSeconds: 3
         livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 80
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:80"]
           initialDelaySeconds: 10
           periodSeconds: 3
         ports:
@@ -72,6 +82,13 @@ spec:
         volumeMounts:
         - mountPath: /var/secrets/google
           name: gcp-sa
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "100Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
       volumes:
       - name: gcp-sa
         secret:
@@ -178,4 +195,3 @@ metadata:
 spec:
   domains:
     - drghs.endpoints.PROJECT_ID.cloud.goog
-    # - drghs.devrelservices.app
