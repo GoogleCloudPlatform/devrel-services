@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module devrel/cloud/devrel-github-service/sprvsr
+module github.com/GoogleCloudPlatform/devrel-services/sprvsr
 
 go 1.12
 
 require (
 	cloud.google.com/go v0.40.0
-	devrel/cloud/devrel-github-service/repos v0.0.0
+	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
 
 	github.com/deckarep/golang-set v1.7.1
 	github.com/gorilla/mux v1.7.2
@@ -38,4 +38,4 @@ require (
 	k8s.io/utils v0.0.0-20190529001817-6999998975a7 // indirect
 )
 
-replace devrel/cloud/devrel-github-service/repos => ../repos
+replace github.com/GoogleCloudPlatform/devrel-services/repos => ../repos

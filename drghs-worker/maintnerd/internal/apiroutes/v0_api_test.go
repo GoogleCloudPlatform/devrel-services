@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package apiroutes
 
 import (
-	"devrel/cloud/devrel-github-service/drghs-worker/internal/apiroutes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -29,21 +27,14 @@ import (
 	"github.com/matryer/is"
 )
 
-type googlerVoid struct {
-}
-
-func (gv googlerVoid) IsGoogler(user string) bool { return true }
-func (gv googlerVoid) Update()                    {}
-
-func TestV1HandlesApprovedPRs(t *testing.T) {
+func TestHandlesApprovedPRs(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -57,15 +48,14 @@ func TestV1HandlesApprovedPRs(t *testing.T) {
 	is.Equal(w.Code, http.StatusOK)
 }
 
-func TestV1FailsSloViolationsBody(t *testing.T) {
+func TestFailsSloViolationsBody(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -79,15 +69,14 @@ func TestV1FailsSloViolationsBody(t *testing.T) {
 	is.Equal(w.Code, http.StatusBadRequest)
 }
 
-func TestV1SloViolationsNoConfigs(t *testing.T) {
+func TestSloViolationsNoConfigs(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
@@ -101,68 +90,44 @@ func TestV1SloViolationsNoConfigs(t *testing.T) {
 	is.Equal(w.Code, http.StatusOK)
 }
 
-func TestV1HandlesGetIssues(t *testing.T) {
+func TestHandlesGetIssues(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
 	// Hook up the routes
 	srv.Routes()
 
-	req, err := http.NewRequest("GET", "/GoogleCloudPlatform/google-cloud-node/issues", nil)
+	req, err := http.NewRequest("POST", "/issues", strings.NewReader(`{"Repo": "gcp/gcp"}`))
 	is.NoErr(err)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	is.Equal(w.Code, http.StatusOK)
 }
 
-func TestV1HandlesGetIssue(t *testing.T) {
+func TestHandlesGetIssue(t *testing.T) {
 	is := is.New(t)
 
-	var mu sync.RWMutex
 	cor := &maintner.Corpus{}
 	resolver := googlerVoid{}
 	router := mux.NewRouter()
 
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
+	srv, err := NewV0Api(cor, resolver, router)
 
 	is.NoErr(err)
 
 	// Hook up the routes
 	srv.Routes()
 
-	req, err := http.NewRequest("GET", "/GoogleCloudPlatform/google-cloud-node/issues/1234", nil)
+	req, err := http.NewRequest("POST", "/issue", strings.NewReader(`{"Repo": "gcp/gcp","Issue": 1234}`))
 	is.NoErr(err)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	is.Equal(w.Code, http.StatusOK)
-}
-
-func TestV1GetIssueMustBeDigits(t *testing.T) {
-	is := is.New(t)
-
-	var mu sync.RWMutex
-	cor := &maintner.Corpus{}
-	resolver := googlerVoid{}
-	router := mux.NewRouter()
-
-	srv, err := apiroutes.NewV1Api(&mu, cor, resolver, router)
-
-	is.NoErr(err)
-
-	// Hook up the routes
-	srv.Routes()
-
-	req, err := http.NewRequest("GET", "/GoogleCloudPlatform/google-cloud-node/issues/1234asdf", nil)
-	is.NoErr(err)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	is.Equal(w.Code, http.StatusNotFound)
 }

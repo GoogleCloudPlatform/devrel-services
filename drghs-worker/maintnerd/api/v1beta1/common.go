@@ -17,8 +17,8 @@ package v1beta1
 import (
 	"fmt"
 
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/utils"
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/utils"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/build/maintner"

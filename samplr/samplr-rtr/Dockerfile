@@ -16,12 +16,12 @@ FROM golang:1.13 as build
 
 ENV GO111MODULE=on
 
-WORKDIR /src/devrel/cloud/devrel-github-service
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
 COPY . .
 
-WORKDIR /src/devrel/cloud/devrel-github-service/samplr/samplr-rtr
+WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/samplr/samplr-rtr
 
-RUN go install devrel/cloud/devrel-github-service/samplr/samplr-rtr
+RUN go install github.com/GoogleCloudPlatform/devrel-services/samplr/samplr-rtr
 
 FROM alpine as health
 

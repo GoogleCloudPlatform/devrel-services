@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
-	"devrel/cloud/devrel-github-service/repos"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"cloud.google.com/go/errorreporting"
 	"cloud.google.com/go/profiler"

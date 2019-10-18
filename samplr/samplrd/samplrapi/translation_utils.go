@@ -15,8 +15,8 @@
 package samplrapi
 
 import (
-	drghs_v1 "devrel/cloud/devrel-github-service/drghs/v1"
-	"devrel/cloud/devrel-github-service/samplr"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
 
 	"github.com/golang/protobuf/ptypes"
 )

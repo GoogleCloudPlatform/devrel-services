@@ -16,7 +16,7 @@ package samplr
 
 import (
 	"context"
-	git "devrel/cloud/devrel-github-service/git-go"
+	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 	"io/ioutil"
 	"os"
 	"testing"

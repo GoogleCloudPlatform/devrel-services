@@ -15,7 +15,7 @@
 package utils
 
 import (
-	"devrel/cloud/devrel-github-service/drghs-worker/pkg/status"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/status"
 
 	"golang.org/x/build/maintner"
 )

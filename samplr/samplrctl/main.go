@@ -18,10 +18,10 @@ import (
 	"context"
 	"os"
 
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/cmd"
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/cmd/completion"
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/cmd/snippets"
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/cmd/snippetversions"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/cmd"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/cmd/completion"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/cmd/snippets"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/cmd/snippetversions"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

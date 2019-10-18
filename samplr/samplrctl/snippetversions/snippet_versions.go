@@ -19,8 +19,8 @@ import (
 	"strconv"
 	"strings"
 
-	"devrel/cloud/devrel-github-service/samplr"
-	"devrel/cloud/devrel-github-service/samplr/samplrctl/output"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr/samplrctl/output"
 )
 
 const (

@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	"devrel/cloud/devrel-github-service/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"

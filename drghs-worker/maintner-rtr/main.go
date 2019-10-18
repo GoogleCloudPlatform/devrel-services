@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"devrel/cloud/devrel-github-service/rtr"
-	"devrel/cloud/devrel-github-service/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/rtr"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"cloud.google.com/go/errorreporting"
 	"github.com/sirupsen/logrus"

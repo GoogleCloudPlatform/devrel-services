@@ -15,7 +15,7 @@
 package sprvsr
 
 import (
-	"devrel/cloud/devrel-github-service/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"

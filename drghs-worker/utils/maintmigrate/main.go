@@ -21,7 +21,7 @@ import (
 	"log"
 	"strings"
 
-	"devrel/cloud/devrel-github-service/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"cloud.google.com/go/storage"
 	"golang.org/x/build/maintner"

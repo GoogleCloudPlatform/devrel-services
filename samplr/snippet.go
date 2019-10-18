@@ -22,7 +22,7 @@ import (
 	"time"
 
 	// git "gopkg.in/src-d/go-git.v4"
-	git "devrel/cloud/devrel-github-service/git-go"
+	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 
 	enry "gopkg.in/src-d/enry.v1"
 )
