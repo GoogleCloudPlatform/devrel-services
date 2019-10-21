@@ -24,7 +24,7 @@ WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/samplr
 RUN go install github.com/GoogleCloudPlatform/devrel-services/samplr/samplr-sprvsr
 
 FROM gcr.io/distroless/base
+
 COPY --from=build /go/bin/samplr-sprvsr /
-WORKDIR /src
-COPY . .
+
 CMD ["/samplr-sprvsr"]
