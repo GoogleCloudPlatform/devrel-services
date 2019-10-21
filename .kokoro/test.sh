@@ -39,10 +39,11 @@ for t in "${testdirs[@]}"; do
     cd "$t" || exit 1
     echo "$t"
     go test -timeout $TIMEOUT -v ./... 2>&1 | tee -a $OUTFILE
-    
-    if [ $GOLANG_SAMPLES_GO_VET ]; then
+
+	if [ $GOLANG_SAMPLES_GO_VET ]; then
         diff -u <(echo -n) <(gofmt -d -s .)
-        go vet $t
+		# We are cd'd in the directory. Simply go vet ./...
+        go vet ./...
     fi
     )
 done
@@ -51,9 +52,4 @@ done
 
 date
 
-# Clear the cache so Kokoro doesn't try to copy it.
-# Must happen before calling go-junit-report since it can cause a non-zero exit
-# code, stopping execution.
-go clean -modcache
-
-cat $OUTFILE | /go/bin/go-junit-report -set-exit-code > sponge_log.xml
+cat $OUTFILE > sponge_log.xml
