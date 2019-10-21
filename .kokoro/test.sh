@@ -51,9 +51,4 @@ done
 
 date
 
-# Clear the cache so Kokoro doesn't try to copy it.
-# Must happen before calling go-junit-report since it can cause a non-zero exit
-# code, stopping execution.
-go clean -modcache
-
 cat $OUTFILE | /go/bin/go-junit-report -set-exit-code > sponge_log.xml
