@@ -16,7 +16,6 @@ package main
 
 import (
 	"context"
-	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"flag"
 	"fmt"
 	"log"
@@ -25,6 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/v1beta1"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/internal/apiroutes"
@@ -140,7 +141,7 @@ func main() {
 		// 1 minutes.
 		ticker := time.NewTicker(10 * time.Minute)
 		for t := range ticker.C {
-			log.Printf("Corpus.SyncLoop at %d", t)
+			log.Printf("Corpus.SyncLoop at %v", t)
 			// Lock it for writes
 			// Sync
 			if err := corpus.Sync(ctx); err != nil {

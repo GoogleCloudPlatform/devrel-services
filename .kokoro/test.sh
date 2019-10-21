@@ -39,8 +39,8 @@ for t in "${testdirs[@]}"; do
     cd "$t" || exit 1
     echo "$t"
     go test -timeout $TIMEOUT -v ./... 2>&1 | tee -a $OUTFILE
-    
-    if [ $GOLANG_SAMPLES_GO_VET ]; then
+
+	if [ $GOLANG_SAMPLES_GO_VET ]; then
         diff -u <(echo -n) <(gofmt -d -s .)
         go vet $t
     fi
