@@ -42,7 +42,8 @@ for t in "${testdirs[@]}"; do
 
 	if [ $GOLANG_SAMPLES_GO_VET ]; then
         diff -u <(echo -n) <(gofmt -d -s .)
-        go vet $t
+		# We are cd'd in the directory. Simply go vet ./...
+        go vet ./...
     fi
     )
 done
