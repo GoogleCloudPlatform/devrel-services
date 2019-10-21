@@ -51,4 +51,4 @@ done
 
 date
 
-cat $OUTFILE | /go/bin/go-junit-report -set-exit-code > sponge_log.xml
+cat $OUTFILE > sponge_log.xml
