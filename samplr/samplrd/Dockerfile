@@ -19,11 +19,12 @@ ENV GO111MODULE=on
 
 WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/
 COPY . .
+
 WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/samplr/samplrd
 
 RUN go install github.com/GoogleCloudPlatform/devrel-services/samplr/samplrd
 
-FROM golang:1.11-stretch
+FROM golang:1.13-stretch
 
 WORKDIR /
 COPY --from=build /go/bin/samplrd .
