@@ -40,19 +40,19 @@ func GetSnippets(ctx context.Context, d string) ([]*samplr.Snippet, error) {
 	repoName := ""
 	err = remotes.ForEach(func(re *git.Remote) error {
 		if re.Config() == nil {
-			errors.New("Remote has a nil Config")
+			return errors.New("Remote has a nil Config")
 		}
 		if re.Config().Name != "origin" {
 			return nil
 		}
 
 		if len(re.Config().URLs) == 0 {
-			errors.New("No URLs associated with remote")
+			return errors.New("No URLs associated with remote")
 		}
 
 		parts := strings.Split(re.Config().URLs[0], "/")
 		if len(parts) < 3 {
-			errors.New("Remote has an invalid URL")
+			return errors.New("Remote has an invalid URL")
 		}
 
 		repoName = parts[len(parts)-1]

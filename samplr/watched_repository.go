@@ -14,6 +14,8 @@
 
 package samplr
 
+import "context"
+
 // WatchedRepository represents a repository being watched by the Corpus
 type WatchedRepository interface {
 	// Unique Identifier of the Repository
@@ -31,6 +33,8 @@ type WatchedRepository interface {
 	Owner() string
 	// The name of the repository
 	RepositoryName() string
+	// Instructs the Repository to Update
+	Update(ctx context.Context) error
 }
 
 type RepositoryId struct {

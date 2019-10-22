@@ -51,11 +51,11 @@ type Corpus struct {
 	debug   bool
 	syncing bool
 
-	watchedGitRepos []watchedGitRepo
+	watchedGitRepos []WatchedRepository
 
 	// github-specific
 
-	gitReposToAdd chan watchedGitRepo
+	gitReposToAdd chan WatchedRepository
 }
 
 // RLock grabs the corpus's read lock. Grabbing the read lock prevents
@@ -110,7 +110,7 @@ func (c *Corpus) Sync(ctx context.Context) error {
 	}
 	c.syncing = true
 
-	c.gitReposToAdd = make(chan watchedGitRepo)
+	c.gitReposToAdd = make(chan WatchedRepository)
 	c.mu.Unlock()
 
 	err := c.sync(ctx)
@@ -127,7 +127,7 @@ func (c *Corpus) Sync(ctx context.Context) error {
 func (c *Corpus) sync(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 
-	updateGitRepo := func(gr watchedGitRepo) error {
+	updateGitRepo := func(gr WatchedRepository) error {
 		log.Printf("Beginning syncLoop for %v...", gr.ID())
 		for {
 			log.Printf("Polling %v ...", gr.ID())
@@ -169,7 +169,7 @@ func (c *Corpus) ForEachRepo(fn func(repo WatchedRepository) error) error {
 func (c *Corpus) ForEachRepoF(fn func(repo WatchedRepository) error, filter func(repo WatchedRepository) bool) error {
 	for _, repo := range c.watchedGitRepos {
 		if filter(repo) {
-			if err := fn(&repo); err != nil {
+			if err := fn(repo); err != nil {
 				return err
 			}
 		}

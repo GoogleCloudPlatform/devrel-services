@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package samplr
+
 import (
 	"context"
 	"fmt"
@@ -22,10 +22,13 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+
 	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 	"golang.org/x/sync/errgroup"
 )
+
 var urlReg = regexp.MustCompile("https://github.com/([\\w-_]+)/([\\w-_]+)")
+
 type watchedGitRepo struct {
 	id         string
 	repository *git.Repository
@@ -34,10 +37,11 @@ type watchedGitRepo struct {
 	commits    map[string][]*GitCommit
 	mu         sync.RWMutex
 }
-func (w watchedGitRepo) ID() string {
+
+func (w *watchedGitRepo) ID() string {
 	return w.id
 }
-func (w watchedGitRepo) Update(ctx context.Context) error {
+func (w *watchedGitRepo) Update(ctx context.Context) error {
 	err := w.repository.FetchContext(ctx, &git.FetchOptions{})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
@@ -128,13 +132,13 @@ func (w watchedGitRepo) Update(ctx context.Context) error {
 	debug.FreeOSMemory()
 	return err
 }
-func (w watchedGitRepo) Owner() string {
+func (w *watchedGitRepo) Owner() string {
 	return urlReg.FindStringSubmatch(w.id)[1]
 }
-func (w watchedGitRepo) RepositoryName() string {
+func (w *watchedGitRepo) RepositoryName() string {
 	return urlReg.FindStringSubmatch(w.id)[2]
 }
-func (w watchedGitRepo) ForEachSnippetF(fn func(snippet *Snippet) error, filter func(snippet *Snippet) bool) error {
+func (w *watchedGitRepo) ForEachSnippetF(fn func(snippet *Snippet) error, filter func(snippet *Snippet) bool) error {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	for _, snippets := range w.snippets {
@@ -148,17 +152,17 @@ func (w watchedGitRepo) ForEachSnippetF(fn func(snippet *Snippet) error, filter 
 	}
 	return nil
 }
-func (w watchedGitRepo) ForEachSnippet(fn func(snippet *Snippet) error) error {
+func (w *watchedGitRepo) ForEachSnippet(fn func(snippet *Snippet) error) error {
 	return w.ForEachSnippetF(fn, func(snippet *Snippet) bool {
 		return true
 	})
 }
-func (w watchedGitRepo) ForEachGitCommit(fn func(g *GitCommit) error) error {
+func (w *watchedGitRepo) ForEachGitCommit(fn func(g *GitCommit) error) error {
 	return w.ForEachGitCommitF(fn, func(commit *GitCommit) bool {
 		return true
 	})
 }
-func (w watchedGitRepo) ForEachGitCommitF(fn func(g *GitCommit) error, filter func(g *GitCommit) bool) error {
+func (w *watchedGitRepo) ForEachGitCommitF(fn func(g *GitCommit) error, filter func(g *GitCommit) bool) error {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	for _, val := range w.commits {
@@ -187,7 +191,7 @@ func (c *Corpus) TrackGit(url string) error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	wgh := watchedGitRepo{
+	wgh := &watchedGitRepo{
 		repository: r,
 		c:          c,
 		id:         url,
