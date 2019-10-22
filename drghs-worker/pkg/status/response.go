@@ -26,11 +26,13 @@ type Response struct {
 	Issue  *Status   `json:",omitempty"`
 }
 
-func (r Response) WriteTo(w io.Writer) {
+func (r Response) WriteTo(w io.Writer) (int64, error) {
 	out, err := json.MarshalIndent(r, "", "\t")
 	if err != nil {
-		io.WriteString(w, fmt.Sprintf(`{"Error": %q}`, "could not marshal json: "+err.Error()))
-		return
+		nerr := fmt.Errorf(`{"Error": %q}`, "could not marshal json: "+err.Error())
+		io.WriteString(w, nerr.Error())
+		return 0, err
 	}
-	w.Write(out)
+	i, err := w.Write(out)
+	return int64(i), err
 }

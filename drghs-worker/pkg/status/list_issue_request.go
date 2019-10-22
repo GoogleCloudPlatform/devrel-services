@@ -25,13 +25,13 @@ type ListIssuesRequest struct {
 
 	// This defaults to undefined, such that both Open and Closed results are
 	// returned unless this is explicitly set to true or false.
-	Closed json.RawMessage `json:Closed`
+	Closed json.RawMessage `json:"Closed"`
 
 	// This defaults to false if not explicitly set to true. Set to true in order
 	// for comments to be included in the response.
-	IncludeComments bool `json:IncludeComments`
+	IncludeComments bool `json:"IncludeComments"`
 
 	// This defaults to false if not explicitly set to true. Set to true in order
 	// for reviewts to be included in the response.
-	IncludeReviews bool `json:IncludeReviews`
+	IncludeReviews bool `json:"IncludeReviews"`
 }
