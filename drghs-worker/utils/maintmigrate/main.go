@@ -85,7 +85,6 @@ func cacheMutations(ctx context.Context, m maintner.MutationSource) ([]maintner.
 			}
 		}
 	}
-	return evs, nil
 }
 
 func main() {
