@@ -28,13 +28,12 @@ type ServiceBuilder func(repos.TrackedRepository) (*apiv1.Service, error)
 type DeploymentPrep func(repos.TrackedRepository) error
 
 type K8sConfiguration struct {
-	ServiceNamer ServiceNamer
-	DeploymentNamer DeploymentNamer
-	ServiceBuilder ServiceBuilder
+	ServiceNamer      ServiceNamer
+	DeploymentNamer   DeploymentNamer
+	ServiceBuilder    ServiceBuilder
 	DeploymentBuilder DeploymentBuilder
-	PreDeploy DeploymentPrep
+	PreDeploy         DeploymentPrep
 }
-
 
 // Supervisor exists to supervise a set of deployments
 type Supervisor interface {
