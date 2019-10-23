@@ -34,8 +34,4 @@ FROM gcr.io/distroless/base
 COPY --from=build /go/bin/samplr-rtr /
 COPY --from=health /bin/grpc_health_probe /bin/grpc_health_probe
 
-WORKDIR /src
-
-COPY . .
-
 CMD ["/samplr-rtr"]
