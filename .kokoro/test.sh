@@ -41,7 +41,7 @@ for t in "${testdirs[@]}"; do
     go test -timeout $TIMEOUT -v ./... 2>&1 | tee -a $OUTFILE
 
 	if [ $GOLANG_SAMPLES_GO_VET ]; then
-        diff -u <(echo -n) <(gofmt -d -s .)
+        diff -u <(echo -n) <(gofmt -d .)
 		# We are cd'd in the directory. Simply go vet ./...
         go vet ./...
     fi
