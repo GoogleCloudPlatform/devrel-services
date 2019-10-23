@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rtr;
+package rtr
 
-
-import(
-	"os"
+import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -133,8 +132,6 @@ func ListenAndServe(addr string, supervisorHost string, headersToRemove, queries
 		w.Write([]byte("ok"))
 	})
 	r.PathPrefix("/").Handler(reverseProxy)
-
-
 
 	// Add middleware support
 	n := negroni.New()
