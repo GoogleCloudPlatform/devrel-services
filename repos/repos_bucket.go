@@ -19,9 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"reflect"
-	"strings"
 	"sync"
 
 	"cloud.google.com/go/storage"
@@ -83,7 +81,7 @@ func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, err
 
 	// Process data.
 
-	var dat map[string]interface{}
+	 var dat map[string]interface{}
 
 	if err := json.Unmarshal(data, &dat); err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal repos")
@@ -96,34 +94,8 @@ func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, err
 	reps := make([]TrackedRepository, len(repos))
 
 	for idx, repoDat := range repos {
-		repoDat := repoDat.(map[string]interface{})
-		repo := repoDat["repo"].(string)
-
-		isTrackingIssues := true
-		if _, ok := repoDat["is_tracking_issues"]; ok {
-			isTrackingIssues = repoDat["is_tracking_issues"].(bool)
-		}
-
-		isTrackingSnippets := true
-		if _, ok := repoDat["is_tracking_samples"]; ok {
-			isTrackingSnippets = repoDat["is_tracking_samples"].(bool)
-		}
-
-		repo = strings.TrimSpace(repo)
-		if repo == "" {
-			continue
-		}
-		parts := strings.Split(repo, "/")
-		if len(parts) != 2 {
-			log.Printf("Bad format for repo %q", repo)
-			continue
-		}
-
-		reps[idx] = TrackedRepository{
-			Name:               parts[1],
-			Owner:              parts[0],
-			IsTrackingSnippets: isTrackingSnippets,
-			IsTrackingIssues:   isTrackingIssues,
+	    if err := json.Unmarshal(repoDat.([]byte), &reps[idx]); err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal repo data")
 		}
 	}
 
