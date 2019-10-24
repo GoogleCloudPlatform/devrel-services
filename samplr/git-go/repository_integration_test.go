@@ -33,7 +33,7 @@ func TestClones(t *testing.T) {
 		},
 		{
 			Name: "cloud-code-intellij",
-			URL:  "https://github.com/GoogleCloudPlatform/cloud-code-in",
+			URL:  "https://github.com/GoogleCloudPlatform/cloud-code-intellij",
 		},
 	}
 

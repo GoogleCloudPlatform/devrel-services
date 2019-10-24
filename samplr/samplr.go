@@ -130,7 +130,7 @@ func (c *Corpus) sync(ctx context.Context) error {
 	updateGitRepo := func(gr WatchedRepository) error {
 		log.Printf("Beginning syncLoop for %v...", gr.ID())
 		for {
-			log.Printf("Polling %v ...", gr.ID())
+			log.Printf("polling %v ...", gr.ID())
 			err := gr.Update(ctx)
 			if err == nil {
 				time.Sleep(30 * time.Second)
