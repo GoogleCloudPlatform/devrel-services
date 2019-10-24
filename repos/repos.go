@@ -15,6 +15,7 @@
 package repos
 
 import (
+	"encoding/json"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -28,10 +29,10 @@ type RepoList interface {
 }
 
 type TrackedRepository struct {
-	Owner              string
-	Name               string
-	IsTrackingIssues   bool
-	IsTrackingSnippets bool
+	Owner              string  `json:"owner"`
+	Name               string  `json:"name"`
+	IsTrackingIssues   bool    `json:"isTrackingIssues"`
+	IsTrackingSnippets bool    `json:"isTrackingSnippets"`  
 }
 
 // RepoSha Creates a Sum224 of the TrackedRepository's name
