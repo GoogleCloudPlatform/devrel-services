@@ -98,3 +98,27 @@ func makeGitCommitPB(commit *samplr.GitCommit) (*drghs_v1.GitCommit, error) {
 		Sha:            commit.Hash,
 	}, nil
 }
+
+func makeSnippetProtoversion(snippets []*samplr.Snippet) ([]*drghs_v1.Snippet, error) {
+	protoversions := make([]*drghs_v1.Snippet, len(snippets))
+	for idx, s := range snippets {
+		snippet, err := makeSnippetPB(s)
+		if err != nil {
+			return nil, err
+		}
+		protoversions[idx] = snippet
+	}
+	return protoversions, nil
+}
+
+func makeSnippetVersionProtoversion(versions []samplr.SnippetVersion) ([]*drghs_v1.SnippetVersion, error) {
+	protoversions := make([]*drghs_v1.SnippetVersion, len(versions))
+	for idx, v := range versions {
+		snippetVersion, err := makeSnippetVersionPB(v)
+		if err != nil {
+			return nil, err
+		}
+		protoversions[idx] = snippetVersion
+	}
+	return protoversions, nil
+}
