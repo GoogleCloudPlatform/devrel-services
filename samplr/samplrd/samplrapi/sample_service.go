@@ -355,7 +355,7 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 		}, repositoryFilter)
 
 		// Filter Snippets
-		filteredSnippet := make([]*samplr.Snippet, 0)
+		filteredSnippets := make([]*samplr.Snippet, 0)
 		for _, v := range snippets {
 			pv, err := makeSnippetPB(v)
 			if err != nil {
@@ -370,12 +370,12 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 			}
 
 			if should {
-				filteredSnippet = append(filteredSnippet, v)
+				filteredSnippets = append(filteredSnippets, v)
 			}
 		}
 
 		// Create Page
-		t, err := s.sp.CreatePage(filteredSnippet)
+		t, err := s.sp.CreatePage(filteredSnippets)
 		if err != nil {
 			log.Error(err)
 			return nil, err
@@ -398,7 +398,12 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 		}
 	}
 
-	protoversions := makeSnippetProtoversion(pg)
+	protoversions, err := makeSnippetProtoversion(pg)
+	if err != nil {
+		log.Errorf("Could not create the snippet protoversion: %v", err)
+		return nil, err
+	}
+
 	return &drghs_v1.ListSnippetsResponse{
 		Snippets:      protoversions,
 		NextPageToken: nextToken,
@@ -528,7 +533,11 @@ func (s *SampleServiceServer) ListSnippetVersions(ctx context.Context, req *drgh
 		}
 	}
 
-	protoversions := makeSnippetVersionProtoversion(pg)
+	protoversions, err := makeSnippetVersionProtoversion(pg)
+	if err != nil {
+		log.Errorf("Could not create the snippet version protoversion: %v", err)
+		return nil, err
+	}
 	return &drghs_v1.ListSnippetVersionsResponse{
 		SnippetVersions: protoversions,
 		NextPageToken:   nextToken,

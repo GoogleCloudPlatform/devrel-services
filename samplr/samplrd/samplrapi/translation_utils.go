@@ -99,18 +99,26 @@ func makeGitCommitPB(commit *samplr.GitCommit) (*drghs_v1.GitCommit, error) {
 	}, nil
 }
 
-func makeSnippetProtoversion(snippets []*samplr.Snippet) []*drghs_v1.Snippet {
+func makeSnippetProtoversion(snippets []*samplr.Snippet) ([]*drghs_v1.Snippet, error) {
 	protoversions := make([]*drghs_v1.Snippet, len(snippets))
 	for idx, s := range snippets {
-		protoversions[idx], _ = makeSnippetPB(s)
+		snippet, err := makeSnippetPB(s)
+		if err != nil {
+			return nil, err
+		}
+		protoversions[idx] = snippet
 	}
-	return protoversions
+	return protoversions, nil
 }
 
-func makeSnippetVersionProtoversion(versions []samplr.SnippetVersion) []*drghs_v1.SnippetVersion {
+func makeSnippetVersionProtoversion(versions []samplr.SnippetVersion) ([]*drghs_v1.SnippetVersion, error) {
 	protoversions := make([]*drghs_v1.SnippetVersion, len(versions))
 	for idx, v := range versions {
-		protoversions[idx], _ = makeSnippetVersionPB(v)
+		snippetVersion, err := makeSnippetVersionPB(v)
+		if err != nil {
+			return nil, err
+		}
+		protoversions[idx] = snippetVersion
 	}
-	return protoversions
+	return protoversions, nil
 }
