@@ -81,7 +81,7 @@ func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, err
 
 	// Process data.
 
-	 var dat map[string]interface{}
+	var dat map[string]interface{}
 
 	if err := json.Unmarshal(data, &dat); err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal repos")
@@ -94,7 +94,7 @@ func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, err
 	reps := make([]TrackedRepository, len(repos))
 
 	for idx, repoDat := range repos {
-	    if err := json.Unmarshal(repoDat.([]byte), &reps[idx]); err != nil {
+		if err := json.Unmarshal(repoDat.([]byte), &reps[idx]); err != nil {
 			return nil, fmt.Errorf("Failed to unmarshal repo data")
 		}
 	}
