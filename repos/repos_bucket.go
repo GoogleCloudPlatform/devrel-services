@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"reflect"
+	"strings"
 	"sync"
 
 	"cloud.google.com/go/storage"
@@ -61,6 +63,12 @@ func (r *bucketRepoList) GetTrackedRepos() []TrackedRepository {
 	return r.reposList
 }
 
+type bucketRepo struct {
+	Repo               string `json:"repo"`
+	IsTrackingIssues   bool   `json:"is_tracking_issues"`
+	IsTrackingSnippets bool   `json:"is_tracking_snippets"`
+}
+
 func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, error) {
 	// Creates a client.
 	client, err := storage.NewClient(ctx)
@@ -81,22 +89,29 @@ func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, err
 
 	// Process data.
 
-	var dat map[string]interface{}
+	var dat map[string][]bucketRepo
 
 	if err := json.Unmarshal(data, &dat); err != nil {
 		return nil, fmt.Errorf("Failed to unmarshal repos")
 	}
 
-	// TODO(colnnelson): Update this to unmarshal the struct directly into
-	// a useable object.
-	repos := dat["repos"].([]interface{})
+	repos := dat["repos"]
 
 	reps := make([]TrackedRepository, len(repos))
-
-	for idx, repoDat := range repos {
-		if err := json.Unmarshal(repoDat.([]byte), &reps[idx]); err != nil {
-			return nil, fmt.Errorf("Failed to unmarshal repo data")
+	for i, re := range repos {
+		parts := strings.Split(re.Repo, "/")
+		if len(parts) != 2 {
+			log.Printf("Bad format for repo %q", re.Repo)
+			continue
 		}
+
+		tr := TrackedRepository{
+			Owner:              parts[0],
+			Name:               parts[1],
+			IsTrackingIssues:   re.IsTrackingIssues,
+			IsTrackingSnippets: re.IsTrackingSnippets,
+		}
+		reps[i] = tr
 	}
 
 	return reps, nil

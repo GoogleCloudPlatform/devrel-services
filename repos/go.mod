@@ -16,4 +16,7 @@ module github.com/GoogleCloudPlatform/devrel-services/repos
 
 go 1.12
 
-require cloud.google.com/go v0.40.0
+require (
+	cloud.google.com/go v0.40.0
+	google.golang.org/grpc v1.24.0 // indirect
+)
