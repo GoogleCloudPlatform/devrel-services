@@ -15,11 +15,12 @@
 package samplrapi
 
 import (
-	"github.com/GoogleCloudPlatform/devrel-services/samplr"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
 )
 
 type gitCommitPage struct {
@@ -67,8 +68,6 @@ func (p *gitCommitPaginator) GetPage(key time.Time, n int) ([]*samplr.GitCommit,
 		return nil, 0, fmt.Errorf("Page key: %v not found", key)
 	}
 	val := p.set[key]
-
-	log.Debugf("Processing page: %v", val)
 
 	nremain := len(val.snps) - val.idx
 	log.Debugf("There are %v records remaining, requested %v", nremain, n)

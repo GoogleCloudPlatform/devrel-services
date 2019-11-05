@@ -67,8 +67,6 @@ func (p *trackedRepositoryPaginator) GetPage(key time.Time, n int) ([]string, in
 	}
 	val := p.set[key]
 
-	log.Debugf("Processing page: %v", val)
-
 	nremain := len(val.trackedrepos) - val.idx
 	log.Debugf("There are %v records remaining, requested %v", nremain, n)
 
