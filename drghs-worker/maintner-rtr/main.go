@@ -81,7 +81,9 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	drghs_v1.RegisterIssueServiceServer(grpcServer, &reverseProxyServer{})
+	reverseProxy := &reverseProxyServer{}
+	drghs_v1.RegisterIssueServiceServer(grpcServer, reverseProxy)
+	healthpb.RegisterHealthServer(grpcServer, reverseProxy)
 	log.Printf("gRPC server listening on: %s", *listen)
 	grpcServer.Serve(lis)
 }
@@ -159,7 +161,7 @@ func calculateHost(path string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return sn, nil
+		return sn + ":80", nil
 	}
 	log.Tracef("No match... returning null: %v", devnull)
 	return devnull, nil
