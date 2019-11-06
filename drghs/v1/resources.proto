@@ -45,6 +45,16 @@ message GitHubComment {
   string body = 5;
 }
 
+message GitHubReview {
+  int32 id = 1;
+  drghs.v1.GitHubUser actor = 2;
+  string actor_association = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string body = 5;
+  string state = 6;
+  string commit_id = 7;
+}
+
 message Issue {
   string name = 1;
   string title = 2;
@@ -85,6 +95,7 @@ message Issue {
   repeated drghs.v1.GitHubUser assignees = 17;
   drghs.v1.GitHubUser reporter = 18;
   repeated drghs.v1.GitHubComment comments = 19;
+  repeated drghs.v1.GitHubReview reviews = 20;
 }
 
 message File {

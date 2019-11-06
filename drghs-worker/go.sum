@@ -61,6 +61,7 @@ github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c h1:964Od4U6p2jUkFxvCy
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/cel-go v0.3.0 h1:jSvXBkVMACCVMVCLy7dmPCGR7kNLfH2nH6THNVnY7mM=
 github.com/google/cel-go v0.3.0/go.mod h1:DoRSdzaJzNiP1lVuWhp/RjSnHLDQr/aNPlyqSBasBqA=
+github.com/google/cel-go v0.3.2 h1:72Lj/nrfpWSJkuXdeEGB/7jfdwVFtV8kPJSL2Mt9rog=
 github.com/google/cel-spec v0.3.0/go.mod h1:MjQm800JAGhOZXI7vatnVpmIaFTR6L8FHcKk+piiKpI=
 github.com/google/go-cmp v0.2.0 h1:+dTQ8DZQJz0Mb/HjFlkptS1FeQ4cWSnN941F8aEG4SQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=

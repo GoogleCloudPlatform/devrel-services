@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
@@ -73,21 +74,27 @@ func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListR
 func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
 	resp := drghs_v1.ListIssuesResponse{}
 
+	filter := fmt.Sprintf("pull_request == %v && closed == %v ", r.PullRequest, r.Closed)
+	if r.Filter != "" {
+		filter = r.Filter
+	}
+
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		repoID := repo.ID().String()
+		repoID := getRepoPath(repo)
 		if repoID != r.Parent {
 			// Not our repository... ignore
+			fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Parent)
 			return nil
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			should, err := shouldAddIssue(issue, r.Filter)
+			should, err := shouldAddIssue(issue, filter)
 			if err != nil {
 				return err
 			}
 			if should {
 				// Add
-				iss, err := makeIssuePB(issue)
+				iss, err := makeIssuePB(issue, r.Comments, r.Reviews)
 				if err != nil {
 					return err
 				}
@@ -104,7 +111,7 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 	var resp *drghs_v1.Issue
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		repoID := repo.ID().String()
+		repoID := getRepoPath(repo)
 		if strings.HasPrefix(r.Name, repoID) {
 			// Not our repository... ignore
 			return nil
@@ -113,7 +120,7 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
 
 			if strings.HasSuffix(r.Name, string(issue.ID)) {
-				re, err := makeIssuePB(issue)
+				re, err := makeIssuePB(issue, r.Comments, r.Reviews)
 				if err != nil {
 					return err
 				}
@@ -139,10 +146,6 @@ func (s *issueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
 	if issue.NotExist {
 		return false, nil
-	}
-
-	if filter == "" {
-		filter = defaultFilter
 	}
 
 	env, err := cel.NewEnv(
@@ -173,6 +176,10 @@ func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
 	})
 
 	return out == types.True, nil
+}
+
+func getRepoPath(ta *maintner.GitHubRepo) string {
+	return fmt.Sprintf("owners/%v/repositories/%v", ta.ID().Owner, ta.ID().Repo)
 }
 
 // TODO(orthros) This should default to using *maintner.GitHubRepo, but

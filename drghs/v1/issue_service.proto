@@ -25,21 +25,21 @@ service IssueService {
   // Lists [Repositories][Repository].
   rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse) {
     option (google.api.http) = {
-      get: "/v1/{parent=owners/*}/repositories"
+      get: "/api/v1/{parent=owners/*}/repositories"
     };
   }
 
   // Lists [Issues][Issue].
   rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse) {
     option (google.api.http) = {
-      get: "/v1/{parent=owners/*/repositories/*}/issues"
+      get: "/api/v1/{parent=owners/*/repositories/*}/issues"
     };
   }
 
   // Gets a [Issue][].
   rpc GetIssue(GetIssueRequest) returns (Issue) {
     option (google.api.http) = {
-      get: "/v1/{name=owners/*/repositories/*/issues/*}"
+      get: "/api/v1/{name=owners/*/repositories/*/issues/*}"
     };
   }
 }
@@ -84,6 +84,14 @@ message ListIssuesRequest {
   // The default ordering is by `name`. Prefix with `-` to specify
   // descending order, e.g. `-name`.
   string order_by = 5;
+
+  bool comments = 6;
+
+  bool reviews = 7;
+
+  bool pull_request = 8 [deprecated=true]; 
+
+  bool closed = 9 [deprecated=true];
 }
 
 // Response message for [DevRelGitHubService.ListIssues][].
@@ -106,4 +114,10 @@ message GetIssueRequest {
   // Required. The fully qualified name of the [Issue][], in the format
   // `owners/*/repositories/*/issues/*`.
   string name = 1;
+
+  // Specifies if to include the [Issue]'s Comments
+  bool comments = 2;
+
+  // Specifies if to inlcude the [Issue]'s Reviews
+  bool reviews = 3;
 }

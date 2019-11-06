@@ -87,6 +87,6 @@ steps:
     gcloud endpoints services deploy v1/api_descriptor.pb target/samplr.yaml
 
     # Deploy magic-github-proxy
-    gcloud endpoints services deploy target/magic-github-proxy.yaml
+    # gcloud endpoints services deploy target/magic-github-proxy.yaml
 
 images:

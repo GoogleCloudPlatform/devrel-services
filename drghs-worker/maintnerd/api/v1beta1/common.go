@@ -31,7 +31,7 @@ func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 	}, nil
 }
 
-func makeIssuePB(issue *maintner.GitHubIssue) (*drghs_v1.Issue, error) {
+func makeIssuePB(issue *maintner.GitHubIssue, includeComments, includeReviews bool) (*drghs_v1.Issue, error) {
 
 	createdAt, err := ptypes.TimestampProto(issue.Created)
 	if err != nil {
@@ -60,7 +60,7 @@ func makeIssuePB(issue *maintner.GitHubIssue) (*drghs_v1.Issue, error) {
 		assignees[i] = u
 	}
 
-	return &drghs_v1.Issue{
+	riss := &drghs_v1.Issue{
 		Priority:  drghs_v1.Issue_P2,
 		IsPr:      issue.PullRequest,
 		Approved:  utils.IsApproved(issue),
@@ -74,10 +74,92 @@ func makeIssuePB(issue *maintner.GitHubIssue) (*drghs_v1.Issue, error) {
 		IssueId:   issue.Number,
 		Assignees: assignees,
 		Reporter:  reporter,
+	}
+
+	if includeComments {
+		riss.Comments = make([]*drghs_v1.GitHubComment, 0)
+		err := issue.ForeachComment(func(co *maintner.GitHubComment) error {
+			cpb, err := makeCommentPB(co)
+			if err != nil {
+				return err
+			}
+
+			riss.Comments = append(riss.Comments, cpb)
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if includeReviews {
+		riss.Reviews = make([]*drghs_v1.GitHubReview, 0)
+		err := issue.ForeachReview(func(rev *maintner.GitHubReview) error {
+			rpb, err := makeReviewPB(rev)
+			if err != nil {
+				return err
+			}
+
+			riss.Reviews = append(riss.Reviews, rpb)
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return riss, nil
+}
+
+func makeCommentPB(comment *maintner.GitHubComment) (*drghs_v1.GitHubComment, error) {
+	createdAt, err := ptypes.TimestampProto(comment.Created)
+	if err != nil {
+		return nil, err
+	}
+	updatedAt, err := ptypes.TimestampProto(comment.Updated)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := makeUserPB(comment.User)
+	if err != nil {
+		return nil, err
+	}
+
+	return &drghs_v1.GitHubComment{
+		Id:        int32(comment.ID),
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		User:      user,
+		Body:      comment.Body,
+	}, nil
+}
+
+func makeReviewPB(review *maintner.GitHubReview) (*drghs_v1.GitHubReview, error) {
+	createdAt, err := ptypes.TimestampProto(review.Created)
+	if err != nil {
+		return nil, err
+	}
+
+	actor, err := makeUserPB(review.Actor)
+	if err != nil {
+		return nil, err
+	}
+
+	return &drghs_v1.GitHubReview{
+		Id:               int32(review.ID),
+		CreatedAt:        createdAt,
+		Actor:            actor,
+		Body:             review.Body,
+		State:            review.State,
+		ActorAssociation: review.ActorAssociation,
 	}, nil
 }
 
 func makeUserPB(user *maintner.GitHubUser) (*drghs_v1.GitHubUser, error) {
+	if user == nil {
+		return nil, nil
+	}
 	return &drghs_v1.GitHubUser{
 		Id:    int32(user.ID),
 		Login: user.Login,
