@@ -148,6 +148,10 @@ func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
 		return false, nil
 	}
 
+	if filter == "" {
+		filter = defaultFilter
+	}
+
 	env, err := cel.NewEnv(
 		cel.Declarations(
 			decls.NewIdent("pull_request", decls.Bool, nil),
