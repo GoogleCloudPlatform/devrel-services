@@ -36,7 +36,7 @@ spec:
         image: gcr.io/endpoints-release/endpoints-runtime:1
         args: [
           "--http_port", "8080",
-          "--backend", "grpc:127.0.0.1:80",
+          "--backend", "grpc://127.0.0.1:80",
           "--service=SERVICE_NAME",
           "--version=SERVICE_CONFIG_ID",
           "--healthz=_healthz"
@@ -61,7 +61,6 @@ spec:
         command: [
           "/maintner-rtr",
           "--listen=:80",
-          "--sprvsr=maintnerd-sprvsr-cip",
           "--verbose",
         ]
         readinessProbe:
