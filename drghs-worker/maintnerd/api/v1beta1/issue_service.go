@@ -112,8 +112,9 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		repoID := getRepoPath(repo)
-		if strings.HasPrefix(r.Name, repoID) {
+		if !strings.HasPrefix(r.Name, repoID) {
 			// Not our repository... ignore
+			fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Name)
 			return nil
 		}
 
