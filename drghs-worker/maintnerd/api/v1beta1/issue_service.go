@@ -119,15 +119,13 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-
-			if strings.HasSuffix(r.Name, string(issue.ID)) {
+			if strings.HasSuffix(r.Name, string(issue.Number)) {
 				re, err := makeIssuePB(issue, r.Comments, r.Reviews)
 				if err != nil {
 					return err
 				}
 				resp = re
 			}
-
 			return nil
 		})
 	})
