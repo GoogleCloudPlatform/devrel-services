@@ -32,14 +32,14 @@ service IssueService {
   // Lists [Issues][Issue].
   rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse) {
     option (google.api.http) = {
-      get: "/api/v1/{parent=owners/*/repositories/*}/issues"
+      get: "/api/v1/{parent=*/*}/issues"
     };
   }
 
   // Gets a [Issue][].
   rpc GetIssue(GetIssueRequest) returns (Issue) {
     option (google.api.http) = {
-      get: "/api/v1/{name=owners/*/repositories/*/issues/*}"
+      get: "/api/v1/{name=*/*/issues/*}"
     };
   }
 }

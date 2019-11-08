@@ -182,7 +182,7 @@ func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
 }
 
 func getRepoPath(ta *maintner.GitHubRepo) string {
-	return fmt.Sprintf("owners/%v/repositories/%v", ta.ID().Owner, ta.ID().Repo)
+	return fmt.Sprintf("%v/%v", ta.ID().Owner, ta.ID().Repo)
 }
 
 // TODO(orthros) This should default to using *maintner.GitHubRepo, but

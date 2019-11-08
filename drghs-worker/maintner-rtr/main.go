@@ -39,7 +39,7 @@ var (
 	listen      = flag.String("listen", ":6343", "listen address")
 	verbose     = flag.Bool("verbose", false, "enable verbose debug output")
 	errorClient *errorreporting.Client
-	pathRegex   = regexp.MustCompile(`^owners\/([\w-]+)\/repositories\/([\w-]+)[\w\/-]*$`)
+	pathRegex   = regexp.MustCompile(`^([\w-]+)\/([\w-]+)[\w\/-]*$`)
 )
 
 const (
