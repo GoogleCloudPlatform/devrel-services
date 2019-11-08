@@ -119,7 +119,7 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			if strings.HasSuffix(r.Name, string(issue.Number)) {
+			if r.Name == getIssueName(repo, issue) {
 				re, err := makeIssuePB(issue, r.Comments, r.Reviews)
 				if err != nil {
 					return err
@@ -183,6 +183,10 @@ func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
 
 func getRepoPath(ta *maintner.GitHubRepo) string {
 	return fmt.Sprintf("%v/%v", ta.ID().Owner, ta.ID().Repo)
+}
+
+func getIssueName(ta *maintner.GitHubRepo, iss *maintner.GitHubIssue) string {
+	return fmt.Sprintf("%v/%v/issues/%v", ta.ID().Owner, ta.ID().Repo, iss.Number)
 }
 
 // TODO(orthros) This should default to using *maintner.GitHubRepo, but
