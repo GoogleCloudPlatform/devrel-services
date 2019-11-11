@@ -107,8 +107,8 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 	return &resp, err
 }
 
-func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.Issue, error) {
-	resp := &drghs_v1.Issue{}
+func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
+	resp := &drghs_v1.GetIssueResponse{}
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		repoID := getRepoPath(repo)
@@ -124,7 +124,7 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 				if err != nil {
 					return err
 				}
-				resp = re
+				resp.Issue = re
 			}
 			return nil
 		})

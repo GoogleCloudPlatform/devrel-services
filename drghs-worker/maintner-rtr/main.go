@@ -122,7 +122,7 @@ func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIss
 	return client.ListIssues(ctx, r)
 }
 
-func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.Issue, error) {
+func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
 	pth, err := calculateHost(r.Name)
 	if err != nil {
 		return nil, err

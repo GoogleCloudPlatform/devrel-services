@@ -37,7 +37,7 @@ service IssueService {
   }
 
   // Gets a [Issue][].
-  rpc GetIssue(GetIssueRequest) returns (Issue) {
+  rpc GetIssue(GetIssueRequest) returns (GetIssueResponse) {
     option (google.api.http) = {
       get: "/api/v1/{name=*/*/issues/*}"
     };
@@ -120,4 +120,8 @@ message GetIssueRequest {
 
   // Specifies if to inlcude the [Issue]'s Reviews
   bool reviews = 3;
+}
+
+message GetIssueResponse {
+  Issue issue = 1;
 }
