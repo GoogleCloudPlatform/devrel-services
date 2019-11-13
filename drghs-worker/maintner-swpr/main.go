@@ -92,24 +92,24 @@ func main() {
 
 	// Setup drghs client
 	var drghsc drghs_v1.IssueServiceClient
-	if false {
-		conn, err := grpc.Dial(*flRtrAddr, grpc.WithInsecure())
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Close()
-		drghsc = drghs_v1.NewIssueServiceClient(conn)
+
+	conn, err := grpc.Dial(*flRtrAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer conn.Close()
+
+	drghsc = drghs_v1.NewIssueServiceClient(conn)
 
 	var intsc maintner_internal.InternalIssueServiceClient
-	if false {
-		conn, err := grpc.Dial(*flRtrAddr, grpc.WithInsecure())
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Close()
-		intsc = maintner_internal.NewInternalIssueServiceClient(conn)
+
+	connin, err := grpc.Dial(*flRtrAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer connin.Close()
+
+	intsc = maintner_internal.NewInternalIssueServiceClient(connin)
 
 	// repos, err := getTrackedRepositories(ctx, drghsc)
 	repos, err := getTrackedRepositories(ctx, drghsc)
