@@ -40,6 +40,7 @@ const defaultFilter = "true"
 type issueServiceV1 struct {
 	corpus *maintner.Corpus
 	rp     *repoPaginator
+	ip     *issuePaginator
 }
 
 // NewIssueServiceV1 returns a service that implements
@@ -49,6 +50,9 @@ func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolv
 		corpus: corpus,
 		rp: &repoPaginator{
 			set: make(map[time.Time]repoPage),
+		},
+		ip: &issuePaginator{
+			set: make(map[time.Time]issuePage),
 		},
 	}
 }
@@ -125,35 +129,90 @@ func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListR
 }
 
 func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
-	resp := drghs_v1.ListIssuesResponse{}
+	var pg []*drghs_v1.Issue
+	var idx int
+	var err error
+	nextToken := ""
 
-	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		repoID := getRepoPath(repo)
-		if repoID != r.Parent {
-			// Not our repository... ignore
-			fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Parent)
-			return nil
+	if r.PageToken != "" {
+		//Handle pagination
+		pageToken, err := decodePageToken(r.PageToken)
+		if err != nil {
+			return nil, err
 		}
 
-		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
-			if err != nil {
-				return err
+		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
+		if err != nil {
+
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.ip.GetPage(ftime, pagesize)
+		if err != nil {
+			return nil, err
+		}
+		nextToken, err = makeNextPageToken(pageToken, idx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		issues := make([]*drghs_v1.Issue, 0)
+
+		err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
+			repoID := getRepoPath(repo)
+			if repoID != r.Parent {
+				// Not our repository... ignore
+				fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Parent)
+				return nil
 			}
 
-			should, err := filters.FilterIssue(iss, r)
-			if err != nil {
-				return err
-			}
-			if should {
-				// Add
-				resp.Issues = append(resp.Issues, iss)
-			}
-			return nil
+			return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
+				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
+				if err != nil {
+					return err
+				}
+
+				should, err := filters.FilterIssue(iss, r)
+				if err != nil {
+					return err
+				}
+				if should {
+					// Add
+					issues = append(issues, iss)
+				}
+				return nil
+			})
 		})
-	})
+		if err != nil {
+			return nil, err
+		}
 
-	return &resp, err
+		t, err := s.ip.CreatePage(issues)
+		if err != nil {
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.ip.GetPage(t, pagesize)
+		if err != nil {
+			return nil, err
+		}
+
+		if idx > 0 {
+			nextToken, err = makeFirstPageToken(t, idx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &drghs_v1.ListIssuesResponse{
+		Issues:        pg,
+		NextPageToken: nextToken,
+	}, err
 }
 
 func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
