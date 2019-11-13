@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
@@ -26,6 +27,7 @@ import (
 
 	"golang.org/x/build/maintner"
 
+	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
@@ -36,35 +38,89 @@ var _ drghs_v1.IssueServiceServer = &issueServiceV1{}
 const defaultFilter = "true"
 
 type issueServiceV1 struct {
-	corpus          *maintner.Corpus
-	googlerResolver googlers.GooglersResolver
+	corpus *maintner.Corpus
+	rp     *repoPaginator
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
 func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) *issueServiceV1 {
 	return &issueServiceV1{
-		corpus:          corpus,
-		googlerResolver: resolver,
+		corpus: corpus,
+		rp: &repoPaginator{
+			set: make(map[time.Time]repoPage),
+		},
 	}
 }
 
 func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
-	resp := drghs_v1.ListRepositoriesResponse{}
-	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		rpb, err := makeRepoPB(repo)
+
+	var pg []*drghs_v1.Repository
+	var idx int
+	var err error
+	nextToken := ""
+
+	if r.PageToken != "" {
+		pageToken, err := decodePageToken(r.PageToken)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		should, err := filters.FilterRepository(rpb, r.Filter)
+
+		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if should {
-			resp.Repositories = append(resp.Repositories, rpb)
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.rp.GetPage(ftime, pagesize)
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
+		nextToken, err = makeNextPageToken(pageToken, idx)
+
+	} else {
+		filteredRepos := make([]*drghs_v1.Repository, 0)
+		err = s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
+			rpb, err := makeRepoPB(repo)
+			if err != nil {
+				return err
+			}
+			should, err := filters.FilterRepository(rpb, r.Filter)
+			if err != nil {
+				return err
+			}
+			if should {
+				filteredRepos = append(filteredRepos, rpb)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		t, err := s.rp.CreatePage(filteredRepos)
+		if err != nil {
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+		pg, idx, err = s.rp.GetPage(t, pagesize)
+		if err != nil {
+			return nil, err
+		}
+		if idx > 0 {
+			nextToken, err = makeFirstPageToken(t, idx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	resp := drghs_v1.ListRepositoriesResponse{
+		Repositories:  pg,
+		NextPageToken: nextToken,
+	}
 	return &resp, err
 }
 
