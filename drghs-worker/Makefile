@@ -50,6 +50,11 @@ MUTATION_BUCKET ?= mtr-dev
 .PHONY: all
 all: help
 
+.PHONY: proto
+proto: ## Builds the protobuf files
+	protoc --go_out=plugins=grpc:internal/ --proto_path=internal/ --include_imports --descriptor_set_out=internal/api_descriptor.pb internal/*.proto;
+
+
 .PHONY: build
 build: ## Builds the docker image locally
 	docker build -t maintnerd:dev -f maintnerd/Dockerfile ../
