@@ -35,6 +35,8 @@ GCS_BUCKET_NAME ?= devrel-dev-settings
 REPOS_FILE_NAME ?= public_repos.json
 # The name of the GKE Secret that contains GitHub Access Tokens
 GITHUB_SECRET_NAME ?= github-token
+# The key of the secret to use to access the GitHub API for maintner-swpr
+SWPR_SECRET_KEY ?= drghs
 # The prefix to use for Buckets
 MUTATION_BUCKET ?= mtr-dev
 
@@ -70,7 +72,7 @@ deploy: check-project check-deploy ## Deploys the app to the GKE cluster
 	gcloud builds submit \
 	--config=cloudbuild.yaml \
 	--timeout=1h \
-	--substitutions _ZONE=$(GCP_CLUSTER_ZONE),_CLUSTER=$(GCP_CLUSTER_NAME),_BUCKET_NAME=$(GCS_BUCKET_NAME),_REPO_FILE_NAME=$(REPOS_FILE_NAME),_SERVICE_ACCOUNT_SECRET=$(SERVICE_ACCOUNT_SECRET_NAME),_GITHUB_SECRET_NAME=$(GITHUB_SECRET_NAME),_PREFIX=$(MUTATION_BUCKET) \
+	--substitutions _ZONE=$(GCP_CLUSTER_ZONE),_CLUSTER=$(GCP_CLUSTER_NAME),_BUCKET_NAME=$(GCS_BUCKET_NAME),_REPO_FILE_NAME=$(REPOS_FILE_NAME),_SERVICE_ACCOUNT_SECRET=$(SERVICE_ACCOUNT_SECRET_NAME),_GITHUB_SECRET_NAME=$(GITHUB_SECRET_NAME),_SWPR_SECRET_KEY=$(SWPR_SECRET_KEY),_PREFIX=$(MUTATION_BUCKET) \
 	../
 
 .PHONY: check-deploy
