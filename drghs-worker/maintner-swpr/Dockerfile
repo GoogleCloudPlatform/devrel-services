@@ -27,4 +27,4 @@ FROM gcr.io/distroless/base
 COPY --from=build /go/bin/maintner-swpr /
 WORKDIR /src
 COPY . .
-CMD ["/maintner-swpr"]
+ENTRYPOINT ["/maintner-swpr"]
