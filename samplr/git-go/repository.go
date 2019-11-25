@@ -175,7 +175,7 @@ func (r *Repository) FetchContext(ctx context.Context, o *FetchOptions) error {
 
 	fetchOut, err := fetchCmd.CombinedOutput()
 	if err != nil {
-		log.Errorf("Hit an error fetching %v, in %v. \n\tError: %v.\n\tLog: %v ", r.url, r.dir, err, fetchOut)
+		log.Errorf("Hit an error fetching %v, in %v. \n\tError: %v.\n\tLog: %s", r.url, r.dir, err, fetchOut)
 		return err
 	}
 
