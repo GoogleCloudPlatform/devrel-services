@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"testing"
 )
 
@@ -182,4 +183,8 @@ func TestFetch(t *testing.T) {
 		t.Errorf("TestFetch: got an error on second pull: %v", err)
 	}
 
+	// Finally check that c1dir has foo in it
+	if _, err := os.Stat(path.Join(c1dir, "foo")); os.IsNotExist(err) {
+		t.Errorf(("TestFetch: c1dir/foo does not exist"))
+	}
 }
