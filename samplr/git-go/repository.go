@@ -148,7 +148,7 @@ func (r *Repository) Log(opts *LogOptions) (CommitIter, error) {
 	}
 
 	// Call git log on the repository, and parse output into commit objects
-	commits, err := r.getCommits()
+	commits, err := r.getCommits(opts.From)
 	if err != nil {
 		r.mu.Unlock()
 		return nil, err
@@ -232,16 +232,17 @@ func (r *Repository) checkout(from Hash) error {
 	return err
 }
 
-func (r *Repository) getCommits() ([]*Commit, error) {
+func (r *Repository) getCommits(from Hash) ([]*Commit, error) {
 	log.Debugf("Getting the commits for: %v stored in %v", r.url, r.dir)
-	logCmdStr := `git rev-list master --reverse |
+
+	logCmdStr := fmt.Sprintf(`git rev-list %s --reverse | `, from.String()) + `
     while read sha1; do
         git show -s --format="Commit: %H%nAuthor: %an%nAuthor Email: %ae%nAuthor Date: %at%nCommitter: %cn%nCommitter Email: %ce%nCommitter Date: %ct%nSubject: %s" $sha1;
         git show -s --format="Body: %B" $sha1 | tr "\n" " " | tr "\r" " "; echo;
         echo "Files:"
         git show --format='' --name-status $sha1; echo;
         echo;
-    done`
+	done`
 	logCmd := exec.Command("bash", "-c", logCmdStr)
 	logCmd.Dir = r.dir
 
