@@ -191,3 +191,23 @@ metadata:
 spec:
   domains:
     - samplr.endpoints.PROJECT_ID.cloud.goog
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: samplrd-sprvsr-update
+spec:
+  schedule: "30 0 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: update
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - date; wget -O - http://samplrd-sprvsr-cip/update
+          restartPolicy: Never
