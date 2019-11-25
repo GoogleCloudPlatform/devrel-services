@@ -48,6 +48,13 @@ spec:
             path: /_healthz
             port: 8080
           initialDelaySeconds: 30
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "100Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
       - name: samplrd-rtr
         image: gcr.io/PROJECT_ID/samplr-rtr:BUILD_ID
         imagePullPolicy: Always
