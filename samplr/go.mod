@@ -19,7 +19,7 @@ require (
 	github.com/spf13/pflag v1.0.3
 	github.com/toqueteos/trie v0.0.0-20150530104557-56fed4a05683 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	google.golang.org/grpc v1.23.0
+	google.golang.org/grpc v1.24.0
 	gopkg.in/src-d/enry.v1 v1.6.7
 	gopkg.in/toqueteos/substring.v1 v1.0.2 // indirect
 	gopkg.in/yaml.v2 v2.2.2

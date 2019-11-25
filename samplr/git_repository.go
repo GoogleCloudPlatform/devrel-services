@@ -68,7 +68,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		return err
 	}
 	refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.Master {
+		if ref.Name() != git.OriginMaster {
 			return nil
 		}
 		name := ref.Name()
@@ -102,7 +102,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		return err
 	}
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.Master {
+		if ref.Name() != git.OriginMaster {
 			return nil
 		}
 		name := ref.Name()
