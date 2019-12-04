@@ -22,6 +22,24 @@ use GitHub pull requests for this purpose. Consult
 [GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
 information on using pull requests.
 
+## Commits
+
+We use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+to format our commits, and they are enforced by a GitHub check. If you
+accidentally make commits that do not conform to the spec, don't worry!
+You can edit your Pull Request title to be within the spec and the
+check will pass.
+
+## Linting
+
+All Go code must be formatted with the
+[gofmt tool](https://golang.org/cmd/gofmt/).
+
+## Testing
+
+Our Go code has test associated with them. If you write a function, or
+fix a bug, include a test to cover it.
+
 ## Community Guidelines
 
 This project follows

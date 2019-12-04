@@ -35,6 +35,8 @@ const (
 	HEAD ReferenceName = "HEAD"
 	// Master is the name of the Master reference
 	Master ReferenceName = "refs/heads/master"
+	// OriginMaster is the name of origin master
+	OriginMaster ReferenceName = "refs/remotes/origin/master"
 )
 
 // ReferenceName reference name's

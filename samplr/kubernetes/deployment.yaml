@@ -48,6 +48,13 @@ spec:
             path: /_healthz
             port: 8080
           initialDelaySeconds: 30
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "100Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
       - name: samplrd-rtr
         image: gcr.io/PROJECT_ID/samplr-rtr:BUILD_ID
         imagePullPolicy: Always
@@ -184,3 +191,23 @@ metadata:
 spec:
   domains:
     - samplr.endpoints.PROJECT_ID.cloud.goog
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: samplrd-sprvsr-update
+spec:
+  schedule: "30 0 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: update
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - date; wget -O - http://samplrd-sprvsr-cip/update
+          restartPolicy: Never
