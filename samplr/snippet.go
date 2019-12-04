@@ -45,6 +45,7 @@ var fileWhitelist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.cpp$"),         // cpp
 	regexp.MustCompile("^.+\\.cc$"),          // cpp
 	regexp.MustCompile("^.+\\.cs$"),          // csharp
+	regexp.MustCompile("^.+\\.css$"),         // css
 	regexp.MustCompile("^(?i)(dockerfile)$"), // dockerfile
 	regexp.MustCompile("^.+\\.go$"),          // go
 	regexp.MustCompile("^.+\\.gs$"),          // apps_script
