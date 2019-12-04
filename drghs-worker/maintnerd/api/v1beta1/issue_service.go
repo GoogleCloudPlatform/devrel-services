@@ -41,11 +41,12 @@ type issueServiceV1 struct {
 	corpus *maintner.Corpus
 	rp     *repoPaginator
 	ip     *issuePaginator
+	cp     *commentPaginator
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
-func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) drghs_v1.IssueServiceServer {
+func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) *issueServiceV1 {
 	return &issueServiceV1{
 		corpus: corpus,
 		rp: &repoPaginator{
@@ -53,6 +54,9 @@ func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolv
 		},
 		ip: &issuePaginator{
 			set: make(map[time.Time]issuePage),
+		},
+		cp: &commentPaginator{
+			set: make(map[time.Time]commentPage),
 		},
 	}
 }
@@ -216,6 +220,106 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 
 	return &drghs_v1.ListIssuesResponse{
 		Issues:        pg,
+		NextPageToken: nextToken,
+	}, err
+}
+
+func (s *issueServiceV1) ListGitHubComments(ctx context.Context, r *drghs_v1.ListGitHubCommentsRequest) (*drghs_v1.ListGitHubCommentsResponse, error) {
+	var pg []*drghs_v1.GitHubComment
+	var idx int
+	var err error
+	nextToken := ""
+
+	if r.PageToken != "" {
+		//Handle pagination
+		pageToken, err := decodePageToken(r.PageToken)
+		if err != nil {
+			return nil, err
+		}
+
+		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
+		if err != nil {
+
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.cp.GetPage(ftime, pagesize)
+		if err != nil {
+			return nil, err
+		}
+		nextToken, err = makeNextPageToken(pageToken, idx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		comments := make([]*drghs_v1.GitHubComment, 0)
+
+		filter := defaultFilter
+		if r.Filter != "" {
+			filter = r.Filter
+		}
+
+		err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
+			repoID := getRepoPath(repo)
+			if !strings.HasPrefix(r.Name, repoID) {
+				// Not our repository... ignore
+				fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Name)
+				return nil
+			}
+
+			return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
+				if r.Name != getIssueName(repo, issue) {
+					return nil
+				}
+
+				err := issue.ForeachComment(func(co *maintner.GitHubComment) error {
+					cpb, err := makeCommentPB(co)
+					if err != nil {
+						return err
+					}
+
+					should, err := filters.FilterComment(cpb, filter)
+					if err != nil {
+						return err
+					}
+					if should {
+						// Add
+						comments = append(comments, cpb)
+					}
+					return nil
+				})
+
+				return err
+			})
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		t, err := s.cp.CreatePage(comments)
+		if err != nil {
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.cp.GetPage(t, pagesize)
+		if err != nil {
+			return nil, err
+		}
+
+		if idx > 0 {
+			nextToken, err = makeFirstPageToken(t, idx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &drghs_v1.ListGitHubCommentsResponse{
+		Comments:      pg,
 		NextPageToken: nextToken,
 	}, err
 }

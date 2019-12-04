@@ -136,6 +136,22 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 	client := drghs_v1.NewIssueServiceClient(conn)
 	return client.GetIssue(ctx, r)
 }
+
+func (s *reverseProxyServer) ListGitHubComments(ctx context.Context, r *drghs_v1.ListGitHubCommentsRequest) (*drghs_v1.ListGitHubCommentsResponse, error) {
+	pth, err := calculateHost(r.Name)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(pth, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	client := drghs_v1.NewIssueServiceClient(conn)
+	return client.ListGitHubComments(ctx, r)
+}
+
 func calculateHost(path string) (string, error) {
 	// We might need to put some more real "smarts" to this logic
 	// in the event we need to handle the /v1/owners/*/repositories

@@ -9,8 +9,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -882,29 +880,6 @@ type SampleServiceServer interface {
 	ListSnippetVersions(context.Context, *ListSnippetVersionsRequest) (*ListSnippetVersionsResponse, error)
 	// Lists [Repositories][Repository].
 	ListRepositories(context.Context, *ListRepositoriesRequest) (*ListRepositoriesResponse, error)
-}
-
-// UnimplementedSampleServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedSampleServiceServer struct {
-}
-
-func (*UnimplementedSampleServiceServer) ListGitCommits(ctx context.Context, req *ListGitCommitsRequest) (*ListGitCommitsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListGitCommits not implemented")
-}
-func (*UnimplementedSampleServiceServer) GetGitCommit(ctx context.Context, req *GetGitCommitRequest) (*GitCommit, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetGitCommit not implemented")
-}
-func (*UnimplementedSampleServiceServer) ListFiles(ctx context.Context, req *ListFilesRequest) (*ListFilesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
-}
-func (*UnimplementedSampleServiceServer) ListSnippets(ctx context.Context, req *ListSnippetsRequest) (*ListSnippetsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListSnippets not implemented")
-}
-func (*UnimplementedSampleServiceServer) ListSnippetVersions(ctx context.Context, req *ListSnippetVersionsRequest) (*ListSnippetVersionsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListSnippetVersions not implemented")
-}
-func (*UnimplementedSampleServiceServer) ListRepositories(ctx context.Context, req *ListRepositoriesRequest) (*ListRepositoriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRepositories not implemented")
 }
 
 func RegisterSampleServiceServer(s *grpc.Server, srv SampleServiceServer) {
