@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/devrel-services/rtr"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
+	"github.com/GoogleCloudPlatform/devrel-services/rtr"
 
 	"cloud.google.com/go/errorreporting"
 	"github.com/sirupsen/logrus"
@@ -39,7 +39,7 @@ var (
 	rmQuery     = flag.String("rmquery", "", "query to remove from the URL before proxying. e.g. 'key'")
 	supervisor  = flag.String("sprvsr", "", "the name of the service that is hosting the supervisor")
 	errorClient *errorreporting.Client
-	pathRegex   = regexp.MustCompile(`^\/api\/v1\/([\w-]+)\/([\w-]+)\/issues[\w\/-]*$`)
+	pathRegex   = regexp.MustCompile(`^\/api\/v1\/([.\w-]+)\/([.\w-]+)\/issues[.\w\/-]*$`)
 )
 
 const (
@@ -106,7 +106,7 @@ func calculateHost(req *http.Request) (string, error) {
 
 		ta := repos.TrackedRepository{
 			Owner: mtches[0][1],
-			Name: mtches[0][2],
+			Name:  mtches[0][2],
 		}
 
 		sn, err := serviceName(ta)
@@ -149,14 +149,14 @@ func calculateHost(req *http.Request) (string, error) {
 			return "", fmt.Errorf("did not specify repository in body")
 		}
 
-		parts := strings.Split(repo,"/")
+		parts := strings.Split(repo, "/")
 		if len(parts) != 2 {
 			return "", fmt.Errorf("bad format for repo")
 		}
 
 		ta := repos.TrackedRepository{
 			Owner: parts[0],
-			Name: parts[1],
+			Name:  parts[1],
 		}
 
 		sn, err := serviceName(ta)
