@@ -42,6 +42,13 @@ service IssueService {
       get: "/api/v1/{name=*/*/issues/*}"
     };
   }
+
+  // Lists [Issues][Issue][Comment].
+  rpc ListGitHubComments(ListGitHubCommentsRequest) returns (ListGitHubCommentsResponse){
+    option (google.api.http) = {
+      get: "/api/v1/{name=*/*/issues/*}"
+    };
+  }
 }
 
 // Request message for [DevRelGitHubService.ListIssues][].
@@ -89,7 +96,7 @@ message ListIssuesRequest {
 
   bool reviews = 7;
 
-  bool pull_request = 8 [deprecated=true]; 
+  bool pull_request = 8 [deprecated=true];
 
   bool closed = 9 [deprecated=true];
 }
@@ -124,4 +131,63 @@ message GetIssueRequest {
 
 message GetIssueResponse {
   Issue issue = 1;
+}
+
+
+// Request message for [DevRelGitHubService.ListGitHubComments][].
+message ListGitHubCommentsRequest {
+  // Required. The fully qualified name of the [Issue][], in the format
+  // `owners/*/repositories/*/issues/*`.
+  string name = 1;
+
+  // Optional. Limit the number of [GitHubComment]s to include in the
+  // response. Fewer GitHubComments than requested might be returned.
+  //
+  // The maximum page size is `100`. If unspecified, the page size will be the
+  // maximum. Further [GitHubComment][]s can subsequently be obtained
+  // by including the [ListGitHubCommentsResponse.next_page_token][] in a
+  // subsequent request.
+  int32 page_size = 2;
+
+  // Optional. To request the first page of results, `page_token` must be empty.
+  // To request the next page of results, page_token must be the value of
+  // [ListGitHubCommentsResponse.next_page_token][] returned by a previous call to
+  // [Issueservice.ListGitHubComments][].
+  //
+  // The page token is valid for only 2 hours.
+  string page_token = 3;
+
+  // Optional. Filter expression used to only include resources that match the
+  // filter in the response. Filter must be in following the format:
+  //
+  //     field1=123
+  //     field2="Foo bar"
+  //     field3 IN (value3, value4)
+  //     field4 LIKE "%somestring%"
+  //
+  // Valid filter fields are: `comment.body`, `comment.created_at`,
+  // `comment.user`, and `comment.updated_at`.
+  //
+  string filter = 4;
+
+  // Optional. Specify how the results should be sorted. The fields supported
+  // for sorting are `name` and `size`.
+  // The default ordering is by `name`. Prefix with `-` to specify
+  // descending order, e.g. `-name`.
+  string order_by = 5;
+}
+
+// Response message for [DevRelGitHubService.ListGitHubComments][].
+message ListGitHubCommentsResponse {
+  // The list of [GitHubComments][].
+  repeated drghs.v1.GitHubComment comments = 1;
+
+  // A token to retrieve the next page of results, or empty if there are no
+  // more results in the list. Pass this value in
+  // [ListGitHubCommentsRequest.page_token][] to retrieve the next page of
+  // results.
+  string next_page_token = 2;
+
+  // The total number of [GitHubComments][] that matched the query.
+  int32 total = 3;
 }
