@@ -255,6 +255,11 @@ func buildService(ta repos.TrackedRepository) (*apiv1.Service, error) {
 					Port:       80,
 					TargetPort: intstr.FromInt(80),
 				},
+				apiv1.ServicePort{
+					Name:       "http",
+					Port:       8080,
+					TargetPort: intstr.FromInt(8080),
+				},
 			},
 			Selector: map[string]string{
 				"app": dep,
@@ -311,6 +316,7 @@ func buildDeployment(sasecretname, githubsecretname, githubsecretkey string, ta 
 								"--verbose",
 								"--token=$(GITHUB_TOKEN)",
 								"--listen=:80",
+								"--intListen=:8080",
 								fmt.Sprintf("--gcp-project=%v", *projectID),
 								fmt.Sprintf("--owner=%v", ta.Owner),
 								fmt.Sprintf("--repo=%v", ta.Name),

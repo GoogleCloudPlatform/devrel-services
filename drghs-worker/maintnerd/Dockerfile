@@ -23,7 +23,7 @@ COPY . .
 WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
 RUN git clone https://go.googlesource.com/build build
 WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/build
-RUN git fetch https://go.googlesource.com/build refs/changes/38/176638/5 && git checkout FETCH_HEAD
+RUN git fetch https://go.googlesource.com/build refs/changes/98/205598/1 && git checkout FETCH_HEAD
 
 RUN echo "replace golang.org/x/build => ../build " >> ../drghs-worker/go.mod
 

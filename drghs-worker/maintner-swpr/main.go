@@ -17,14 +17,17 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"time"
 
 	maintner_internal "github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
 	"github.com/shurcooL/githubv4"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -43,6 +46,11 @@ var (
 // Constants
 const (
 	GitHubEnvVar = "GITHUB_TOKEN"
+)
+
+// Uses
+var (
+	rNameRegex = regexp.MustCompile(`^([\w-]+)\/([\w-]+)$`)
 )
 
 func init() {
@@ -101,17 +109,6 @@ func main() {
 
 	drghsc = drghs_v1.NewIssueServiceClient(conn)
 
-	var intsc maintner_internal.InternalIssueServiceClient
-
-	connin, err := grpc.Dial(*flRtrAddr, grpc.WithInsecure())
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer connin.Close()
-
-	intsc = maintner_internal.NewInternalIssueServiceClient(connin)
-
-	// repos, err := getTrackedRepositories(ctx, drghsc)
 	repos, err := getTrackedRepositories(ctx, drghsc)
 	if err != nil {
 		log.Fatal(err)
@@ -150,7 +147,7 @@ func main() {
 		if len(tmbIssues) > 0 {
 			log.Infof("repo: %v tombstoning: %v issues\n", repo.Name, len(tmbIssues))
 
-			err = flagIssuesTombstoned(ctx, intsc, repo, tmbIssues)
+			err = flagIssuesTombstoned(ctx, repo, tmbIssues)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -218,11 +215,23 @@ func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) 
 	return ret, nil
 }
 
-func flagIssuesTombstoned(ctx context.Context, c maintner_internal.InternalIssueServiceClient, repo *drghs_v1.Repository, issueIds []int32) error {
-	if c == nil {
-		log.Infof("tombstoned: %v issues", len(issueIds))
-		return nil
+func flagIssuesTombstoned(ctx context.Context, repo *drghs_v1.Repository, issueIds []int32) error {
+	tr := repoToTrackedRepo(repo)
+	if tr == nil {
+		return fmt.Errorf("Bad repository: %v", repo)
 	}
+	maddr, err := serviceName(*tr)
+	if err != nil {
+		return err
+	}
+
+	conn, err := grpc.Dial(maddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	c := maintner_internal.NewInternalIssueServiceClient(conn)
 
 	stream, err := c.TombstoneIssues(ctx)
 	if err != nil {
@@ -275,27 +284,22 @@ func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs
 	return allIssues, nil
 }
 
-// Stub code for Service
-type stub struct{}
+func serviceName(t repos.TrackedRepository) (string, error) {
+	return strings.ToLower(fmt.Sprintf("mtr-s-%s", t.RepoSha())), nil
+}
 
-var _ maintner_internal.InternalIssueServiceServer = &stub{}
-
-func (s *stub) TombstoneIssues(stream maintner_internal.InternalIssueService_TombstoneIssuesServer) error {
-	var ntombstoned int32
-
-	for {
-		iss, err := stream.Recv()
-		if err == io.EOF {
-			// Done. Return
-			return stream.SendAndClose(&maintner_internal.TombstoneIssueResponse{
-				NumberTombstoned: ntombstoned,
-			})
+func repoToTrackedRepo(r *drghs_v1.Repository) *repos.TrackedRepository {
+	var ta *repos.TrackedRepository = nil
+	mtches := rNameRegex.FindAllStringSubmatch(r.Name, -1)
+	if mtches != nil {
+		log.Tracef("Got a match!")
+		// This match will be of form:
+		// [["/v1/owners/foo/repositories/bar1/issues" "foo" "bar1"]]
+		// Therefore slice the array
+		ta = &repos.TrackedRepository{
+			Owner: mtches[0][1],
+			Name:  mtches[0][2],
 		}
-		if err != nil {
-			return err
-		}
-		ntombstoned++
-		// go through the corpus, find this repo, find the issue, tombstone it
-		log.Tracef("for repository %v requested to tombstone issue: %v", iss.Parent, iss.IssueNumber)
 	}
+	return ta
 }
