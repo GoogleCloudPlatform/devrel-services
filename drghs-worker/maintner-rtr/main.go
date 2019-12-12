@@ -80,7 +80,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
 	reverseProxy := &reverseProxyServer{}
 	drghs_v1.RegisterIssueServiceServer(grpcServer, reverseProxy)
 	healthpb.RegisterHealthServer(grpcServer, reverseProxy)
@@ -169,4 +169,18 @@ func calculateHost(path string) (string, error) {
 
 func serviceName(t repos.TrackedRepository) (string, error) {
 	return strings.ToLower(fmt.Sprintf("mtr-s-%s", t.RepoSha())), nil
+}
+
+
+func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	start := time.Now()
+	log.Tracef("Starting RPC: %v at %v", info.FullMethod, start)
+
+	m, err := handler(ctx, req)
+	if err != nil {
+		log.Errorf("RPC: %v failed with error %v", info.FullMethod, err)
+	}
+
+	log.Tracef("Finishing RPC: %v. Took: %v", info.FullMethod, time.Now().Sub(start))
+	return m, err
 }
