@@ -89,9 +89,15 @@ message ListIssuesRequest {
 
   bool reviews = 7;
 
-  bool pull_request = 8 [deprecated=true]; 
+  // This is a workaround to allow nullable bools
+  oneof pull_request_nullable {
+    bool pull_request = 8 [deprecated=true];
+  }
 
-  bool closed = 9 [deprecated=true];
+  // This is a workaround to allow nullable bools
+  oneof closed_nullable {
+    bool closed = 9 [deprecated=true];
+  }
 }
 
 // Response message for [DevRelGitHubService.ListIssues][].

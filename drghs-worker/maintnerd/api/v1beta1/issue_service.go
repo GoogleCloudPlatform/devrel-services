@@ -74,11 +74,6 @@ func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListR
 func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
 	resp := drghs_v1.ListIssuesResponse{}
 
-	filter := fmt.Sprintf("pull_request == %v && closed == %v ", r.PullRequest, r.Closed)
-	if r.Filter != "" {
-		filter = r.Filter
-	}
-
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		repoID := getRepoPath(repo)
 		if repoID != r.Parent {
@@ -88,7 +83,7 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			should, err := shouldAddIssue(issue, filter)
+			should, err := s.shouldAddIssue(issue, r)
 			if err != nil {
 				return err
 			}
@@ -142,43 +137,34 @@ func (s *issueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
 }
 
-func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
+func (s *issueServiceV1) shouldAddIssue(issue *maintner.GitHubIssue, r *drghs_v1.ListIssuesRequest) (bool, error) {
 	if issue.NotExist {
 		return false, nil
 	}
 
-	if filter == "" {
-		filter = defaultFilter
+	switch x := r.PullRequestNullable.(type) {
+	case *drghs_v1.ListIssuesRequest_PullRequest:
+		if issue.PullRequest != x.PullRequest {
+			return false, nil
+		}
+	case nil:
+		// Do nothing
+	default:
+		// Do nothing
 	}
 
-	env, err := cel.NewEnv(
-		cel.Declarations(
-			decls.NewIdent("pull_request", decls.Bool, nil),
-			decls.NewIdent("closed", decls.Bool, nil)))
-
-	parsed, issues := env.Parse(filter)
-	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
-	}
-	checked, issues := env.Check(parsed)
-	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
-	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
+	switch x := r.ClosedNullable.(type) {
+	case *drghs_v1.ListIssuesRequest_Closed:
+		if issue.Closed != x.Closed {
+			return false, nil
+		}
+	case nil:
+		// Do nothing
+	default:
+		// Do nothing
 	}
 
-	// The `out` var contains the output of a successful evaluation.
-	// The `details' var would contain intermediate evalaution state if enabled as
-	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
-	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
-		"pull_request": issue.PullRequest,
-		"closed":       issue.Closed,
-	})
-
-	return out == types.True, nil
+	return true, nil
 }
 
 func getRepoPath(ta *maintner.GitHubRepo) string {
