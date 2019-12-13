@@ -44,6 +44,15 @@ service IssueService {
   }
 }
 
+// Issue Service Admin
+service IssueServiceAdmin{
+  rpc UpdateTrackedRepos(UpdateTrackedReposRequest) returns (UpdateTrackedReposResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/update"
+    };  
+  }
+}
+
 // Request message for [DevRelGitHubService.ListIssues][].
 message ListIssuesRequest {
   // Required. The resource name of the repository associated with the
@@ -130,4 +139,12 @@ message GetIssueRequest {
 
 message GetIssueResponse {
   Issue issue = 1;
+}
+
+// Request message for [IssueSerivceAdmin.UpdateTrackedRepos].
+message UpdateTrackedReposRequest{
+}
+
+// Response message for [IssueSerivceAdmin.UpdateTrackedRepos].
+message UpdateTrackedReposResponse{
 }

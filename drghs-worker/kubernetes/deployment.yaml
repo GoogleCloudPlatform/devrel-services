@@ -62,6 +62,7 @@ spec:
           "/maintner-rtr",
           "--listen=:80",
           "--verbose",
+          "--sprvsr=maintnerd-sprvsr-cip",
         ]
         readinessProbe:
           exec:

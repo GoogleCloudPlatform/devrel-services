@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -38,6 +39,7 @@ import (
 var (
 	listen      = flag.String("listen", ":6343", "listen address")
 	verbose     = flag.Bool("verbose", false, "enable verbose debug output")
+	sprvsrAddr  = flag.String("sprvsr", "maintner-sprvsr", "address for supervisor")
 	errorClient *errorreporting.Client
 	pathRegex   = regexp.MustCompile(`^([\w-]+)\/([\w-]+)[\w\/-]*$`)
 )
@@ -83,6 +85,7 @@ func main() {
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
 	reverseProxy := &reverseProxyServer{}
 	drghs_v1.RegisterIssueServiceServer(grpcServer, reverseProxy)
+	drghs_v1.RegisterIssueServiceAdminServer(grpcServer, reverseProxy)
 	healthpb.RegisterHealthServer(grpcServer, reverseProxy)
 	log.Printf("gRPC server listening on: %s", *listen)
 	grpcServer.Serve(lis)
@@ -136,6 +139,13 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 	client := drghs_v1.NewIssueServiceClient(conn)
 	return client.GetIssue(ctx, r)
 }
+
+func (s *reverseProxyServer) UpdateTrackedRepos(ctx context.Context, r *drghs_v1.UpdateTrackedReposRequest) (*drghs_v1.UpdateTrackedReposResponse, error) {
+	log.Trace("Updating repository list")
+	_, err := http.Get(fmt.Sprintf("http://%s/update", *sprvsrAddr))
+	return &drghs_v1.UpdateTrackedReposResponse{}, err
+}
+
 func calculateHost(path string) (string, error) {
 	// We might need to put some more real "smarts" to this logic
 	// in the event we need to handle the /v1/owners/*/repositories
@@ -170,7 +180,6 @@ func calculateHost(path string) (string, error) {
 func serviceName(t repos.TrackedRepository) (string, error) {
 	return strings.ToLower(fmt.Sprintf("mtr-s-%s", t.RepoSha())), nil
 }
-
 
 func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()

@@ -21,6 +21,7 @@ title: DevRel GitHub Services API (TYPE)
 
 apis:
 - name: drghs.v1.IssueService
+- name: drghs.v1.IssueServiceAdmin
 
 endpoints:
 - name: drghs.endpoints.PROJECT_ID.cloud.goog
