@@ -85,7 +85,7 @@ func TestIssueFilters(t *testing.T) {
 			WantErr: false,
 		},
 		{
-			Name: "Closed False Filter Passes",
+			Name: "Closed False Filter Skips Closed",
 			Issue: maintner.GitHubIssue{
 				PullRequest: true,
 				Closed:      true,
@@ -96,6 +96,20 @@ func TestIssueFilters(t *testing.T) {
 				},
 			},
 			Want:    false,
+			WantErr: false,
+		},
+		{
+			Name: "Closed False Filter Passes",
+			Issue: maintner.GitHubIssue{
+				PullRequest: true,
+				Closed:      false,
+			},
+			Req: &drghs_v1.ListIssuesRequest{
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: false,
+				},
+			},
+			Want:    true,
 			WantErr: false,
 		},
 		{
@@ -115,6 +129,24 @@ func TestIssueFilters(t *testing.T) {
 				},
 			},
 			Want:    false,
+			WantErr: false,
+		},
+		{
+			Name: "Compound Filter Passes on PR",
+			Issue: maintner.GitHubIssue{
+				PullRequest: true,
+				Closed:      false,
+			},
+			Req: &drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+					PullRequest: true,
+				},
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+
+					Closed: false,
+				},
+			},
+			Want:    true,
 			WantErr: false,
 		},
 	}
