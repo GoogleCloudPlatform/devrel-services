@@ -83,7 +83,7 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			should, err := s.shouldAddIssue(issue, r)
+			should, err := shouldAddIssue(issue, r)
 			if err != nil {
 				return err
 			}
@@ -137,7 +137,7 @@ func (s *issueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
 }
 
-func (s *issueServiceV1) shouldAddIssue(issue *maintner.GitHubIssue, r *drghs_v1.ListIssuesRequest) (bool, error) {
+func shouldAddIssue(issue *maintner.GitHubIssue, r *drghs_v1.ListIssuesRequest) (bool, error) {
 	if issue.NotExist {
 		return false, nil
 	}
