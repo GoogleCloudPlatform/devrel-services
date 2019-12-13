@@ -48,7 +48,7 @@ service IssueService {
 service IssueServiceAdmin{
   rpc UpdateTrackedRepos(UpdateTrackedReposRequest) returns (UpdateTrackedReposResponse) {
     option (google.api.http) = {
-      get: "/api/v1/update"
+      post: "/api/v1/update"
     };  
   }
 }
