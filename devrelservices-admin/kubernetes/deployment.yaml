@@ -1,0 +1,128 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devrelservices-admin
+  labels:
+    app: devrelservices-admin
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: devrelservices-admin
+  template:
+    metadata:
+      labels:
+        app: devrelservices-admin
+    spec:
+      serviceAccountName: devrelservices-admin-sa
+      containers:
+      - name: esp
+        image: gcr.io/endpoints-release/endpoints-runtime:1
+        args: [
+          "--http_port", "8080",
+          "--backend", "grpc://127.0.0.1:80",
+          "--service=SERVICE_NAME",
+          "--version=SERVICE_CONFIG_ID",
+          "--healthz=_healthz"
+        ]
+        ports:
+          - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /_healthz
+            port: 8080
+          initialDelaySeconds: 30
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "100Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+      - name: devrelservices-admin
+        image: gcr.io/PROJECT_ID/devrelservices-admin:BUILD_ID
+        imagePullPolicy: Always
+        command: [
+          "/devrelservices-admin",
+          "--listen=:80",
+          "--verbose",
+        ]
+        ports:
+        - containerPort: 80
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        volumeMounts:
+        - mountPath: /var/secrets/google
+          name: gcp-sa
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:80"]
+          periodSeconds: 10
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:80"]
+          initialDelaySeconds: 5
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "100Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+      volumes:
+      - name: gcp-sa
+        secret:
+          secretName: SERVICE_ACCOUNT_SECRET_NAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: esp-devrelservices-admin-np
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: devrelservices-admin
+  type: NodePort
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: esp-devrelservices-admin-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: devrelservices-admin-ip
+    networking.gke.io/managed-certificates: devrelservices-admin-endpoints-cert
+  labels:
+    app: devrelservices-admin
+spec:
+  backend:
+    serviceName: esp-devrelservices-admin-np
+    servicePort: 80
+---
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: devrelservices-admin-endpoints-cert
+spec:
+  domains:
+    - devrelservices-admin.endpoints.PROJECT_ID.cloud.goog
