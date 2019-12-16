@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"regexp"
 	"time"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
@@ -48,7 +47,6 @@ var (
 
 var (
 	errorClient *errorreporting.Client
-	pathRegex   = regexp.MustCompile(`^owners\/([\w-]+)\/repositories\/([\w-]+)[\w\/-]*$`)
 )
 
 // Log
