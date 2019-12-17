@@ -96,7 +96,7 @@ func main() {
 	}()
 
 	if err := profiler.Start(profiler.Config{
-		Service:        "devrel-admin",
+		Service:        "devrelservices-admin",
 		ServiceVersion: "0.0.1",
 	}); err != nil {
 		log.Errorf("error staring profiler: %v", err)
