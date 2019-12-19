@@ -97,7 +97,7 @@ steps:
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   id: 'endpoints-deploy'
-  waitFor: ['magic-github-proxy-endpoints-prep', 'samplr-endpoints-prep', 'maintner-endpoints-prep', 'devrelservices-admin-prep']
+  waitFor: ['magic-github-proxy-endpoints-prep', 'samplr-endpoints-prep', 'maintner-endpoints-prep', 'devrelservices-admin-endpoints-prep']
   args:
   - '-e'
   - '-c'
