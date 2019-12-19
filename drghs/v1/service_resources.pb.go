@@ -60,10 +60,9 @@ type ListRepositoriesRequest struct {
 	//
 	//     field1=123
 	//     field2="Foo bar"
-	//     field3 IN (value3, value4)
-	//     field4 LIKE "%somestring%"
+	//     field3 IN ["value3", "value4"]
 	//
-	// Valid filter fields are: `name` and `owner`.
+	// Valid filter fields are: `repo` and `owner`.
 	//
 	Filter string `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Optional. Specify how the results should be sorted. The fields supported
