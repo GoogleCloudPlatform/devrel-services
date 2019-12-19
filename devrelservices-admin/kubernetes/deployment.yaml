@@ -30,7 +30,6 @@ spec:
       labels:
         app: devrelservices-admin
     spec:
-      serviceAccountName: devrelservices-admin-sa
       containers:
       - name: esp
         image: gcr.io/endpoints-release/endpoints-runtime:1
