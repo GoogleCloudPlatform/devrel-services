@@ -15,7 +15,7 @@
 steps:
 # Build the admin image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/devrelservices-admin:$BUILD_ID','-f', 'devrelservices-admin/devrelservices-admin/Dockerfile', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/devrelservices-admin:$BUILD_ID','-f', 'devrelservices-admin/Dockerfile', '.']
   id: 'devrelservices-admin-build'
   waitFor: ['-']
 
