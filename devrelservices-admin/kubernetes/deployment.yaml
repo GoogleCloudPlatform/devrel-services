@@ -60,6 +60,8 @@ spec:
         command: [
           "/devrelservices-admin",
           "--listen=:80",
+          "--smp-spr=samplrd-sprvsr-cip",
+          "--mtr-spr=maintnerd-sprvsr-cip",
           "--verbose",
         ]
         ports:
