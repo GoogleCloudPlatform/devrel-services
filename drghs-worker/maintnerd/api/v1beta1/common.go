@@ -31,7 +31,7 @@ func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 	}, nil
 }
 
-func makeIssuePB(issue *maintner.GitHubIssue, includeComments, includeReviews bool) (*drghs_v1.Issue, error) {
+func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, includeComments, includeReviews bool) (*drghs_v1.Issue, error) {
 
 	createdAt, err := ptypes.TimestampProto(issue.Created)
 	if err != nil {
@@ -74,6 +74,7 @@ func makeIssuePB(issue *maintner.GitHubIssue, includeComments, includeReviews bo
 		IssueId:   issue.Number,
 		Assignees: assignees,
 		Reporter:  reporter,
+		Url:       fmt.Sprintf("https://github.com/%v/%v/issues/%d", rID.Owner, rID.Repo, issue.Number),
 	}
 
 	if includeComments {
