@@ -130,6 +130,12 @@ func (s *reverseProxyServer) ListGitCommits(ctx context.Context, req *drghs_v1.L
 	}
 	conn, err := grpc.Dial(pth, grpc.WithInsecure())
 	if err != nil {
+		// If we attempt to dial and the service is "unavailable" that probably
+		// means there isn't a service to dial to (and therefore repository).
+		// Rewrite the error code to a not found error
+		if code := status.Code(err); code == codes.Unavailable {
+			return nil, status.Errorf(codes.NotFound, "repository: %v not found", req.Parent)
+		}
 		return nil, err
 	}
 	defer conn.Close()
@@ -145,6 +151,12 @@ func (s *reverseProxyServer) GetGitCommit(ctx context.Context, req *drghs_v1.Get
 	}
 	conn, err := grpc.Dial(pth, grpc.WithInsecure())
 	if err != nil {
+		// If we attempt to dial and the service is "unavailable" that probably
+		// means there isn't a service to dial to (and therefore repository).
+		// Rewrite the error code to a not found error
+		if code := status.Code(err); code == codes.Unavailable {
+			return nil, status.Errorf(codes.NotFound, "repository: %v not found", pth)
+		}
 		return nil, err
 	}
 	defer conn.Close()
@@ -160,6 +172,12 @@ func (s *reverseProxyServer) ListFiles(ctx context.Context, req *drghs_v1.ListFi
 	}
 	conn, err := grpc.Dial(pth, grpc.WithInsecure())
 	if err != nil {
+		// If we attempt to dial and the service is "unavailable" that probably
+		// means there isn't a service to dial to (and therefore repository).
+		// Rewrite the error code to a not found error
+		if code := status.Code(err); code == codes.Unavailable {
+			return nil, status.Errorf(codes.NotFound, "repository: %v not found", req.Parent)
+		}
 		return nil, err
 	}
 	defer conn.Close()
@@ -175,6 +193,12 @@ func (s *reverseProxyServer) ListSnippets(ctx context.Context, req *drghs_v1.Lis
 	}
 	conn, err := grpc.Dial(pth, grpc.WithInsecure())
 	if err != nil {
+		// If we attempt to dial and the service is "unavailable" that probably
+		// means there isn't a service to dial to (and therefore repository).
+		// Rewrite the error code to a not found error
+		if code := status.Code(err); code == codes.Unavailable {
+			return nil, status.Errorf(codes.NotFound, "repository: %v not found", req.Parent)
+		}
 		return nil, err
 	}
 	defer conn.Close()
@@ -190,6 +214,12 @@ func (s *reverseProxyServer) ListSnippetVersions(ctx context.Context, req *drghs
 	}
 	conn, err := grpc.Dial(pth, grpc.WithInsecure())
 	if err != nil {
+		// If we attempt to dial and the service is "unavailable" that probably
+		// means there isn't a service to dial to (and therefore repository).
+		// Rewrite the error code to a not found error
+		if code := status.Code(err); code == codes.Unavailable {
+			return nil, status.Errorf(codes.NotFound, "repository: %v not found", req.Parent)
+		}
 		return nil, err
 	}
 	defer conn.Close()
