@@ -77,6 +77,17 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 		Url:       fmt.Sprintf("https://github.com/%v/%v/issues/%d", rID.Owner, rID.Repo, issue.Number),
 	}
 
+	labels := make([]string, len(issue.Labels))
+	{
+		i := 0
+		for _, l := range issue.Labels {
+			labels[i] = l.Name
+			i++
+		}
+	}
+
+	riss.Labels = labels
+
 	if includeComments {
 		riss.Comments = make([]*drghs_v1.GitHubComment, 0)
 		err := issue.ForeachComment(func(co *maintner.GitHubComment) error {
