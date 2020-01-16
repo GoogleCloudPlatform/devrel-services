@@ -19,6 +19,7 @@ package drghs.v1;
 import "google/api/annotations.proto";
 import "resources.proto";
 import "service_resources.proto";
+import "admin_service.proto";
 
 // Issue Service
 service IssueService {
@@ -139,12 +140,4 @@ message GetIssueRequest {
 
 message GetIssueResponse {
   Issue issue = 1;
-}
-
-// Request message for [IssueSerivceAdmin.UpdateTrackedRepos].
-message UpdateTrackedReposRequest{
-}
-
-// Response message for [IssueSerivceAdmin.UpdateTrackedRepos].
-message UpdateTrackedReposResponse{
 }
