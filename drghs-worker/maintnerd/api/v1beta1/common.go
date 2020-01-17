@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/utils"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
@@ -23,6 +24,15 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/build/maintner"
 )
+
+var bugLabels = []string{
+	"bug",
+	"type: bug",
+	"type:bug",
+	"kind/bug",
+	"end-to-end bugs",
+	"type:bug/performance",
+}
 
 func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 	rID := repo.ID()
@@ -104,6 +114,8 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 
 	riss.Labels = labels
 
+	fillFromLabels(riss)
+
 	if includeComments {
 		riss.Comments = make([]*drghs_v1.GitHubComment, 0)
 		err := issue.ForeachComment(func(co *maintner.GitHubComment) error {
@@ -137,6 +149,47 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 	}
 
 	return riss, nil
+}
+
+func fillFromLabels(s *drghs_v1.Issue) {
+	for _, l := range s.Labels {
+		lowercaseName := strings.ToLower(l)
+		switch {
+		case strings.Contains(lowercaseName, "p0"):
+			s.Priority = drghs_v1.Issue_P0
+			s.PriorityUnknown = false
+		case strings.Contains(lowercaseName, "p1"):
+			s.Priority = drghs_v1.Issue_P1
+			s.PriorityUnknown = false
+		case strings.Contains(lowercaseName, "p2"):
+			s.Priority = drghs_v1.Issue_P2
+			s.PriorityUnknown = false
+		case strings.Contains(lowercaseName, "p3"):
+			s.Priority = drghs_v1.Issue_P3
+			s.PriorityUnknown = false
+		case strings.Contains(lowercaseName, "p4"):
+			s.Priority = drghs_v1.Issue_P4
+			s.PriorityUnknown = false
+		case matchesAny(lowercaseName, bugLabels):
+			s.IssueType = drghs_v1.Issue_BUG
+		case strings.Contains(lowercaseName, "enhanc"):
+			s.IssueType = drghs_v1.Issue_FEATURE
+		case strings.Contains(lowercaseName, "feat"):
+			s.IssueType = drghs_v1.Issue_FEATURE
+		case strings.Contains(lowercaseName, "addition"):
+			s.IssueType = drghs_v1.Issue_FEATURE
+		case strings.Contains(lowercaseName, "question"):
+			s.IssueType = drghs_v1.Issue_QUESTION
+		case strings.Contains(lowercaseName, "cleanup"):
+			s.IssueType = drghs_v1.Issue_CLEANUP
+		case strings.Contains(lowercaseName, "process"):
+			s.IssueType = drghs_v1.Issue_PROCESS
+		case strings.Contains(lowercaseName, "blocked"):
+			s.Blocked = true
+		case strings.Contains(lowercaseName, "blocking"):
+			s.ReleaseBlocking = true
+		}
+	}
 }
 
 func makeCommentPB(comment *maintner.GitHubComment) (*drghs_v1.GitHubComment, error) {
@@ -192,4 +245,13 @@ func makeUserPB(user *maintner.GitHubUser) (*drghs_v1.GitHubUser, error) {
 		Id:    int32(user.ID),
 		Login: user.Login,
 	}, nil
+}
+
+func matchesAny(item string, valuesToMatch []string) bool {
+	for _, valueToMatch := range valuesToMatch {
+		if item == valueToMatch {
+			return true
+		}
+	}
+	return false
 }
