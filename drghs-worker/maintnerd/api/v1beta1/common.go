@@ -41,6 +41,10 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 	if err != nil {
 		return nil, err
 	}
+	closedAt, err := ptypes.TimestampProto(issue.ClosedAt)
+	if err != nil {
+		return nil, err
+	}
 
 	closedBy, err := makeUserPB(issue.ClosedBy)
 	if err != nil {
@@ -60,6 +64,15 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 		assignees[i] = u
 	}
 
+	commitId := ""
+	issue.ForeachEvent(func(event *maintner.GitHubIssueEvent) error {
+		// ForeachEvent processes events in chronological order
+		if event.CommitID != "" {
+			commitId = event.CommitID
+		}
+		return nil
+	})
+
 	riss := &drghs_v1.Issue{
 		Priority:  drghs_v1.Issue_P2,
 		IsPr:      issue.PullRequest,
@@ -70,11 +83,14 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 		UpdatedAt: updatedAt,
 		Closed:    issue.Closed,
 		ClosedBy:  closedBy,
+		ClosedAt:  closedAt,
 		GitCommit: nil,
+		Commit:    commitId,
 		IssueId:   issue.Number,
 		Assignees: assignees,
 		Reporter:  reporter,
 		Url:       fmt.Sprintf("https://github.com/%v/%v/issues/%d", rID.Owner, rID.Repo, issue.Number),
+		Repo:      fmt.Sprintf("%v/%v", rID.Owner, rID.Repo),
 	}
 
 	labels := make([]string, len(issue.Labels))

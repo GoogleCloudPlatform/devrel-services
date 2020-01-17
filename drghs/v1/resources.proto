@@ -90,12 +90,14 @@ message Issue {
   bool is_pr = 12;
   bool approved = 13;
   drghs.v1.GitCommit git_commit = 14;
-  int32 issue_id = 15;
-  string url = 16;
-  repeated drghs.v1.GitHubUser assignees = 17;
-  drghs.v1.GitHubUser reporter = 18;
-  repeated drghs.v1.GitHubComment comments = 19;
-  repeated drghs.v1.GitHubReview reviews = 20;
+  string commit = 15;
+  int32 issue_id = 16;
+  string url = 17;
+  repeated drghs.v1.GitHubUser assignees = 18;
+  drghs.v1.GitHubUser reporter = 19;
+  repeated drghs.v1.GitHubComment comments = 20;
+  repeated drghs.v1.GitHubReview reviews = 21;
+  string repo = 22;
 }
 
 message File {

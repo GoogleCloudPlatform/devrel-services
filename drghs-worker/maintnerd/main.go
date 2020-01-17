@@ -180,7 +180,6 @@ func logAndPrintError(err error) {
 	log.Print(err)
 }
 
-
 func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
 	log.Printf("Starting RPC: %v at %v", info.FullMethod, start)
