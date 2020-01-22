@@ -20,6 +20,10 @@ resource "google_compute_global_address" "samplr_ip" {
 
 data "google_compute_global_address" "samplr_address" {
   name = "samplr-ip"
+
+  depends_on = [
+    google_compute_global_address.samplr_ip
+  ]
 }
 
 resource "google_endpoints_service" "samplr_grpc_service" {
@@ -40,6 +44,9 @@ resource "google_endpoints_service" "samplr_grpc_service" {
   EOT
   protoc_output_base64 = filebase64("../drghs/v1/api_descriptor.pb")
 
+  depends_on = [
+    data.google_compute_global_address.samplr_address,
+  ]
 
   lifecycle {
     prevent_destroy = true
@@ -52,6 +59,9 @@ resource "google_compute_global_address" "maintner_ip" {
 
 data "google_compute_global_address" "maintner_address" {
   name = "maintner-ip"
+  depends_on = [
+    google_compute_global_address.maintner_ip,
+  ]
 }
 
 # TODO: Uncomment this when maintner gets the gRPC service
@@ -74,6 +84,9 @@ data "google_compute_global_address" "maintner_address" {
 #  EOT
 #  protoc_output_base64 = filebase64("../drghs/v1/api_descriptor.pb")
 #
+#  depends_on = [
+#    data.google_compute_global_address.maintner_ip,
+#  ]
 #
 #  lifecycle {
 #    prevent_destroy = true
