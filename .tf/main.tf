@@ -95,6 +95,17 @@ data "google_compute_global_address" "maintner_address" {
 
 # TODO: Endpoints for MGHP
 #
+resource "google_compute_global_address" "mghp_ip" {
+  name = "magic-github-proxy-ip"
+}
+
+data "google_compute_global_address" "mghp_address" {
+  name = "magic-github-proxy-ip"
+  depends_on = [
+    google_compute_global_address.mghp_ip,
+  ]
+}
+
 
 resource "google_storage_bucket" "maintner_bucket" {
   name     = "${var.maintner_bucket_name}"
