@@ -148,6 +148,11 @@ resource "google_service_account" "samplr_service_account" {
 
 # TODO: Service Account for Magic GitHub Proxy
 #
+resource "google_service_account" "mghp_service_account" {
+  account_id   = "magic-github-proxy"
+  display_name = "Magic Github Proxy Account"
+  description  = "Service Account used by Magic GitHub Proxy service"
+}
 
 resource "google_container_cluster" "devrel-services" {
   name     = "devrel-services"
