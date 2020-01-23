@@ -154,6 +154,24 @@ resource "google_service_account" "mghp_service_account" {
   description  = "Service Account used by Magic GitHub Proxy service"
 }
 
+resource "google_project_iam_custom_role" "mghp_kms_access" {
+  role_id     = "magic_github_proxy_kms_accessor"
+  title       = "Magic GitHub Proxy KMS"
+  description = "Allows Access to Magic Github Proxy Keys"
+  permissions = [
+    "cloudkms.cryptoKeyVersions.useToDecrypt"
+  ]
+}
+
+resource "google_project_iam_member" "mghp_kms_iam" {
+  role   = "projects/${var.project_id}/roles/${google_project_iam_custom_role.mghp_kms_access.role_id}"
+  member = "serviceAccount:${google_service_account.mghp_service_account.email}"
+  depends_on = [
+    google_service_account.mghp_service_account,
+    google_project_iam_custom_role.mghp_kms_access,
+  ]
+}
+
 resource "google_container_cluster" "devrel-services" {
   name     = "devrel-services"
   location = var.region
