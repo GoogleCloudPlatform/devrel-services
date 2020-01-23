@@ -14,6 +14,10 @@ resource "google_project" "devrel-services" {
   }
 }
 
+#
+# Samplr Cloud Endpoints
+#
+
 resource "google_compute_global_address" "samplr_ip" {
   name = "samplr-ip"
 }
@@ -52,6 +56,10 @@ resource "google_endpoints_service" "samplr_grpc_service" {
     prevent_destroy = true
   }
 }
+
+#
+# Maintner Cloud Endpoints
+#
 
 resource "google_compute_global_address" "maintner_ip" {
   name = "maintner-ip"
@@ -93,6 +101,10 @@ data "google_compute_global_address" "maintner_address" {
 #  }
 #}
 
+#
+# Magic GitHub Proxy Endpoints Configuration
+#
+
 # TODO: Endpoints for MGHP
 #
 resource "google_compute_global_address" "mghp_ip" {
@@ -111,6 +123,10 @@ resource "google_storage_bucket" "maintner_bucket" {
   name     = "${var.maintner_bucket_name}"
   location = "US"
 }
+
+#
+# Maintner Service Account
+#
 
 resource "google_project_iam_custom_role" "maintner_sprvsr_bucket_creator" {
   role_id     = "maintner_sprvsr_bucket_creator"
@@ -138,6 +154,10 @@ resource "google_project_iam_member" "maintner_account_iam" {
   member = "serviceAccount:${google_service_account.maintner_service_account.email}"
 }
 
+#
+# Samplr Service Account
+#
+
 # TODO: Custom Role for Samplr
 
 resource "google_service_account" "samplr_service_account" {
@@ -146,8 +166,11 @@ resource "google_service_account" "samplr_service_account" {
   description  = "Service Account used by Samplr service"
 }
 
-# TODO: Service Account for Magic GitHub Proxy
 #
+# Magic GitHubProxy Service Account
+#
+
+
 resource "google_service_account" "mghp_service_account" {
   account_id   = "magic-github-proxy"
   display_name = "Magic Github Proxy Account"
@@ -171,6 +194,10 @@ resource "google_project_iam_member" "mghp_kms_iam" {
     google_project_iam_custom_role.mghp_kms_access,
   ]
 }
+
+#
+# GKE Cluster Setup
+#
 
 resource "google_container_cluster" "devrel-services" {
   name     = "devrel-services"
