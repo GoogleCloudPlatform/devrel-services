@@ -45,6 +45,16 @@ message GitHubComment {
   string body = 5;
 }
 
+message GitHubReview {
+  int32 id = 1;
+  drghs.v1.GitHubUser actor = 2;
+  string actor_association = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string body = 5;
+  string state = 6;
+  string commit_id = 7;
+}
+
 message Issue {
   string name = 1;
   string title = 2;
@@ -60,6 +70,7 @@ message Issue {
   }
 
   Priority priority = 4;
+  bool priority_unknown = 5 [deprecated=true];
 
   enum IssueType {
     GITHUB_ISSUE_TYPE_UNSPECIFIED = 0;
@@ -70,21 +81,26 @@ message Issue {
     PROCESS = 5;
   }
 
-  drghs.v1.Issue.IssueType issue_type = 5;
-  repeated string labels = 6;
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
-  google.protobuf.Timestamp closed_at = 9;
-  bool closed = 10;
-  drghs.v1.GitHubUser closed_by = 11;
-  bool is_pr = 12;
-  bool approved = 13;
-  drghs.v1.GitCommit git_commit = 14;
-  int32 issue_id = 15;
-  string url = 16;
-  repeated drghs.v1.GitHubUser assignees = 17;
-  drghs.v1.GitHubUser reporter = 18;
-  repeated drghs.v1.GitHubComment comments = 19;
+  drghs.v1.Issue.IssueType issue_type = 6;
+  repeated string labels = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  google.protobuf.Timestamp closed_at = 10;
+  bool closed = 11;
+  drghs.v1.GitHubUser closed_by = 12;
+  bool is_pr = 13;
+  bool approved = 14;
+  drghs.v1.GitCommit git_commit = 15;
+  string commit = 16;
+  int32 issue_id = 17;
+  string url = 18;
+  repeated drghs.v1.GitHubUser assignees = 19;
+  drghs.v1.GitHubUser reporter = 20;
+  repeated drghs.v1.GitHubComment comments = 21;
+  repeated drghs.v1.GitHubReview reviews = 22;
+  string repo = 23;
+  bool blocked = 24;
+  bool release_blocking = 25;
 }
 
 message File {
