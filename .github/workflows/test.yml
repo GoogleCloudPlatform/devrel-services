@@ -14,20 +14,23 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
+    # Install dependencies
     - uses: actions/cache@v1
-      id: cache-dependencies
+      id: cache-deps
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Install Dependencies
-      if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: go get ./...
+    - name: Install dependencies
+      run: ./go.get.sh
+    # Lint
     - name: Lint
       run: golint -set_exit_status ./...
-    - name: Test
-      run: go test ./...
+    # Test
+    - name: "Test"
+      run: ./go.test.sh
+    # Upload code coverage
     - name: Codecov
       uses: codecov/codecov-action@v1
       with:
