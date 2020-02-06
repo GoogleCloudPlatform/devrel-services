@@ -36,7 +36,3 @@ type WatchedRepository interface {
 	// Instructs the Repository to Update
 	Update(ctx context.Context) error
 }
-
-type RepositoryId struct {
-	Owner, Repo string
-}

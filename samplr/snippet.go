@@ -84,11 +84,12 @@ type SnippetVersion struct {
 	Meta    SnippetVersionMeta
 }
 
+// SnippetVersionMeta stores metadata about a particular SnippetVersion
 type SnippetVersionMeta struct {
 	Title       string
 	Description string
 	Usage       string
-	ApiVersion  string
+	APIVersion  string
 }
 
 // File represents a file at a git commit
@@ -110,6 +111,8 @@ type GitCommit struct {
 	Name           string
 }
 
+// CalculateSnippets scans the given set of commits and extracts
+// the snippets found in them
 func CalculateSnippets(o, r string, iter git.CommitIter) ([]*Snippet, error) {
 	log.Debugf("Calculating snippets for: %v/%v", o, r)
 	snippets := make(map[string]*Snippet, 0)
@@ -283,7 +286,7 @@ func extractSnippetVersionsFromFile(content string, nfmt string) (map[string]Sni
 					Title:       sampleMeta.Meta.Title,
 					Description: sampleMeta.Meta.Description,
 					Usage:       sampleMeta.Meta.Usage,
-					ApiVersion:  sampleMeta.Meta.ApiVersion,
+					APIVersion:  sampleMeta.Meta.APIVersion,
 				}
 				for _, smeta := range sampleMeta.Meta.Snippets {
 					if tag == smeta.RegionTag {
@@ -415,7 +418,7 @@ func processPreviouslySeenSnippets(cmt *GitCommit, snippets map[string]*Snippet,
 				// if in this commit, the snippet exists
 				// for this file
 				found := false
-				var foundFile *File = nil
+				var foundFile *File
 				for fle, snippetVersions := range snippetVersionsInThisCommit {
 					if found || fle.FilePath != seenFile {
 						continue
