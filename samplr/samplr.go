@@ -33,10 +33,12 @@ func init() {
 	log.Out = os.Stdout
 }
 
+// VerboseLog sets the log level to DebugLevel
 func VerboseLog() {
 	log.Level = logrus.DebugLevel
 }
 
+// FormatLog sets the log's formatter to the given one
 func FormatLog(f logrus.Formatter) {
 	log.Formatter = f
 }
@@ -70,6 +72,7 @@ func (c *Corpus) RUnlock() { c.mu.RUnlock() }
 // SetVerbose enables or disables verbose logging.
 func (c *Corpus) SetVerbose(v bool) { c.verbose = v }
 
+// SetDebug instructs the Corpus to run in debug mode
 func (c *Corpus) SetDebug() {
 	c.debug = true
 }
@@ -80,6 +83,9 @@ func (c *Corpus) debugf(format string, v ...interface{}) {
 	}
 }
 
+// Initialize should be the first call to the corpus to
+// do the initial clone and synchronizing of the corpus's
+// repository set.
 func (c *Corpus) Initialize(ctx context.Context) error {
 	c.mu.Lock()
 	if c.didInit {
@@ -102,6 +108,8 @@ func (c *Corpus) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// Sync instructs the Corpus to iterate over its tracked repositories
+// and update all of them.
 func (c *Corpus) Sync(ctx context.Context) error {
 	c.mu.Lock()
 	if c.syncing {
@@ -162,10 +170,15 @@ func (c *Corpus) sync(ctx context.Context) error {
 	return group.Wait()
 }
 
+// ForEachRepo iterates over the set of repositories and performs the
+// given function on each and returns the first non-nill error it recieves.
 func (c *Corpus) ForEachRepo(fn func(repo WatchedRepository) error) error {
 	return c.ForEachRepoF(fn, func(repo WatchedRepository) bool { return true })
 }
 
+// ForEachRepoF iterates over the set of repositories that match the given filter
+// and performs the given function on them, and returns the first non-nill error
+// it recieves.
 func (c *Corpus) ForEachRepoF(fn func(repo WatchedRepository) error, filter func(repo WatchedRepository) bool) error {
 	for _, repo := range c.watchedGitRepos {
 		if filter(repo) {
