@@ -3,11 +3,12 @@
 set -e
 echo "" > coverage.txt
 
-dirs=( "devrelservices-admin" "drghs" "drghs-worker" "repos" "rtr" "samplr" "sprvsr" )
+dirs=( "devrelservices-admin" "drghs-worker" "repos" "rtr" "samplr" "sprvsr" )
 
 for d in "${dirs[@]}"; do
     echo "Go getting ./$d/..."
-    cd "./$d"
-    go get ./...
-    cd ..
+	(
+    	cd "./$d"
+	    go get ./...
+	)
 done
