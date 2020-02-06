@@ -67,8 +67,8 @@ func makeNextPageToken(prev *drghs_v1.PageToken, idx int) (string, error) {
 }
 
 func getPageSize(reqPageSize int) int {
-	pagesize := 100
-	if 0 < reqPageSize && reqPageSize < 100 {
+	pagesize := 500
+	if 0 < reqPageSize && reqPageSize < 500 {
 		pagesize = reqPageSize
 	}
 	return pagesize
