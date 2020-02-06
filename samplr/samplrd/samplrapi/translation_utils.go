@@ -63,7 +63,7 @@ func makeSnippetVersionMetaPB(meta samplr.SnippetVersionMeta) (*drghs_v1.Snippet
 		Title:       meta.Title,
 		Description: meta.Description,
 		Usage:       meta.Usage,
-		ApiVersion:  meta.ApiVersion,
+		ApiVersion:  meta.APIVersion,
 	}, nil
 }
 
