@@ -13,4 +13,3 @@ for d in "${dirs[@]}"; do
 	)
 done
 
-go get -u golang.org/x/lint/golint

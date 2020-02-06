@@ -26,7 +26,9 @@ jobs:
       run: ./go.get.sh
     # Lint
     - name: Lint
-      run: golint -set_exit_status ./...
+      run: |
+        go get -u golang.org/x/lint/golint
+        golint -set_exit_status ./...
     # Test
     - name: "Test"
       run: ./go.test.sh
