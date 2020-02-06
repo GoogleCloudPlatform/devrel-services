@@ -15,9 +15,9 @@
 package samplrapi
 
 import (
-	"github.com/GoogleCloudPlatform/devrel-services/samplr"
 	"errors"
 	"fmt"
+	"github.com/GoogleCloudPlatform/devrel-services/samplr"
 	"sync"
 	"time"
 )
