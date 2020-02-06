@@ -59,6 +59,7 @@ type k8supervisor struct {
 	labelgenkey string
 }
 
+// NewK8sSupervisor creates a new supervisor backed by Kubernetes
 func NewK8sSupervisor(log *logrus.Logger, clientset kubernetes.Interface, kconfig K8sConfiguration,
 	rl repos.RepoList,
 	appid string) (Supervisor, error) {
@@ -84,6 +85,9 @@ func newK8sSupervisor(log *logrus.Logger, clientset kubernetes.Interface, kconfi
 	}, nil
 }
 
+// Supervise registers an http server on the given address
+// and error handler. This watches the Kubernetes cluster for
+// changes and enforces them with the /update route
 func (s *k8supervisor) Supervise(address string, handle func(error)) error {
 	go s.updateCorpusRepoList(context.Background(), handle)
 
