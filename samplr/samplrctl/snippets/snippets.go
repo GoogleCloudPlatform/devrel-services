@@ -38,10 +38,12 @@ func snippetToMap(s *samplr.Snippet) map[string]string {
 	}
 }
 
+// OutputSnippet writes a representation of the snippet to the given io.Writer
 func OutputSnippet(w io.Writer, s *samplr.Snippet) {
 	output.PrintAllMap(w, snippetToMap(s))
 }
 
+// OutputSnippets writes a representation of the given snippets to the io.Writer
 func OutputSnippets(w io.Writer, l []*samplr.Snippet) {
 	mapList := make([]map[string]string, len(l))
 	for i, p := range l {
