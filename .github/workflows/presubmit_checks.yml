@@ -23,6 +23,7 @@ jobs:
         golint -set_exit_status ./...
   vet:
     name: Vet
+    needs: lint
     strategy:
       matrix:
         go-version: [1.13.x]
