@@ -2,6 +2,7 @@ on: [push]
 name: "Presubmit Checks"
 jobs:
   lint:
+    name: Lint
     strategy:
       matrix:
         go-version: [1.13.x]
@@ -33,6 +34,7 @@ jobs:
     - name: Vet
       run: ./go.vet.sh
   unit_tests:
+    name: Unit Tests
     needs: lint
     strategy:
       matrix:
@@ -69,6 +71,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
   integration_tests:
+    name: Integration Tests
     needs: lint
     strategy:
       matrix:
