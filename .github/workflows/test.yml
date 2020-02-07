@@ -31,6 +31,9 @@ jobs:
       run: |
         go get -u golang.org/x/lint/golint
         golint -set_exit_status ./...
+    # Vet
+    - name: Vet
+      run: ./go.vet.sh
     # Test
     - name: "Test"
       run: ./go.test.sh
