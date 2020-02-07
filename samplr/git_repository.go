@@ -180,6 +180,8 @@ func (w *watchedGitRepo) ForEachGitCommitF(fn func(g *GitCommit) error, filter f
 	}
 	return nil
 }
+
+// TrackGit instructs the Corpus to track a Git Repository at the given url
 func (c *Corpus) TrackGit(url string) error {
 	dirname, err := ioutil.TempDir("", "samplr-")
 	if err != nil {

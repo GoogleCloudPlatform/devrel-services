@@ -30,10 +30,10 @@ type RepoList interface {
 
 // TrackedRepository represents a repository tracked by Maintner or Samplr
 type TrackedRepository struct {
-	Owner              string  `json:"owner"`
-	Name               string  `json:"name"`
-	IsTrackingIssues   bool    `json:"isTrackingIssues"`
-	IsTrackingSnippets bool    `json:"isTrackingSnippets"`  
+	Owner              string `json:"owner"`
+	Name               string `json:"name"`
+	IsTrackingIssues   bool   `json:"isTrackingIssues"`
+	IsTrackingSnippets bool   `json:"isTrackingSnippets"`
 }
 
 // RepoSha Creates a Sum224 of the TrackedRepository's name
