@@ -32,7 +32,7 @@ jobs:
     # Vet
     - name: Vet
       run: ./go.vet.sh
-  test:
+  unit_tests:
     needs: lint
     strategy:
       matrix:
@@ -61,9 +61,6 @@ jobs:
     # Unit Tests
     - name: Execute Unit Tests
       run: ./go.test.sh
-    # Integration Tests
-    - name: Execute Integration Tests
-      run: ./go.integration.test.sh
     # Upload code coverage
     - name: Upload Unit Test Coverage
       uses: codecov/codecov-action@v1
@@ -71,6 +68,36 @@ jobs:
         file: ./unit_test_coverage.txt
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
+  integration_tests:
+    needs: lint
+    strategy:
+      matrix:
+        go-version: [1.13.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Checkout code
+      uses: actions/checkout@v2
+    # Install Dependencies
+    - uses: actions/cache@v1
+      id: cache-deps
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Add GOPATH/bin to PATH
+      run: echo "::add-path::$(go env GOPATH)/bin"
+    - name: Install dependencies
+      run: ./go.get.sh
+    # Integration Tests
+    - name: Execute Integration Tests
+      run: ./go.integration.test.sh
+    # Upload code coverage
     - name: Upload Integration Test Coverage
       uses: codecov/codecov-action@v1
       with:
