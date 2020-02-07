@@ -31,10 +31,12 @@ func init() {
 	log.Out = os.Stdout
 }
 
+// VerboseLog sets the log level to Debug
 func VerboseLog() {
 	log.Level = logrus.DebugLevel
 }
 
+// FormatLog sets the log format
 func FormatLog(f logrus.Formatter) {
 	log.Formatter = f
 }
@@ -45,8 +47,8 @@ const (
 )
 
 var (
-	// NoErrAlreadyUpToDate an error stating the repository is already up to date
-	NoErrAlreadyUpToDate = errors.New("already up to date")
+	// ErrAlreadyUpToDate an error stating the repository is already up to date
+	ErrAlreadyUpToDate = errors.New("already up to date")
 	// ErrBranchExists an error stating the specified branch already exists
 	ErrBranchExists = errors.New("branch already exists")
 	// ErrBranchNotFound an error stating the specified branch does not exist
@@ -58,15 +60,24 @@ var (
 	// ErrFetching is returned when the packfile could not be downloaded
 	ErrFetching = errors.New("unable to fetch packfile")
 
-	ErrInvalidReference          = errors.New("invalid reference, should be a tag or a branch")
-	ErrRepositoryNotExists       = errors.New("repository does not exist")
-	ErrRepositoryAlreadyExists   = errors.New("repository already exists")
-	ErrRemoteNotFound            = errors.New("remote not found")
-	ErrRemoteExists              = errors.New("remote already exists")
-	ErrWorktreeNotProvided       = errors.New("worktree should be provided")
-	ErrIsBareRepository          = errors.New("worktree not available in a bare repository")
-	ErrUnableToResolveCommit     = errors.New("unable to resolve commit")
-	ErrPackedObjectsNotSupported = errors.New("Packed objects not supported")
+	// ErrInvalidReference is for when a reference is not correct
+	ErrInvalidReference = errors.New("invalid reference, should be a tag or a branch")
+	// ErrRepositoryNotExists is when an error deos not exist
+	ErrRepositoryNotExists = errors.New("repository does not exist")
+	// ErrRepositoryAlreadyExists is for when a repository already exists
+	ErrRepositoryAlreadyExists = errors.New("repository already exists")
+	// ErrRemoteNotFound is returned when a remote is not found.
+	ErrRemoteNotFound = errors.New("remote not found")
+	// ErrRemoteExists is returned when a remote already exists
+	ErrRemoteExists = errors.New("remote already exists")
+	// ErrWorktreeNotProvided is for when a worktree is not provided.
+	ErrWorktreeNotProvided = errors.New("worktree should be provided")
+	// ErrIsBareRepository is returned when an operation is done on a bare repository
+	ErrIsBareRepository = errors.New("worktree not available in a bare repository")
+	// ErrUnableToResolveCommit is returned when a commit cannot be resolved
+	ErrUnableToResolveCommit = errors.New("unable to resolve commit")
+	// ErrPackedObjectsNotSupported is returned when a packed object is not supported.
+	ErrPackedObjectsNotSupported = errors.New("packed objects not supported")
 
 	//ErrStop is used to stop a ForEach function in an Iter
 	ErrStop = errors.New("stop iter")
