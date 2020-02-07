@@ -45,7 +45,7 @@ func TranslateIssueToStatus(issue *maintner.GitHubIssue, repoID string, includeC
 		UpdatedAt:       issue.Updated,
 		Closed:          issue.Closed,
 		ClosedBy:        issue.ClosedBy,
-		Commit:          commitIDcommitID,
+		Commit:          commitID,
 		IssueID:         issue.Number,
 		Assignees:       issue.Assignees,
 		Reporter:        issue.User,
