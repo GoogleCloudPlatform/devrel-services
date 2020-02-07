@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build integration
+
 package samplr
 
 import (
 	"context"
-	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
 )
 
 func TestRepositoryHasSnippet(t *testing.T) {
