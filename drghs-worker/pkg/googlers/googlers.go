@@ -14,6 +14,8 @@
 
 package googlers
 
+// GooglersResolver describes a struct that can be used to determine
+// if a given user is a Googler or not.
 type GooglersResolver interface {
 	IsGoogler(user string) bool
 	Update()

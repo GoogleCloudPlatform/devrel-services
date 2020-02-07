@@ -16,20 +16,24 @@ package googlers
 
 import "strings"
 
+// GooglersStatic stores a list of Googlers in a hard-coded list
 type GooglersStatic struct {
 	// map from github login to ldap.
 	googlers map[string]bool
 }
 
+// IsGoogler checks if the given username is a Googler or not.
 func (s *GooglersStatic) IsGoogler(user string) bool {
 	_, ok := s.googlers[user]
 	return ok
 }
 
+// Update indicates the repository to update
 func (s *GooglersStatic) Update() {
 	return
 }
 
+// NewGooglersStatic instantiates and returns a new GooglersStatic struct
 func NewGooglersStatic() *GooglersStatic {
 	googlers := make(map[string]bool)
 	lines := strings.Split(users, "\n")
