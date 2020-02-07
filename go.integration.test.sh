@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
-echo "" > coverage_integration.txt
+echo "" > integration_test_coverage.txt
 
 dirs=( "drghs-worker" "samplr" "sprvsr" )
 
@@ -17,7 +17,7 @@ for d in "${dirs[@]}"; do
 				-covermode=atomic \
 				./...
 	    if [ -f profile_integration.out ]; then
-	        cat profile_integration.out >> coverage_integration.txt
+	        cat profile_integration.out >> integration_test_coverage.txt
 	        rm profile_integration.out
 	    fi
 	)

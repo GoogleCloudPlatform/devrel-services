@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
-echo "" > coverage.txt
+echo "" > unit_test_coverage.txt
 
 dirs=( "drghs-worker" "samplr" "sprvsr" )
 
@@ -12,7 +12,7 @@ for d in "${dirs[@]}"; do
 	    echo "$(pwd)"
 	    go test -v -race -coverprofile=../profile.out -covermode=atomic ./...
 	    if [ -f ../profile.out ]; then
-	        cat ../profile.out >> ../coverage.txt
+	        cat ../profile.out >> ../unit_test_coverage.txt
 	        rm ../profile.out
 	    fi
 	)
