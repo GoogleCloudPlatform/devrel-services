@@ -15,14 +15,26 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-    # Install dependencies
     - name: Add GOPATH/bin to PATH
       run: echo "::add-path::$(go env GOPATH)/bin"
-    # Lint
     - name: Lint
       run: |
         go get -u golang.org/x/lint/golint
         golint -set_exit_status ./...
+  vet:
+    name: Vet
+    strategy:
+      matrix:
+        go-version: [1.13.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Checkout code
+      uses: actions/checkout@v2
     # Vet
     - name: Vet
       run: ./go.vet.sh
