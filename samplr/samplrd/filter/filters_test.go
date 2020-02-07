@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestFilterSnippet(t *testing.T) {
+func TestSnippet(t *testing.T) {
 	tests := []struct {
 		Name    string
 		Snippet drghs_v1.Snippet
@@ -83,7 +83,7 @@ func TestFilterSnippet(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := FilterSnippet(&test.Snippet, test.Filter)
+		got, goterr := Snippet(&test.Snippet, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -93,7 +93,7 @@ func TestFilterSnippet(t *testing.T) {
 	}
 }
 
-func TestFilterSnippetVersion(t *testing.T) {
+func TestSnippetVersion(t *testing.T) {
 	tests := []struct {
 		Name           string
 		SnippetVersion drghs_v1.SnippetVersion
@@ -152,7 +152,7 @@ func TestFilterSnippetVersion(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := FilterSnippetVersion(&test.SnippetVersion, test.Filter)
+		got, goterr := SnippetVersion(&test.SnippetVersion, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -162,7 +162,7 @@ func TestFilterSnippetVersion(t *testing.T) {
 	}
 }
 
-func TestFilterRepository(t *testing.T) {
+func TestRepository(t *testing.T) {
 	tests := []struct {
 		Name    string
 		Repo    drghs_v1.Repository
@@ -197,7 +197,7 @@ func TestFilterRepository(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := FilterRepository(&test.Repo, test.Filter)
+		got, goterr := Repository(&test.Repo, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -207,7 +207,7 @@ func TestFilterRepository(t *testing.T) {
 	}
 }
 
-func TestFilterGitCommit(t *testing.T) {
+func TestGitCommit(t *testing.T) {
 	tests := []struct {
 		Name    string
 		Commit  drghs_v1.GitCommit
@@ -251,7 +251,7 @@ func TestFilterGitCommit(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := FilterGitCommit(&test.Commit, test.Filter)
+		got, goterr := GitCommit(&test.Commit, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -272,7 +272,7 @@ func TestGitCommitTimeFilter(t *testing.T) {
 	want := true
 	wantErr := false
 
-	got, goterr := FilterGitCommit(&commit, filter)
+	got, goterr := GitCommit(&commit, filter)
 	if (wantErr && goterr == nil) || (!wantErr && goterr != nil) {
 		t.Errorf("Errors diff. WantErr: %v, GotErr: %v.", wantErr, goterr)
 	}

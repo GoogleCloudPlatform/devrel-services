@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// ErrNilPageToken is returned when a PageToken is nil
 	ErrNilPageToken = errors.New("nil PageToken")
 )
 

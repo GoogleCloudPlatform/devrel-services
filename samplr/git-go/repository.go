@@ -181,12 +181,13 @@ func (r *Repository) FetchContext(ctx context.Context, o *FetchOptions) error {
 
 	// If we get no output, we are up to date
 	if len(fetchOut) == 0 {
-		return NoErrAlreadyUpToDate
+		return ErrAlreadyUpToDate
 	}
 
 	return nil
 }
 
+// PullContext runs git pull with the given cancelation context
 func (r *Repository) PullContext(ctx context.Context, o *PullOptions) error {
 	if r == nil {
 		return errors.New("PullContext was called with a nil repository")
@@ -215,7 +216,7 @@ func (r *Repository) PullContext(ctx context.Context, o *PullOptions) error {
 	}
 
 	if strings.HasSuffix(string(pullOut), "Already up to date.\n") {
-		return NoErrAlreadyUpToDate
+		return ErrAlreadyUpToDate
 	}
 
 	return nil

@@ -15,70 +15,8 @@
 package utils
 
 import (
-	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/status"
-
 	"golang.org/x/build/maintner"
 )
-
-func TranslateIssueToStatus(issue *maintner.GitHubIssue, repoID string, includeComments bool, includeReviews bool) *status.Status {
-
-	commitId := ""
-	issue.ForeachEvent(func(event *maintner.GitHubIssueEvent) error {
-		// ForeachEvent processes events in chronological order
-		if event.CommitID != "" {
-			commitId = event.CommitID
-		}
-		return nil
-	})
-
-	s := &status.Status{
-		Issue:           issue,
-		Repo:            repoID,
-		Priority:        status.P2,
-		PriorityUnknown: true,
-		PullRequest:     issue.PullRequest,
-		Approved:        IsApproved(issue),
-		Title:           issue.Title,
-		Body:            issue.Body,
-		Created:         issue.Created,
-		UpdatedAt:       issue.Updated,
-		Closed:          issue.Closed,
-		ClosedBy:        issue.ClosedBy,
-		Commit:          commitId,
-		IssueID:         issue.Number,
-		Assignees:       issue.Assignees,
-		Reporter:        issue.User,
-	}
-
-	if issue.Closed {
-		s.ClosedAt = &issue.ClosedAt
-	}
-
-	if includeComments {
-		comments := make([]*maintner.GitHubComment, 0)
-
-		issue.ForeachComment(func(comment *maintner.GitHubComment) error {
-			comments = append(comments, comment)
-			return nil
-		})
-
-		s.Comments = comments
-	}
-
-	if includeReviews {
-		reviews := make([]*maintner.GitHubReview, 0)
-		issue.ForeachReview(func(review *maintner.GitHubReview) error {
-			reviews = append(reviews, review)
-			return nil
-		})
-		s.Reviews = reviews
-	}
-
-	s.FillLabels()
-	s.URL = s.Url()
-
-	return s
-}
 
 // IsApproved considers a GitHubIssue, loops through the
 // Review Events on the issue and, for each reivewer,

@@ -14,6 +14,7 @@
 
 package tokens
 
+// TokenVendor describes an object that can provide API Tokens
 type TokenVendor interface {
 	GetToken() (string, error)
 }

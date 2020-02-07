@@ -43,10 +43,12 @@ func snippetVersionToMap(s samplr.SnippetVersion) map[string]string {
 	}
 }
 
+// OutputSnippetVersion writes a representation of the SnippetVersion to the io.Writer
 func OutputSnippetVersion(w io.Writer, s samplr.SnippetVersion) {
 	output.PrintAllMap(w, snippetVersionToMap(s))
 }
 
+// OutputSnippetVersions writes a representation of the SnippetVersions to the io.Writer
 func OutputSnippetVersions(w io.Writer, l []samplr.SnippetVersion) {
 	mapList := make([]map[string]string, len(l))
 	for i, p := range l {
