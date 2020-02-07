@@ -324,10 +324,13 @@ func buildDeployment(sasecretname, githubsecretname, githubsecretkey string, ta 
 							},
 							LivenessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
-									HTTPGet: &apiv1.HTTPGetAction{
-										Path: "/healthz",
-										Port: intstr.FromInt(80),
-									}},
+									Exec: &apiv1.ExecAction{
+										Command: []string{
+											"/bin/grpc_health_probe",
+											"-addr=:80",
+										},
+									},
+								},
 								InitialDelaySeconds: 10,
 								PeriodSeconds:       3,
 							},
