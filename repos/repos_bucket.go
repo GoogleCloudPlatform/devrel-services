@@ -27,7 +27,8 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-func NewBucketRepo(bucketName string, fileName string) *bucketRepoList {
+// NewBucketRepo returns a RepoList based on GCS Buckets
+func NewBucketRepo(bucketName string, fileName string) RepoList {
 	return &bucketRepoList{
 		bucketName:    bucketName,
 		reposFileName: fileName,

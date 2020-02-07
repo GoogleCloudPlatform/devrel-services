@@ -51,7 +51,7 @@ var (
 
 var (
 	corpus          = &maintner.Corpus{}
-	googlerResolver googlers.GooglersResolver
+	googlerResolver googlers.Resolver
 	errorClient     *errorreporting.Client
 )
 
@@ -131,7 +131,7 @@ func main() {
 	tkn := strings.TrimSpace(*token)
 	corpus.TrackGitHub(*owner, *repo, tkn)
 
-	googlerResolver = googlers.NewGooglersStatic()
+	googlerResolver = googlers.NewStatic()
 
 	group, ctx := errgroup.WithContext(context.Background())
 	group.Go(

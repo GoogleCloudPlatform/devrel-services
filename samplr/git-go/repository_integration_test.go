@@ -127,7 +127,7 @@ func TestFetch(t *testing.T) {
 
 	// Ensure that fetch after a fresh clone returns no error
 	err = repo.FetchContext(context.Background(), &FetchOptions{})
-	if err != NoErrAlreadyUpToDate {
+	if err != ErrAlreadyUpToDate {
 		t.Errorf("TestFetch, Got an error on first fetch: %v", err)
 	}
 
@@ -181,7 +181,7 @@ func TestFetch(t *testing.T) {
 
 	// Since we have pulled the second pull should return NoErr
 	err = repo.PullContext(context.Background(), &PullOptions{})
-	if err != NoErrAlreadyUpToDate {
+	if err != ErrAlreadyUpToDate {
 		t.Errorf("TestFetch: got an error on second pull: %v", err)
 	}
 

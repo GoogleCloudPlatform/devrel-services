@@ -46,6 +46,9 @@ func init() {
 	log.Out = os.Stdout
 }
 
+var _ drghs_v1.SampleServiceServer = &SampleServiceServer{}
+
+// SampleServiceServer is an implementation of drghs_v1.SampleServiceServer
 type SampleServiceServer struct {
 	c   *samplr.Corpus
 	gp  *gitCommitPaginator
@@ -54,6 +57,7 @@ type SampleServiceServer struct {
 	tr  *trackedRepositoryPaginator
 }
 
+// NewSampleServiceServer builds and returns a new SampleServiceServer
 func NewSampleServiceServer(c *samplr.Corpus) *SampleServiceServer {
 	return &SampleServiceServer{
 		c: c,
@@ -72,6 +76,7 @@ func NewSampleServiceServer(c *samplr.Corpus) *SampleServiceServer {
 	}
 }
 
+// ListRepositories returns the list of Repositories tracked by the Corpus
 func (s *SampleServiceServer) ListRepositories(ctx context.Context, req *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
 	var pg []string
 	var idx int
@@ -161,7 +166,7 @@ func (s *SampleServiceServer) ListRepositories(ctx context.Context, req *drghs_v
 			return nil, err
 		}
 
-		should, err := filter.FilterRepository(pr, req.Filter)
+		should, err := filter.Repository(pr, req.Filter)
 		if err != nil {
 			log.Errorf("Issue filtering repository: %v", err)
 			return nil, err
@@ -179,6 +184,7 @@ func (s *SampleServiceServer) ListRepositories(ctx context.Context, req *drghs_v
 	}, err
 }
 
+// ListGitCommits returns the list of git commits for the given owner
 func (s *SampleServiceServer) ListGitCommits(ctx context.Context, req *drghs_v1.ListGitCommitsRequest) (*drghs_v1.ListGitCommitsResponse, error) {
 	var pg []*samplr.GitCommit
 	var idx int
@@ -268,7 +274,7 @@ func (s *SampleServiceServer) ListGitCommits(ctx context.Context, req *drghs_v1.
 			return nil, err
 		}
 
-		should, err := filter.FilterGitCommit(pc, req.Filter)
+		should, err := filter.GitCommit(pc, req.Filter)
 		if err != nil {
 			log.Errorf("Issue filtering commit: %v", err)
 			return nil, err
@@ -289,14 +295,17 @@ func (s *SampleServiceServer) ListGitCommits(ctx context.Context, req *drghs_v1.
 	}, err
 }
 
+// GetGitCommit returns the requested GitCommit (UNIMPLEMENTED)
 func (s *SampleServiceServer) GetGitCommit(ctx context.Context, req *drghs_v1.GetGitCommitRequest) (*drghs_v1.GitCommit, error) {
 	return &drghs_v1.GitCommit{}, nil
 }
 
+// ListFiles returns the files in a given GitCommit (UNIMPLEMENTED)
 func (s *SampleServiceServer) ListFiles(ctx context.Context, req *drghs_v1.ListFilesRequest) (*drghs_v1.ListFilesResponse, error) {
 	return &drghs_v1.ListFilesResponse{}, nil
 }
 
+// ListSnippets returns the Snippets in the given Parent.
 func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.ListSnippetsRequest) (*drghs_v1.ListSnippetsResponse, error) {
 	var pg []*samplr.Snippet
 	var idx int
@@ -363,7 +372,7 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 				return nil, err
 			}
 
-			should, err := filter.FilterSnippet(pv, req.Filter)
+			should, err := filter.Snippet(pv, req.Filter)
 			if err != nil {
 				log.Errorf("Issue filtering repository: %v", err)
 				return nil, err
@@ -411,6 +420,7 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 	}, err
 }
 
+// ListSnippetVersions retruns the SnippetVersions for the given Parent.
 func (s *SampleServiceServer) ListSnippetVersions(ctx context.Context, req *drghs_v1.ListSnippetVersionsRequest) (*drghs_v1.ListSnippetVersionsResponse, error) {
 	var pg []samplr.SnippetVersion
 	var idx int
@@ -490,7 +500,7 @@ func (s *SampleServiceServer) ListSnippetVersions(ctx context.Context, req *drgh
 				return nil, err
 			}
 
-			should, err := filter.FilterSnippetVersion(pv, req.Filter)
+			should, err := filter.SnippetVersion(pv, req.Filter)
 			if err != nil {
 				log.Errorf("Issue filtering snippet version: %v", err)
 				return nil, err

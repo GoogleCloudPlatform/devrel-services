@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package commands contains helpers for working with commands in tests.
+// Package testutil contains helpers for working with commands in tests.
 package testutil
 
 import (
