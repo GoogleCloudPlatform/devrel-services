@@ -41,12 +41,12 @@ const defaultFilter = "true"
 // IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
 type IssueServiceV1 struct {
 	corpus          *maintner.Corpus
-	googlerResolver googlers.GooglersResolver
+	googlerResolver googlers.Resolver
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
-func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) *IssueServiceV1 {
+func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *IssueServiceV1 {
 	return &IssueServiceV1{
 		corpus:          corpus,
 		googlerResolver: resolver,
