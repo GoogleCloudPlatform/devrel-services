@@ -14,14 +14,22 @@
 
 package status
 
+// Type indicates the Type of Issue or PR it is
 type Type string
 
 const (
-	TypeBug      = Type("Bug")
-	TypeFeature  = Type("FR")
-	TypeCleanup  = Type("Cleanup")
+	// TypeBug indicates a Bugs
+	TypeBug = Type("Bug")
+	// TypeFeature indicates a feature
+	TypeFeature = Type("FR")
+	// TypeCleanup indicates cleanup process.
+	TypeCleanup = Type("Cleanup")
+	// TypeCustomer indicates a customer request
 	TypeCustomer = Type("Customer")
-	TypeProcess  = Type("Process")
-	TypePR       = Type("PR")
-	TypeUnknown  = Type("")
+	// TypeProcess indicates a proceess issue.
+	TypeProcess = Type("Process")
+	// TypePR indicates a pull request
+	TypePR = Type("PR")
+	// TypeUnknown indicates no type could be determined
+	TypeUnknown = Type("")
 )

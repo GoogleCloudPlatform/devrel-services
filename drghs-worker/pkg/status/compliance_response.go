@@ -14,6 +14,7 @@
 
 package status
 
+// ComplianceResponse represents how long an Issue has been out of Compliance
 type ComplianceResponse struct {
 	Compliant bool
 	Duration  int

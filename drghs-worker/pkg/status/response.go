@@ -20,12 +20,14 @@ import (
 	"io"
 )
 
+// Response is for API responses
 type Response struct {
 	Error  string    `json:",omitempty"`
 	Issues []*Status `json:",omitempty"`
 	Issue  *Status   `json:",omitempty"`
 }
 
+// WriteTo writes the response to an io.Writer
 func (r Response) WriteTo(w io.Writer) (int64, error) {
 	out, err := json.MarshalIndent(r, "", "\t")
 	if err != nil {

@@ -16,12 +16,14 @@ package status
 
 import "strings"
 
+// RequestConfig is a grouping if requests and rules
 type RequestConfig struct {
 	ID    int
 	Rules []*RequestRule
 	Repos []string
 }
 
+// Rule returns a RequestRule based on the labels in the RequestConfig
 func (slo *RequestConfig) Rule(labels []string) *RequestRule {
 	labelMap := make(map[string]bool)
 	for _, l := range labels {

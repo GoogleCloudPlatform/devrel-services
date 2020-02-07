@@ -16,6 +16,7 @@ package status
 
 import "time"
 
+// Compliance represents how long an Issue has been out of Compliance
 type Compliance struct {
 	Compliant bool
 	Duration  time.Duration

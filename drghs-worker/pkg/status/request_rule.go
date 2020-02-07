@@ -16,6 +16,7 @@ package status
 
 import "time"
 
+// RequestRule represents a rule for an SLO
 type RequestRule struct {
 	ID                 int
 	Labels             []string

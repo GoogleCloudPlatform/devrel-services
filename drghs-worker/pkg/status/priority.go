@@ -14,6 +14,7 @@
 
 package status
 
+// Priority is used to describe an SLO's criticality.
 // An SLO is defined in US business days (i.e. weekends, US Holidays excluded) for any SLO that is 7 days or less. For any SLO that is 8+ days, it is defined in calendar days
 // P0 15-30 minute response, ASAP resolution
 // P1 1 day response, 1 week resolution
@@ -23,9 +24,14 @@ package status
 type Priority uint
 
 const (
+	// P0 is the highest priority
 	P0 = Priority(iota)
+	// P1 is the second higest priority
 	P1
+	// P2 is the third highest priority
 	P2
+	// P3 is the fourth highest priority
 	P3
+	// P4 is the fifth highest priority
 	P4
 )

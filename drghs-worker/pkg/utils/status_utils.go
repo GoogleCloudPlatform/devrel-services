@@ -76,7 +76,7 @@ func TranslateIssueToStatus(issue *maintner.GitHubIssue, repoID string, includeC
 	}
 
 	s.FillLabels()
-	s.URL = s.Url()
+	s.URL = s.MakeURL()
 
 	return s
 }

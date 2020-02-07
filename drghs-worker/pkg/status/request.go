@@ -14,6 +14,7 @@
 
 package status
 
+// Request contains a set of Configs
 type Request struct {
 	Configs []RequestConfig
 }

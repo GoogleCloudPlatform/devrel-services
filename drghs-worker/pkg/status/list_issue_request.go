@@ -16,6 +16,7 @@ package status
 
 import "encoding/json"
 
+// ListIssuesRequest is used by the API to request the issues from a Repository
 type ListIssuesRequest struct {
 	Repo string
 

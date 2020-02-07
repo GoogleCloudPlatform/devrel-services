@@ -14,6 +14,7 @@
 
 package status
 
+// GetIssueRequest is used by the API to get a particular issue.
 type GetIssueRequest struct {
 	Repo  string
 	Issue int

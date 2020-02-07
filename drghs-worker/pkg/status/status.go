@@ -73,6 +73,7 @@ type Status struct {
 	Reviews             []*maintner.GitHubReview
 }
 
+// FillWithSLO updates the Status with information from the SLO
 func (s *Status) FillWithSLO(slo *RequestConfig) {
 	s.FillLabels()
 
@@ -86,11 +87,12 @@ func (s *Status) FillWithSLO(slo *RequestConfig) {
 	}
 
 	s.IssueID = s.Issue.Number
-	s.URL = s.Url()
+	s.URL = s.MakeURL()
 	s.Assignees = s.Issue.Assignees
 	s.Title = s.Issue.Title
 }
 
+// FillLabels updates the Status with information from its Labels
 func (s *Status) FillLabels() {
 	for _, l := range s.Issue.Labels {
 		s.Labels = append(s.Labels, l.Name)
@@ -142,12 +144,13 @@ func matchesAny(item string, valuesToMatch []string) bool {
 	return false
 }
 
+// Fill populates the data of the Status
 func (s *Status) Fill() {
 	s.FillLabels()
 	s.CompliantUpdates = s.compliantUpdates()
 	s.CompliantResolution = s.compliantResolution()
 	s.IssueID = s.Issue.Number
-	s.URL = s.Url()
+	s.URL = s.MakeURL()
 	s.Assignees = s.Issue.Assignees
 	s.Reporter = s.Issue.User
 	s.Title = s.Issue.Title
@@ -161,7 +164,8 @@ func (s *Status) assignees() string {
 	return strings.Join(as, " ")
 }
 
-func (s *Status) Url() string {
+// MakeURL gets the GitHub url for the Status
+func (s *Status) MakeURL() string {
 	return fmt.Sprintf("https://github.com/%s/issues/%d", s.Repo, s.Issue.Number)
 }
 
