@@ -20,13 +20,14 @@ import (
 	"golang.org/x/build/maintner"
 )
 
+// TranslateIssueToStatus takes the given maintner.GitHubIssue and translates it to a status.Status
 func TranslateIssueToStatus(issue *maintner.GitHubIssue, repoID string, includeComments bool, includeReviews bool) *status.Status {
 
-	commitId := ""
+	commitID := ""
 	issue.ForeachEvent(func(event *maintner.GitHubIssueEvent) error {
 		// ForeachEvent processes events in chronological order
 		if event.CommitID != "" {
-			commitId = event.CommitID
+			commitID = event.CommitID
 		}
 		return nil
 	})
@@ -44,7 +45,7 @@ func TranslateIssueToStatus(issue *maintner.GitHubIssue, repoID string, includeC
 		UpdatedAt:       issue.Updated,
 		Closed:          issue.Closed,
 		ClosedBy:        issue.ClosedBy,
-		Commit:          commitId,
+		Commit:          commitIDcommitID,
 		IssueID:         issue.Number,
 		Assignees:       issue.Assignees,
 		Reporter:        issue.User,
