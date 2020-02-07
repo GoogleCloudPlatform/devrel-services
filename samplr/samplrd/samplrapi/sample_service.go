@@ -166,7 +166,7 @@ func (s *SampleServiceServer) ListRepositories(ctx context.Context, req *drghs_v
 			return nil, err
 		}
 
-		should, err := filter.FilterRepository(pr, req.Filter)
+		should, err := filter.Repository(pr, req.Filter)
 		if err != nil {
 			log.Errorf("Issue filtering repository: %v", err)
 			return nil, err
@@ -274,7 +274,7 @@ func (s *SampleServiceServer) ListGitCommits(ctx context.Context, req *drghs_v1.
 			return nil, err
 		}
 
-		should, err := filter.FilterGitCommit(pc, req.Filter)
+		should, err := filter.GitCommit(pc, req.Filter)
 		if err != nil {
 			log.Errorf("Issue filtering commit: %v", err)
 			return nil, err
@@ -372,7 +372,7 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 				return nil, err
 			}
 
-			should, err := filter.FilterSnippet(pv, req.Filter)
+			should, err := filter.Snippet(pv, req.Filter)
 			if err != nil {
 				log.Errorf("Issue filtering repository: %v", err)
 				return nil, err
@@ -500,7 +500,7 @@ func (s *SampleServiceServer) ListSnippetVersions(ctx context.Context, req *drgh
 				return nil, err
 			}
 
-			should, err := filter.FilterSnippetVersion(pv, req.Filter)
+			should, err := filter.SnippetVersion(pv, req.Filter)
 			if err != nil {
 				log.Errorf("Issue filtering snippet version: %v", err)
 				return nil, err

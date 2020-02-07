@@ -24,8 +24,8 @@ import (
 
 const defaultFilter = "true"
 
-// FilterSnippet checks if the Snippet passes the given CEL expression.
-func FilterSnippet(s *drghs_v1.Snippet, filter string) (bool, error) {
+// Snippet checks if the Snippet passes the given CEL expression.
+func Snippet(s *drghs_v1.Snippet, filter string) (bool, error) {
 	if filter == "" {
 		filter = defaultFilter
 	}
@@ -60,8 +60,8 @@ func FilterSnippet(s *drghs_v1.Snippet, filter string) (bool, error) {
 	return out == types.True, err
 }
 
-// FilterSnippetVersion checks if the SnippetVersion passes the given CEL expression.
-func FilterSnippetVersion(s *drghs_v1.SnippetVersion, filter string) (bool, error) {
+// SnippetVersion checks if the SnippetVersion passes the given CEL expression.
+func SnippetVersion(s *drghs_v1.SnippetVersion, filter string) (bool, error) {
 	if filter == "" {
 		filter = defaultFilter
 	}
@@ -95,8 +95,8 @@ func FilterSnippetVersion(s *drghs_v1.SnippetVersion, filter string) (bool, erro
 	return out == types.True, err
 }
 
-// FilterRepository checks if the Repository passes the given CEL expression.
-func FilterRepository(r *drghs_v1.Repository, filter string) (bool, error) {
+// Repository checks if the Repository passes the given CEL expression.
+func Repository(r *drghs_v1.Repository, filter string) (bool, error) {
 	if filter == "" {
 		filter = defaultFilter
 	}
@@ -133,8 +133,8 @@ func FilterRepository(r *drghs_v1.Repository, filter string) (bool, error) {
 	return out == types.True, err
 }
 
-// FilterGitCommit checks if the GitCommit passes the given CEL expression.
-func FilterGitCommit(g *drghs_v1.GitCommit, filter string) (bool, error) {
+// GitCommit checks if the GitCommit passes the given CEL expression.
+func GitCommit(g *drghs_v1.GitCommit, filter string) (bool, error) {
 	if filter == "" {
 		filter = defaultFilter
 	}
