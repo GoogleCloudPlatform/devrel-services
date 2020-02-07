@@ -22,6 +22,8 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+    - name: Add GOPATH/bin to PATH
+      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Install dependencies
       run: ./go.get.sh
     # Lint
