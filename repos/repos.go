@@ -20,6 +20,7 @@ import (
 	"fmt"
 )
 
+// RepoList describes a struct that tracks repositories
 type RepoList interface {
 	// UpdateTrackedRepos, updates the list of trakced repositories, returns
 	// true if the list changed, false otherwise
@@ -27,6 +28,7 @@ type RepoList interface {
 	GetTrackedRepos() []TrackedRepository
 }
 
+// TrackedRepository represents a repository tracked by Maintner or Samplr
 type TrackedRepository struct {
 	Owner              string  `json:"owner"`
 	Name               string  `json:"name"`
