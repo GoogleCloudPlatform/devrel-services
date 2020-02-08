@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// AddCommand adds Snippet Version subcommands to the given command
 func AddCommand(ctx context.Context, cmd *cobra.Command) {
 
 	snippetVersions := &cobra.Command{

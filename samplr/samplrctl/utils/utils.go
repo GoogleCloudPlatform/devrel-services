@@ -25,6 +25,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// GetSnippets retrieves the Snippets from the given directory path
 func GetSnippets(ctx context.Context, d string) ([]*samplr.Snippet, error) {
 	r, err := git.PlainOpen(d)
 	if err != nil {

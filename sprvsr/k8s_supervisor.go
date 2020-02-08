@@ -26,6 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -59,6 +60,33 @@ type k8supervisor struct {
 	labelgenkey string
 }
 
+// ServiceNamer is called to determine what to name a Service Given a TrackedRepository
+type ServiceNamer func(repos.TrackedRepository) (string, error)
+
+// DeploymentNamer is called to determine what to name a Deployment Given a TrackedRepository
+type DeploymentNamer func(repos.TrackedRepository) (string, error)
+
+// DeploymentBuilder builds a Deployment based on the given TrackedRepository
+type DeploymentBuilder func(repos.TrackedRepository) (*appsv1.Deployment, error)
+
+// ServiceBuilder buidls a Service based on the given TrackedRepository
+type ServiceBuilder func(repos.TrackedRepository) (*apiv1.Service, error)
+
+// DeploymentPrep is called before building a deployment. This can be
+// used to provision additional resources before the Deployment is applied
+type DeploymentPrep func(repos.TrackedRepository) error
+
+// K8sConfiguration is a struct to describe the set of operations
+// a K8SSupervisor needs to manage a cluster
+type K8sConfiguration struct {
+	ServiceNamer      ServiceNamer
+	DeploymentNamer   DeploymentNamer
+	ServiceBuilder    ServiceBuilder
+	DeploymentBuilder DeploymentBuilder
+	PreDeploy         DeploymentPrep
+}
+
+// NewK8sSupervisor creates a new supervisor backed by Kubernetes
 func NewK8sSupervisor(log *logrus.Logger, clientset kubernetes.Interface, kconfig K8sConfiguration,
 	rl repos.RepoList,
 	appid string) (Supervisor, error) {
@@ -84,6 +112,9 @@ func newK8sSupervisor(log *logrus.Logger, clientset kubernetes.Interface, kconfi
 	}, nil
 }
 
+// Supervise registers an http server on the given address
+// and error handler. This watches the Kubernetes cluster for
+// changes and enforces them with the /update route
 func (s *k8supervisor) Supervise(address string, handle func(error)) error {
 	go s.updateCorpusRepoList(context.Background(), handle)
 

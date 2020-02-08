@@ -74,11 +74,11 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 		assignees[i] = u
 	}
 
-	commitId := ""
+	commitID := ""
 	issue.ForeachEvent(func(event *maintner.GitHubIssueEvent) error {
 		// ForeachEvent processes events in chronological order
 		if event.CommitID != "" {
-			commitId = event.CommitID
+			commitID = event.CommitID
 		}
 		return nil
 	})
@@ -96,7 +96,7 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 		ClosedBy:        closedBy,
 		ClosedAt:        closedAt,
 		GitCommit:       nil,
-		Commit:          commitId,
+		Commit:          commitID,
 		IssueId:         issue.Number,
 		Assignees:       assignees,
 		Reporter:        reporter,

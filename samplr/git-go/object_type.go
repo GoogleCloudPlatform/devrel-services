@@ -19,6 +19,7 @@ package git
 // AnyObject is used to represent any from 0 to 7.
 type ObjectType int8
 
+// Constants for Types of Objects
 const (
 	InvalidObject ObjectType = 0
 	CommitObject  ObjectType = 1
@@ -32,6 +33,7 @@ const (
 	AnyObject ObjectType = -127
 )
 
+// Bytes returns the ObjectType represented as bytes
 func (t ObjectType) Bytes() []byte {
 	return []byte(t.String())
 }

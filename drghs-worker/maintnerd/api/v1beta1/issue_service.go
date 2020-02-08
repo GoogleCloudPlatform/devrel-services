@@ -34,25 +34,27 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var _ drghs_v1.IssueServiceServer = &issueServiceV1{}
+var _ drghs_v1.IssueServiceServer = &IssueServiceV1{}
 
 const defaultFilter = "true"
 
-type issueServiceV1 struct {
+// IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
+type IssueServiceV1 struct {
 	corpus          *maintner.Corpus
-	googlerResolver googlers.GooglersResolver
+	googlerResolver googlers.Resolver
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
-func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) *issueServiceV1 {
-	return &issueServiceV1{
+func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *IssueServiceV1 {
+	return &IssueServiceV1{
 		corpus:          corpus,
 		googlerResolver: resolver,
 	}
 }
 
-func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
+// ListRepositories lists the set of repositories tracked by this maintner instance
+func (s *IssueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
 	resp := drghs_v1.ListRepositoriesResponse{}
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		should, err := shouldAddRepository(repo.ID(), r.Filter)
@@ -71,7 +73,8 @@ func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListR
 	return &resp, err
 }
 
-func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
+// ListIssues lists the issues for the repo in the ListIssuesRequest
+func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
 	resp := drghs_v1.ListIssuesResponse{}
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
@@ -102,7 +105,8 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 	return &resp, err
 }
 
-func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
+// GetIssue returns the issue specified in the GetIssueRequest
+func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
 	resp := &drghs_v1.GetIssueResponse{}
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
@@ -129,11 +133,12 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 }
 
 // Check is for health checking.
-func (s *issueServiceV1) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+func (s *IssueServiceV1) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 }
 
-func (s *issueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
+// Watch is used for Health Checking, but is not supported.
+func (s *IssueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
 }
 
