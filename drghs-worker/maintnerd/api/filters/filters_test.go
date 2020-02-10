@@ -33,7 +33,7 @@ func TestFilterIssue(t *testing.T) {
 		{
 			Name:    "Empty Filter Passes",
 			Issue:   drghs_v1.Issue{},
-			Request:  drghs_v1.ListIssuesRequest{},
+			Request: drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
@@ -43,7 +43,17 @@ func TestFilterIssue(t *testing.T) {
 				Name: "foo",
 				IsPr: true,
 			},
-			Request:  drghs_v1.ListIssuesRequest{},
+			Request: drghs_v1.ListIssuesRequest{},
+			Want:    true,
+			WantErr: false,
+		},
+		{
+			Name: "Null Not Pull Request Passes",
+			Issue: drghs_v1.Issue{
+				Name: "foo",
+				IsPr: false,
+			},
+			Request: drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
@@ -52,7 +62,7 @@ func TestFilterIssue(t *testing.T) {
 			Issue: drghs_v1.Issue{
 				IsPr: true,
 			},
-			Request:  drghs_v1.ListIssuesRequest{ 
+			Request: drghs_v1.ListIssuesRequest{
 				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
 					PullRequest: true,
 				},
@@ -65,7 +75,7 @@ func TestFilterIssue(t *testing.T) {
 			Issue: drghs_v1.Issue{
 				IsPr: true,
 			},
-			Request:  drghs_v1.ListIssuesRequest{ 
+			Request: drghs_v1.ListIssuesRequest{
 				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
 					PullRequest: false,
 				},
@@ -74,11 +84,57 @@ func TestFilterIssue(t *testing.T) {
 			WantErr: false,
 		},
 		{
+			Name: "True Not Pull Request Passes",
+			Issue: drghs_v1.Issue{
+				IsPr: false,
+			},
+			Request: drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+					PullRequest: true,
+				},
+			},
+			Want:    false,
+			WantErr: false,
+		},
+		{
+			Name: "False Not Pull Request Passes",
+			Issue: drghs_v1.Issue{
+				IsPr: false,
+			},
+			Request: drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+					PullRequest: false,
+				},
+			},
+			Want:    true,
+			WantErr: false,
+		},
+		{
+			Name: "Null Closed Passes",
+			Issue: drghs_v1.Issue{
+				Name:   "foo",
+				Closed: true,
+			},
+			Request: drghs_v1.ListIssuesRequest{},
+			Want:    true,
+			WantErr: false,
+		},
+		{
+			Name: "Null Not Closed Passes",
+			Issue: drghs_v1.Issue{
+				Name:   "foo",
+				Closed: false,
+			},
+			Request: drghs_v1.ListIssuesRequest{},
+			Want:    true,
+			WantErr: false,
+		},
+		{
 			Name: "True Closed Passes",
 			Issue: drghs_v1.Issue{
 				Closed: true,
 			},
-			Request:  drghs_v1.ListIssuesRequest{ 
+			Request: drghs_v1.ListIssuesRequest{
 				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
 					Closed: true,
 				},
@@ -91,12 +147,38 @@ func TestFilterIssue(t *testing.T) {
 			Issue: drghs_v1.Issue{
 				Closed: true,
 			},
-			Request:  drghs_v1.ListIssuesRequest{ 
+			Request: drghs_v1.ListIssuesRequest{
 				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
 					Closed: false,
 				},
 			},
 			Want:    false,
+			WantErr: false,
+		},
+		{
+			Name: "True Not Closed Passes",
+			Issue: drghs_v1.Issue{
+				Closed: false,
+			},
+			Request: drghs_v1.ListIssuesRequest{
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: true,
+				},
+			},
+			Want:    false,
+			WantErr: false,
+		},
+		{
+			Name: "False Not Closed Passes",
+			Issue: drghs_v1.Issue{
+				Closed: false,
+			},
+			Request: drghs_v1.ListIssuesRequest{
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: false,
+				},
+			},
+			Want:    true,
 			WantErr: false,
 		},
 	}
