@@ -35,11 +35,11 @@ func TestGetPageSize(t *testing.T) {
 		},
 		{
 			n:    0,
-			want: 100,
+			want: 500,
 		},
 		{
-			n:    100,
-			want: 100,
+			n:    500,
+			want: 500,
 		},
 		{
 			n:    50,
@@ -47,11 +47,11 @@ func TestGetPageSize(t *testing.T) {
 		},
 		{
 			n:    -1,
-			want: 100,
+			want: 500,
 		},
 		{
-			n:    101,
-			want: 100,
+			n:    501,
+			want: 500,
 		},
 	}
 	for _, tst := range tests {
