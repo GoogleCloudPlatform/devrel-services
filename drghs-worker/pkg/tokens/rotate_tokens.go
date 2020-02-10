@@ -19,12 +19,15 @@ import (
 	"sync"
 )
 
+// RotatingTokens provides thread safe access to a
+// rotating set of API keys.
 type RotatingTokens struct {
 	keys         []string
 	mux          sync.Mutex
 	lastAccessed int
 }
 
+// NewRotatingVendor creates a new *RotatingTokens
 func NewRotatingVendor(tokens []string) *RotatingTokens {
 	if tokens == nil {
 		tokens = make([]string, 0)
@@ -32,6 +35,8 @@ func NewRotatingVendor(tokens []string) *RotatingTokens {
 	return &RotatingTokens{keys: tokens}
 }
 
+// GetToken returns the next available in a thread-safe manner
+// or an error if there are no available tokens.
 func (r *RotatingTokens) GetToken() (string, error) {
 	r.mux.Lock()
 	defer r.mux.Unlock()

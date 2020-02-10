@@ -17,6 +17,8 @@ package v1beta1
 import (
 	"testing"
 
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/build/maintner"
 )
@@ -25,7 +27,7 @@ func TestIssueFilters(t *testing.T) {
 	tests := []struct {
 		Name    string
 		Issue   maintner.GitHubIssue
-		Filter  string
+		Req     *drghs_v1.ListIssuesRequest
 		Want    bool
 		WantErr bool
 	}{
@@ -35,17 +37,7 @@ func TestIssueFilters(t *testing.T) {
 				PullRequest: true,
 				Closed:      false,
 			},
-			Filter:  "",
-			Want:    true,
-			WantErr: false,
-		},
-		{
-			Name: "True Filter Passes",
-			Issue: maintner.GitHubIssue{
-				PullRequest: true,
-				Closed:      false,
-			},
-			Filter:  "true",
+			Req:     &drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
@@ -55,34 +47,112 @@ func TestIssueFilters(t *testing.T) {
 				PullRequest: true,
 				Closed:      false,
 			},
-			Filter:  "pull_request==true",
+			Req: &drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+					PullRequest: true,
+				},
+			},
 			Want:    true,
 			WantErr: false,
 		},
 		{
-			Name: "Compound  Filter Supported",
+			Name: "Pull Request False Filter Passes",
 			Issue: maintner.GitHubIssue{
 				PullRequest: true,
 				Closed:      false,
 			},
-			Filter:  "pull_request==true && closed==true",
+			Req: &drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+
+					PullRequest: false,
+				},
+			},
 			Want:    false,
 			WantErr: false,
 		},
 		{
-			Name: "Invalid Filter",
+			Name: "Closed Filter Passes",
+			Issue: maintner.GitHubIssue{
+				PullRequest: true,
+				Closed:      true,
+			},
+			Req: &drghs_v1.ListIssuesRequest{
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: true,
+				},
+			},
+			Want:    true,
+			WantErr: false,
+		},
+		{
+			Name: "Closed False Filter Skips Closed",
+			Issue: maintner.GitHubIssue{
+				PullRequest: true,
+				Closed:      true,
+			},
+			Req: &drghs_v1.ListIssuesRequest{
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: false,
+				},
+			},
+			Want:    false,
+			WantErr: false,
+		},
+		{
+			Name: "Closed False Filter Passes",
 			Issue: maintner.GitHubIssue{
 				PullRequest: true,
 				Closed:      false,
 			},
-			Filter:  `bar==foo && closed==true`,
+			Req: &drghs_v1.ListIssuesRequest{
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: false,
+				},
+			},
+			Want:    true,
+			WantErr: false,
+		},
+		{
+			Name: "Compound Filter Supported",
+			Issue: maintner.GitHubIssue{
+				PullRequest: true,
+				Closed:      false,
+			},
+			Req: &drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+
+					PullRequest: true,
+				},
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+
+					Closed: true,
+				},
+			},
 			Want:    false,
-			WantErr: true,
+			WantErr: false,
+		},
+		{
+			Name: "Compound Filter Passes on PR",
+			Issue: maintner.GitHubIssue{
+				PullRequest: true,
+				Closed:      false,
+			},
+			Req: &drghs_v1.ListIssuesRequest{
+				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
+					PullRequest: true,
+				},
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+
+					Closed: false,
+				},
+			},
+			Want:    true,
+			WantErr: false,
 		},
 	}
 
 	for _, test := range tests {
-		got, goterr := shouldAddIssue(&test.Issue, test.Filter)
+		got, goterr := shouldAddIssue(&test.Issue, test.Req)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}

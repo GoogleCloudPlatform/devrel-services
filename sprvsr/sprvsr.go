@@ -14,27 +14,6 @@
 
 package sprvsr
 
-import (
-	"github.com/GoogleCloudPlatform/devrel-services/repos"
-
-	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
-)
-
-type ServiceNamer func(repos.TrackedRepository) (string, error)
-type DeploymentNamer func(repos.TrackedRepository) (string, error)
-type DeploymentBuilder func(repos.TrackedRepository) (*appsv1.Deployment, error)
-type ServiceBuilder func(repos.TrackedRepository) (*apiv1.Service, error)
-type DeploymentPrep func(repos.TrackedRepository) error
-
-type K8sConfiguration struct {
-	ServiceNamer      ServiceNamer
-	DeploymentNamer   DeploymentNamer
-	ServiceBuilder    ServiceBuilder
-	DeploymentBuilder DeploymentBuilder
-	PreDeploy         DeploymentPrep
-}
-
 // Supervisor exists to supervise a set of deployments
 type Supervisor interface {
 	Supervise(string, func(error)) error

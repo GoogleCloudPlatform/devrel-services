@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
@@ -27,27 +28,33 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/google/cel-go/common/types"
+
+	"google.golang.org/grpc/codes"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
 )
 
-var _ drghs_v1.IssueServiceServer = &issueServiceV1{}
+var _ drghs_v1.IssueServiceServer = &IssueServiceV1{}
 
 const defaultFilter = "true"
 
-type issueServiceV1 struct {
+// IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
+type IssueServiceV1 struct {
 	corpus          *maintner.Corpus
-	googlerResolver googlers.GooglersResolver
+	googlerResolver googlers.Resolver
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
-func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) *issueServiceV1 {
-	return &issueServiceV1{
+func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *IssueServiceV1 {
+	return &IssueServiceV1{
 		corpus:          corpus,
 		googlerResolver: resolver,
 	}
 }
 
-func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
+// ListRepositories lists the set of repositories tracked by this maintner instance
+func (s *IssueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
 	resp := drghs_v1.ListRepositoriesResponse{}
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		should, err := shouldAddRepository(repo.ID(), r.Filter)
@@ -66,24 +73,26 @@ func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListR
 	return &resp, err
 }
 
-func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
+// ListIssues lists the issues for the repo in the ListIssuesRequest
+func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
 	resp := drghs_v1.ListIssuesResponse{}
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		repoID := repo.ID().String()
+		repoID := getRepoPath(repo)
 		if repoID != r.Parent {
 			// Not our repository... ignore
+			fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Parent)
 			return nil
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			should, err := shouldAddIssue(issue, r.Filter)
+			should, err := shouldAddIssue(issue, r)
 			if err != nil {
 				return err
 			}
 			if should {
 				// Add
-				iss, err := makeIssuePB(issue)
+				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
 				if err != nil {
 					return err
 				}
@@ -96,26 +105,26 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 	return &resp, err
 }
 
-func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.Issue, error) {
-	var resp *drghs_v1.Issue
+// GetIssue returns the issue specified in the GetIssueRequest
+func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
+	resp := &drghs_v1.GetIssueResponse{}
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		repoID := repo.ID().String()
-		if strings.HasPrefix(r.Name, repoID) {
+		repoID := getRepoPath(repo)
+		if !strings.HasPrefix(r.Name, repoID) {
 			// Not our repository... ignore
+			fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Name)
 			return nil
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-
-			if strings.HasSuffix(r.Name, string(issue.ID)) {
-				re, err := makeIssuePB(issue)
+			if r.Name == getIssueName(repo, issue) {
+				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
 				if err != nil {
 					return err
 				}
-				resp = re
+				resp.Issue = re
 			}
-
 			return nil
 		})
 	})
@@ -123,43 +132,52 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 	return resp, err
 }
 
-func shouldAddIssue(issue *maintner.GitHubIssue, filter string) (bool, error) {
+// Check is for health checking.
+func (s *IssueServiceV1) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
+}
+
+// Watch is used for Health Checking, but is not supported.
+func (s *IssueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
+	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
+}
+
+func shouldAddIssue(issue *maintner.GitHubIssue, r *drghs_v1.ListIssuesRequest) (bool, error) {
 	if issue.NotExist {
 		return false, nil
 	}
 
-	if filter == "" {
-		filter = defaultFilter
+	switch x := r.PullRequestNullable.(type) {
+	case *drghs_v1.ListIssuesRequest_PullRequest:
+		if issue.PullRequest != x.PullRequest {
+			return false, nil
+		}
+	case nil:
+		// Do nothing
+	default:
+		// Do nothing
 	}
 
-	env, err := cel.NewEnv(
-		cel.Declarations(
-			decls.NewIdent("pull_request", decls.Bool, nil),
-			decls.NewIdent("closed", decls.Bool, nil)))
-
-	parsed, issues := env.Parse(filter)
-	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
-	}
-	checked, issues := env.Check(parsed)
-	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
-	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
+	switch x := r.ClosedNullable.(type) {
+	case *drghs_v1.ListIssuesRequest_Closed:
+		if issue.Closed != x.Closed {
+			return false, nil
+		}
+	case nil:
+		// Do nothing
+	default:
+		// Do nothing
 	}
 
-	// The `out` var contains the output of a successful evaluation.
-	// The `details' var would contain intermediate evalaution state if enabled as
-	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
-	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
-		"pull_request": issue.PullRequest,
-		"closed":       issue.Closed,
-	})
+	return true, nil
+}
 
-	return out == types.True, nil
+func getRepoPath(ta *maintner.GitHubRepo) string {
+	return fmt.Sprintf("%v/%v", ta.ID().Owner, ta.ID().Repo)
+}
+
+func getIssueName(ta *maintner.GitHubRepo, iss *maintner.GitHubIssue) string {
+	return fmt.Sprintf("%v/%v/issues/%v", ta.ID().Owner, ta.ID().Repo, iss.Number)
 }
 
 // TODO(orthros) This should default to using *maintner.GitHubRepo, but

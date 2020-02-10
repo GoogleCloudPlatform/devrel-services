@@ -64,7 +64,7 @@ sample-metadata:
 					Title:       "Activate HMAC SA Key.",
 					Description: "Activate HMAC SA Key.",
 					Usage:       "node hmacKeyActivate.js <hmacKeyAccessId> [projectId]",
-					ApiVersion:  "1.2.3.5-foo_bar_baz",
+					APIVersion:  "1.2.3.5-foo_bar_baz",
 					Snippets: []SnippetMetaRef{
 						SnippetMetaRef{
 							RegionTag:   "foo",
