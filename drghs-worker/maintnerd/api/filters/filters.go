@@ -24,6 +24,8 @@ import (
 
 const defaultFilter = "true"
 
+// FilterIssue determines if an Issue satisfies the constraints in the
+// ListIssuesRequest
 func FilterIssue(issue *drghs_v1.Issue, r *drghs_v1.ListIssuesRequest) (bool, error) {
 	switch x := r.PullRequestNullable.(type) {
 	case *drghs_v1.ListIssuesRequest_PullRequest:
@@ -50,6 +52,8 @@ func FilterIssue(issue *drghs_v1.Issue, r *drghs_v1.ListIssuesRequest) (bool, er
 	return true, nil
 }
 
+// FilterRepository determines if a Repository matches the CEL spec
+// for the given filter
 func FilterRepository(r *drghs_v1.Repository, filter string) (bool, error) {
 	if filter == "" {
 		filter = defaultFilter
@@ -83,6 +87,8 @@ func FilterRepository(r *drghs_v1.Repository, filter string) (bool, error) {
 	return out == types.True, err
 }
 
+// FilterComment determines if a GitHubComment matches the CEL spec
+// for the given filter
 func FilterComment(c *drghs_v1.GitHubComment, filter string) (bool, error) {
 	if filter == "" {
 		filter = defaultFilter
