@@ -15,9 +15,9 @@
 package samplrapi
 
 import (
-	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	b64 "encoding/base64"
 	"errors"
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// ErrNilPageToken is returned when a PageToken is nil
 	ErrNilPageToken = errors.New("nil PageToken")
 )
 

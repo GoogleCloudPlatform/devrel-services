@@ -43,11 +43,11 @@ func (w *watchedGitRepo) ID() string {
 }
 func (w *watchedGitRepo) Update(ctx context.Context) error {
 	err := w.repository.FetchContext(ctx, &git.FetchOptions{})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
+	if err != nil && err != git.ErrAlreadyUpToDate {
 		log.Errorf("got error fetching repository: %v", err)
 		return err
 	}
-	if err == git.NoErrAlreadyUpToDate && len(w.snippets) != 0 {
+	if err == git.ErrAlreadyUpToDate && len(w.snippets) != 0 {
 		// If the repo is already up to date and there
 		// are snippets in the repository, return early
 		log.Trace("already up to date, and we have snippets, skipping update")
@@ -56,7 +56,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 	// Need to actually pull the remote in to get the new changes
 
 	err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin"})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
+	if err != nil && err != git.ErrAlreadyUpToDate {
 		log.Errorf("got error pulling commits: %v", err)
 		return err
 	}
@@ -180,6 +180,8 @@ func (w *watchedGitRepo) ForEachGitCommitF(fn func(g *GitCommit) error, filter f
 	}
 	return nil
 }
+
+// TrackGit instructs the Corpus to track a Git Repository at the given url
 func (c *Corpus) TrackGit(url string) error {
 	dirname, err := ioutil.TempDir("", "samplr-")
 	if err != nil {

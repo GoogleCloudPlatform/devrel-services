@@ -28,18 +28,22 @@ var (
 	smre = regexp.MustCompile(`^(#|//) sample-metadata:$`)
 )
 
+// SampleMetadata is the root note of a SampleMeta
 type SampleMetadata struct {
 	Meta SampleMeta `yaml:"sample-metadata"`
 }
 
+// SampleMeta stores structured metadata about a singular Sample.
+// It can have several Snippets associated with it.
 type SampleMeta struct {
 	Title       string           `yaml:"title"`
 	Description string           `yaml:"description"`
 	Usage       string           `yaml:"usage"`
-	ApiVersion  string           `yaml:"api_version"`
+	APIVersion  string           `yaml:"api_version"`
 	Snippets    []SnippetMetaRef `yaml:"snippets"`
 }
 
+// SnippetMetaRef stores strucutred data about a single Snippet
 type SnippetMetaRef struct {
 	RegionTag   string `yaml:"region_tag"`
 	Description string `yaml:"description"`

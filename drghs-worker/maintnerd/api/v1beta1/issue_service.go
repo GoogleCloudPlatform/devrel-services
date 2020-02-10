@@ -21,32 +21,34 @@ import (
 	"time"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/filters"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
 	"golang.org/x/build/maintner"
 
-	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 )
 
-var _ drghs_v1.IssueServiceServer = &issueServiceV1{}
+var _ drghs_v1.IssueServiceServer = &IssueServiceV1{}
 
 const defaultFilter = "true"
 
-type issueServiceV1 struct {
-	corpus *maintner.Corpus
-	rp     *repoPaginator
-	ip     *issuePaginator
+// IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
+type IssueServiceV1 struct {
+	corpus          *maintner.Corpus
+	rp              *repoPaginator
+	ip              *issuePaginator
+	googlerResolver googlers.Resolver
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
-func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolver) *issueServiceV1 {
-	return &issueServiceV1{
+func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *IssueServiceV1 {
+	return &IssueServiceV1{
 		corpus: corpus,
 		rp: &repoPaginator{
 			set: make(map[time.Time]repoPage),
@@ -57,7 +59,8 @@ func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.GooglersResolv
 	}
 }
 
-func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
+// ListRepositories lists the set of repositories tracked by this maintner instance
+func (s *IssueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
 
 	var pg []*drghs_v1.Repository
 	var idx int
@@ -128,7 +131,8 @@ func (s *issueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListR
 	return &resp, err
 }
 
-func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
+// ListIssues lists the issues for the repo in the ListIssuesRequest
+func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
 	var pg []*drghs_v1.Issue
 	var idx int
 	var err error
@@ -215,7 +219,8 @@ func (s *issueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 	}, err
 }
 
-func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
+// GetIssue returns the issue specified in the GetIssueRequest
+func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
 	resp := &drghs_v1.GetIssueResponse{}
 
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
@@ -242,12 +247,43 @@ func (s *issueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 }
 
 // Check is for health checking.
-func (s *issueServiceV1) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+func (s *IssueServiceV1) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 }
 
-func (s *issueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
+// Watch is used for Health Checking, but is not supported.
+func (s *IssueServiceV1) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Health_WatchServer) error {
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
+}
+
+func shouldAddIssue(issue *maintner.GitHubIssue, r *drghs_v1.ListIssuesRequest) (bool, error) {
+	if issue.NotExist {
+		return false, nil
+	}
+
+	switch x := r.PullRequestNullable.(type) {
+	case *drghs_v1.ListIssuesRequest_PullRequest:
+		if issue.PullRequest != x.PullRequest {
+			return false, nil
+		}
+	case nil:
+		// Do nothing
+	default:
+		// Do nothing
+	}
+
+	switch x := r.ClosedNullable.(type) {
+	case *drghs_v1.ListIssuesRequest_Closed:
+		if issue.Closed != x.Closed {
+			return false, nil
+		}
+	case nil:
+		// Do nothing
+	default:
+		// Do nothing
+	}
+
+	return true, nil
 }
 
 func getRepoPath(ta *maintner.GitHubRepo) string {
