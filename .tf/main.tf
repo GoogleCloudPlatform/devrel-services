@@ -78,7 +78,7 @@ resource "google_endpoints_service" "maintner_grpc_service" {
   type: google.api.Service
   config_version: 3
 
-  name: samplr.endpoints.${var.project_id}.cloud.goog
+  name: drghs.endpoints.${var.project_id}.cloud.goog
   title: DevRel GitHub Services API (TYPE)
 
   apis:
