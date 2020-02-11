@@ -83,6 +83,7 @@ resource "google_endpoints_service" "maintner_grpc_service" {
 
   apis:
   - name: drghs.v1.IssueService
+  - name: drghs.v1.IssueServiceAdmin
 
   endpoints:
   - name: drghs.endpoints.${var.project_id}.cloud.goog
