@@ -28,7 +28,7 @@ import (
 	maintner_internal "github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
-	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/internal_api"
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/internalapi"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/v1beta1"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
@@ -176,7 +176,7 @@ func main() {
 	group.Go(func() error {
 		// Add gRPC service for internal
 		grpcServer := grpc.NewServer()
-		s := internal_api.NewTransferProxyServer(corpus)
+		s := internalapi.NewTransferProxyServer(corpus)
 		maintner_internal.RegisterInternalIssueServiceServer(grpcServer, s)
 
 		lis, err := net.Listen("tcp", *listen)
