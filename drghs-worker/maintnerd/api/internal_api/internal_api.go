@@ -9,6 +9,7 @@ import (
 	"golang.org/x/build/maintner"
 )
 
+// TransferProxyServer implements maintner_internal.InternalIssueServiceServer
 type TransferProxyServer struct {
 	c *maintner.Corpus
 }
@@ -17,12 +18,14 @@ var errDidTransfer error = fmt.Errorf("Transfered issue")
 
 var _ maintner_internal.InternalIssueServiceServer = &TransferProxyServer{}
 
+// NewTransferProxyServer builds and returns a TransferProxyServer
 func NewTransferProxyServer(c *maintner.Corpus) *TransferProxyServer {
 	return &TransferProxyServer{
 		c: c,
 	}
 }
 
+// TombstoneIssues tombstones the requested issues that are in the corpus
 func (s *TransferProxyServer) TombstoneIssues(stream maintner_internal.InternalIssueService_TombstoneIssuesServer) error {
 	var ntombstoned int32
 
