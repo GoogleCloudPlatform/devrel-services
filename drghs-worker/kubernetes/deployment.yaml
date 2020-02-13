@@ -63,6 +63,8 @@ spec:
           "--listen=:80",
           "--verbose",
           "--sprvsr=maintnerd-sprvsr-cip",
+          "--settings-bucket=SETTINGS_BUCKET",
+          "--repos-file=REPOS_FILE",
         ]
         readinessProbe:
           exec:
