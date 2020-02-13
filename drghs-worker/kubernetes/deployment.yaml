@@ -201,7 +201,7 @@ spec:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: hello
+  name: sweeper
 spec:
   # Run Every 2 Hours
   schedule: "0 */2 * * *"
