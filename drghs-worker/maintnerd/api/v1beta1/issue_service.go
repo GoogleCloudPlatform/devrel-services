@@ -173,6 +173,10 @@ func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 			}
 
 			return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
+				if issue.NotExist {
+					return nil
+				}
+
 				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
 				if err != nil {
 					return err
