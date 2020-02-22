@@ -41,3 +41,32 @@ of it by reading the source into memory and applying filters to it.
 ### maint-bucket-migrate
 
 This process is used to do a "one off" migration of a set of mutation logs from one set of buckets to another.
+
+## Reseting data for a repo
+
+1.  Pause any job that may attempt to access the repo's data.
+
+1.  Find the deployment name for the repo:
+
+        kubectl get deployments -l owner=googleapis,repository=google-cloud-python
+
+    Example output:
+
+        NAME                                                             READY   UP-TO-DATE   AVAILABLE   AGE
+        mtr-d-abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234   1/1     1            1           31h
+
+1.  Scale down the deployment:
+
+        kubectl scale deployment mtr-d-abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234 --replicas=0
+
+1.  Delete the mutation log:
+
+        gsutil rm gs://maint-prod/googleapis/google-cloud-python/**
+
+1.  Scale up deployment:
+
+        kubectl scale deployment mtr-d-abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234 --replicas=1
+
+1.  Wait for the repo's data to be re-fetched.
+
+1.  Resume any paused job.
