@@ -46,7 +46,7 @@ This process is used to do a "one off" migration of a set of mutation logs from 
 
 1.  Pause any job that may attempt to access the repo's data.
 
-1.  Find the deployment name for the repo:
+1.  Find the deployment name for the repo (e.g. `googleapis/google-cloud-python`):
 
         kubectl get deployments -l owner=googleapis,repository=google-cloud-python
 
@@ -61,7 +61,9 @@ This process is used to do a "one off" migration of a set of mutation logs from 
 
 1.  Delete the mutation log:
 
-        gsutil rm gs://maint-prod/googleapis/google-cloud-python/**
+        gsutil rm gs://[BUCKET_NAME]/googleapis/google-cloud-python/**
+
+    where `[BUCKET_NAME]` is the name of the Google Cloud Storage where the mutation logs are stored.
 
 1.  Scale up deployment:
 
