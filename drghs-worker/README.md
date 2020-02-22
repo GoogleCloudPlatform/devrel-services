@@ -61,7 +61,7 @@ This process is used to do a "one off" migration of a set of mutation logs from 
 
 1.  Delete the mutation log:
 
-        gsutil rm gs://[BUCKET_NAME]/googleapis/google-cloud-python/**
+        gsutil rm 'gs://[BUCKET_NAME]/googleapis/google-cloud-python/*'
 
     where `[BUCKET_NAME]` is the name of the Google Cloud Storage where the mutation logs are stored.
 
