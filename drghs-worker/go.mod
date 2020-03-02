@@ -46,6 +46,6 @@ replace github.com/GoogleCloudPlatform/devrel-services/sprvsr => ../sprvsr
 
 replace github.com/GoogleCloudPlatform/devrel-services/repos => ../repos
 
-replace golang.org/x/build => ../vendor/build
+replace golang.org/x/build => ../_vendor/build
 
 go 1.13
