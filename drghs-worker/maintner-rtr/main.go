@@ -41,7 +41,7 @@ var (
 	verbose     = flag.Bool("verbose", false, "enable verbose debug output")
 	sprvsrAddr  = flag.String("sprvsr", "maintner-sprvsr", "address for supervisor")
 	errorClient *errorreporting.Client
-	pathRegex   = regexp.MustCompile(`^([\w-]+)\/([\w-]+)[\w\/-]*$`)
+	pathRegex   = regexp.MustCompile(`^([.:\w-]+)\/([.:\w-]+)[.:\w\/-]*$`)
 )
 
 const (
