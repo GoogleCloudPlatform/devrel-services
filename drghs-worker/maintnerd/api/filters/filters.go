@@ -27,10 +27,6 @@ const defaultFilter = "true"
 // FilterIssue determines if an Issue satisfies the constraints in the
 // ListIssuesRequest
 func FilterIssue(issue *drghs_v1.Issue, r *drghs_v1.ListIssuesRequest) (bool, error) {
-	if issue.NotExist {
-		return false, nil
-	}
-
 	switch x := r.PullRequestNullable.(type) {
 	case *drghs_v1.ListIssuesRequest_PullRequest:
 		if issue.IsPr != x.PullRequest {
