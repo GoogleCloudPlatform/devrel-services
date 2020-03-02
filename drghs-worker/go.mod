@@ -29,7 +29,7 @@ require (
 	github.com/urfave/negroni v1.0.0
 	golang.org/x/build v0.0.0-20190201181641-63986c177d1f
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
+	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/api v0.6.0
 	google.golang.org/grpc v1.24.0
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
@@ -45,5 +45,7 @@ replace github.com/GoogleCloudPlatform/devrel-services/rtr => ../rtr
 replace github.com/GoogleCloudPlatform/devrel-services/sprvsr => ../sprvsr
 
 replace github.com/GoogleCloudPlatform/devrel-services/repos => ../repos
+
+replace golang.org/x/build => ../vendor/build
 
 go 1.13
