@@ -69,10 +69,11 @@ func init() {
 
 	flRtrAddr = flag.String("rtr-address", "", "specifies the address of the router to dial")
 
-	flag.Parse()
 }
 
 func main() {
+	flag.Parse()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalCh := make(chan os.Signal, 1)
@@ -179,7 +180,7 @@ func getMaintnerIssuesForRepo(ctx context.Context, c drghs_v1.IssueServiceClient
 		rep, err := c.ListIssues(ctx, &drghs_v1.ListIssuesRequest{
 			Parent:    repo.Name,
 			PageToken: npt,
-			PageSize:  100,
+			PageSize:  500,
 		})
 		if err != nil {
 			return nil, err
@@ -200,7 +201,7 @@ func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) 
 	for {
 		rep, err := c.ListRepositories(ctx, &drghs_v1.ListRepositoriesRequest{
 			PageToken: npt,
-			PageSize:  100,
+			PageSize:  500,
 		})
 		if err != nil {
 			return nil, err
