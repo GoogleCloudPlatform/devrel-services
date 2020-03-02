@@ -46,7 +46,7 @@ var (
 
 var (
 	errorClient *errorreporting.Client
-	pathRegex   = regexp.MustCompile(`^([\w-]+)\/([\w-]+)[\w\/-]*$`)
+	pathRegex   = regexp.MustCompile(`^([.:\w-]+)\/([.:\w-]+)[.:\w\/-]*$`)
 )
 
 const (

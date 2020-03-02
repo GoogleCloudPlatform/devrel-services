@@ -19,17 +19,7 @@ ENV GO111MODULE=on
 WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
 COPY . .
 
-# BEGIN Jank to get an upstream patch into the build
-WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services
-RUN git clone https://go.googlesource.com/build build
-WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/build
-RUN git fetch https://go.googlesource.com/build refs/changes/98/205598/1 && git checkout FETCH_HEAD
-
-RUN echo "replace golang.org/x/build => ../build " >> ../drghs-worker/go.mod
-
 WORKDIR /src/github.com/GoogleCloudPlatform/devrel-services/drghs-worker
-
-# END Jank
 
 RUN go install github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd
 
@@ -39,7 +29,7 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 && \
     wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
     chmod +x /bin/grpc_health_probe
 
-FROM golang:1.11
+FROM golang:1.13
 
 COPY --from=build /go/bin/maintnerd /
 COPY --from=health /bin/grpc_health_probe /bin/grpc_health_probe
