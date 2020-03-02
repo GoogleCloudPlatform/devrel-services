@@ -227,6 +227,7 @@ func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
 	resp := &drghs_v1.GetIssueResponse{}
 
+	var issueResp *drghs_v1.Issue = nil
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		repoID := getRepoPath(repo)
 		if !strings.HasPrefix(r.Name, repoID) {
@@ -236,16 +237,26 @@ func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			if r.Name == getIssueName(repo, issue) {
+			if r.Name == getIssueName(repo, issue) && !issue.NotExist {
 				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
 				if err != nil {
 					return err
 				}
-				resp.Issue = re
+				issueResp = re
 			}
 			return nil
 		})
 	})
+
+	if err != nil {
+		return resp, err
+	}
+
+	if issueResp == nil {
+		return nil, status.Errorf(codes.NotFound, "issue: %v not found", r.Name)
+	}
+
+	resp.Issue = issueResp
 
 	return resp, err
 }
