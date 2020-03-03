@@ -127,9 +127,25 @@ func (s *reverseProxyServer) Watch(req *healthpb.HealthCheckRequest, ws healthpb
 func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
 	resp := drghs_v1.ListRepositoriesResponse{}
 	for _, tr := range s.reps.GetTrackedRepos() {
-		resp.Repositories = append(resp.Repositories, &drghs_v1.Repository{
-			Name: tr.String(),
-		})
+
+		pth, err := calculateHost(tr.String())
+		if err != nil {
+			return nil, err
+		}
+		// Dial and get the repos
+		conn, err := grpc.Dial(pth, grpc.WithInsecure())
+		if err != nil {
+			return nil, err
+		}
+
+		client := drghs_v1.NewIssueServiceClient(conn)
+		// Naive right now... every service has exactly one repo
+		srepos, err := getTrackedRepositories(ctx, client)
+		if err != nil {
+			return nil, err
+		}
+
+		resp.Repositories = append(resp.Repositories, srepos...)
 	}
 	return &resp, nil
 }
@@ -169,6 +185,27 @@ func (s *reverseProxyServer) UpdateTrackedRepos(ctx context.Context, r *drghs_v1
 	s.reps.UpdateTrackedRepos(ctx)
 
 	return &drghs_v1.UpdateTrackedReposResponse{}, err
+}
+
+func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) ([]*drghs_v1.Repository, error) {
+	ret := make([]*drghs_v1.Repository, 0)
+	npt := ""
+	for {
+		rep, err := c.ListRepositories(ctx, &drghs_v1.ListRepositoriesRequest{
+			PageToken: npt,
+			PageSize:  500,
+		})
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, rep.Repositories...)
+		if rep.NextPageToken == "" {
+			break
+		}
+		npt = rep.NextPageToken
+	}
+
+	return ret, nil
 }
 
 func calculateHost(path string) (string, error) {
