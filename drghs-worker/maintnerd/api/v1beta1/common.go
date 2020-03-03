@@ -36,8 +36,26 @@ var bugLabels = []string{
 
 func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 	rID := repo.ID()
+	nIss := 0
+	nPr := 0
+
+	err := repo.ForeachIssue(func(i *maintner.GitHubIssue) error {
+		if i.PullRequest {
+			nPr = nPr + 1
+		} else {
+			nIss = nIss + 1
+		}
+		return nil
+
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &drghs_v1.Repository{
-		Name: fmt.Sprintf("%v/%v", rID.Owner, rID.Repo),
+		Name:             fmt.Sprintf("%v/%v", rID.Owner, rID.Repo),
+		IssueCount:       int32(nIss),
+		PullRequestCount: int32(nPr),
 	}, nil
 }
 
