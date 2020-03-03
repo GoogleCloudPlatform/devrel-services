@@ -47,8 +47,8 @@ var (
 
 // Constants
 const (
-	GitHubEnvVar    = "GITHUB_TOKEN"
-	SECONDS_PER_DAY = 86400
+	GitHubEnvVar  = "GITHUB_TOKEN"
+	SecondsPerDay = 86400
 )
 
 // Uses
@@ -121,7 +121,7 @@ func main() {
 	//
 
 	// Queries per second as we retrieve 100 issues at a time from GitHub
-	qps := int((nipr / 100) / SECONDS_PER_DAY)
+	qps := int((nipr / 100) / SecondsPerDay)
 	limit := rate.Every(time.Second / time.Duration(qps))
 	limiter := rate.NewLimiter(limit, qps)
 	src := oauth2.StaticTokenSource(
