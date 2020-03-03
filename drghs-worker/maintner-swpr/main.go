@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -32,6 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/oauth2"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 )
 
@@ -45,7 +47,8 @@ var (
 
 // Constants
 const (
-	GitHubEnvVar = "GITHUB_TOKEN"
+	GitHubEnvVar    = "GITHUB_TOKEN"
+	SECONDS_PER_DAY = 86400
 )
 
 // Uses
@@ -92,13 +95,6 @@ func main() {
 		log.Fatalf("env var %v is empty", GitHubEnvVar)
 	}
 
-	// Setup GraphQL Client
-	src := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv(GitHubEnvVar)},
-	)
-	httpClient := oauth2.NewClient(ctx, src)
-	gqlc := githubv4.NewClient(httpClient)
-
 	// Setup drghs client
 	var drghsc drghs_v1.IssueServiceClient
 
@@ -114,6 +110,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	var nipr int32 = 0
+	for _, repo := range repos {
+		nipr = nipr + repo.PullRequestCount
+		nipr = nipr + repo.IssueCount
+	}
+
+	// Setup GraphQL Client
+	//
+
+	// Queries per second as we retrieve 100 issues at a time from GitHub
+	qps := int((nipr / 100) / SECONDS_PER_DAY)
+	limit := rate.Every(time.Second / time.Duration(qps))
+	limiter := rate.NewLimiter(limit, qps)
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv(GitHubEnvVar)},
+	)
+	hc := oauth2.NewClient(ctx, src)
+	transport := limitTransport{limiter, hc.Transport}
+	httpClient := &http.Client{
+		Transport: transport,
+	}
+	gqlc := githubv4.NewClient(httpClient)
 
 	// For each repo, get all the GitHub Issues for the Repo
 	// Then get all the mainter issues for the repo
@@ -303,4 +322,19 @@ func repoToTrackedRepo(r *drghs_v1.Repository) *repos.TrackedRepository {
 		}
 	}
 	return ta
+}
+
+type limitTransport struct {
+	limiter *rate.Limiter
+	base    http.RoundTripper
+}
+
+func (t limitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	limiter := t.limiter
+	if limiter != nil {
+		if err := limiter.Wait(r.Context()); err != nil {
+			return nil, err
+		}
+	}
+	return t.base.RoundTrip(r)
 }
