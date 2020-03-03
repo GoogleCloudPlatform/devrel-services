@@ -20,6 +20,8 @@ import "google/protobuf/timestamp.proto";
 
 message Repository {
   string name = 1;
+  int32  issue_count = 2;
+  int32  pull_request_count = 3;
 }
 
 message GitCommit {
