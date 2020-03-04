@@ -111,7 +111,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var nipr int32 = 0
+	var nipr int32
 	for _, repo := range repos {
 		nipr = nipr + repo.PullRequestCount
 		nipr = nipr + repo.IssueCount
@@ -309,7 +309,7 @@ func serviceName(t repos.TrackedRepository) (string, error) {
 }
 
 func repoToTrackedRepo(r *drghs_v1.Repository) *repos.TrackedRepository {
-	var ta *repos.TrackedRepository = nil
+	var ta *repos.TrackedRepository
 	mtches := rNameRegex.FindAllStringSubmatch(r.Name, -1)
 	if mtches != nil {
 		log.Tracef("Got a match!")
