@@ -86,7 +86,6 @@ func TestLimitTransportLimits(t *testing.T) {
 }
 
 func TestLimitTransportHandlesNil(t *testing.T) {
-	mqps := 1
 	mrtr := mockRoundTripper{
 		Response: nil,
 		Err:      nil,
