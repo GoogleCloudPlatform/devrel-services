@@ -52,6 +52,9 @@ var (
 const (
 	// Using a reserved TLD https://tools.ietf.org/html/rfc2606
 	devnull = "devnull.invalid"
+
+	// Max size to recieve. 32 MB
+	maxMessageSize = 32000000
 )
 
 // Log
@@ -155,7 +158,10 @@ func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIss
 	if err != nil {
 		return nil, err
 	}
-	conn, err := grpc.Dial(pth, grpc.WithInsecure())
+	conn, err := grpc.Dial(pth,
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
+		grpc.WithInsecure(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +176,10 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 	if err != nil {
 		return nil, err
 	}
-	conn, err := grpc.Dial(pth, grpc.WithInsecure())
+	conn, err := grpc.Dial(pth,
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
+		grpc.WithInsecure(),
+	)
 	if err != nil {
 		return nil, err
 	}
