@@ -218,4 +218,4 @@ spec:
                   secretKeyRef:
                     name: GITHUB_SECRET_NAME
                     key: SWPR_SECRET_KEY
-          restartPolicy: OnFailure
+          restartPolicy: Never
