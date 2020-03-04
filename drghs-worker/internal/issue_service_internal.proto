@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,15 +18,13 @@ package maintner.internal;
 
 // Internal Issue Service
 service InternalIssueService {
-  rpc TombstoneIssues(stream TombstoneIssueRequest) returns (TombstoneIssueResponse){}
-
+  rpc TombstoneIssues(stream TombstoneIssueRequest)
+      returns (TombstoneIssueResponse) {}
 }
 
-message TombstoneIssueRequest{
-    string parent = 1;
-    int32 issue_number = 2;
+message TombstoneIssueRequest {
+  string parent = 1;
+  int32 issue_number = 2;
 }
 
-message TombstoneIssueResponse {
-    int32 number_tombstoned = 1;
-}
+message TombstoneIssueResponse { int32 number_tombstoned = 1; }
