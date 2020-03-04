@@ -18,13 +18,13 @@ package maintner.internal;
 
 // Internal Issue Service
 service InternalIssueService {
-  rpc TombstoneIssues(stream TombstoneIssueRequest)
-      returns (TombstoneIssueResponse) {}
+  rpc TombstoneIssues(TombstoneIssuesRequest)
+      returns (TombstoneIssuesResponse) {}
 }
 
-message TombstoneIssueRequest {
+message TombstoneIssuesRequest {
   string parent = 1;
-  int32 issue_number = 2;
+  repeated int32 issue_numbers = 2;
 }
 
-message TombstoneIssueResponse { int32 number_tombstoned = 1; }
+message TombstoneIssuesResponse { int32 tombstoned_count = 1; }

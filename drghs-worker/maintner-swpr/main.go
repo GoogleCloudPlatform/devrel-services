@@ -18,7 +18,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -253,27 +252,19 @@ func flagIssuesTombstoned(ctx context.Context, repo *drghs_v1.Repository, issueI
 
 	c := maintner_internal.NewInternalIssueServiceClient(conn)
 
-	stream, err := c.TombstoneIssues(ctx)
+	req := &maintner_internal.TombstoneIssuesRequest{
+		Parent:       repo.Name,
+		IssueNumbers: issueIds,
+	}
+	resp, err := c.TombstoneIssues(ctx, req)
 	if err != nil {
 		return err
 	}
 
-	for _, issue := range issueIds {
-		ireq := &maintner_internal.TombstoneIssueRequest{
-			Parent:      repo.Name,
-			IssueNumber: issue,
-		}
-		if err := stream.Send(ireq); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
+	log.Infof("tombstoned: %v issues", resp.TombstonedCount)
+	if int(resp.TombstonedCount) != len(issueIds) {
+		log.Warn("expected to tombstone %v, actually tombstoned: %v", len(issueIds), resp.TombstonedCount)
 	}
-
-	reply, err := stream.CloseAndRecv()
-
-	log.Infof("tombstoned: %v issues", reply.NumberTombstoned)
 
 	return err
 }

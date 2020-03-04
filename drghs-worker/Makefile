@@ -56,8 +56,8 @@ all: help
 proto: ## Builds the protobuf files
 	protoc --go_out=plugins=grpc:internal/ --proto_path=internal/ --include_imports --descriptor_set_out=internal/api_descriptor.pb internal/*.proto;
 
-.PHONY: build
-build: ## Builds the docker image locally
+.PHONY: build 
+build: proto ## Builds the docker image locally
 	docker build -t maintnerd:dev -f maintnerd/Dockerfile ../
 	docker build -t maintnerd-rtr:dev -f maintner-rtr/Dockerfile ../
 	docker build -t maintnerd-sprvsr:dev -f maintner-sprvsr/Dockerfile ../
