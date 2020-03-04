@@ -203,8 +203,8 @@ kind: CronJob
 metadata:
   name: sweeper
 spec:
-  # Run Every 2 Hours
-  schedule: "0 */2 * * *"
+  # Run Every day at 02:00 Hours
+  schedule: "0 2 * * *"
   jobTemplate:
     spec:
       template:
