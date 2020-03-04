@@ -96,7 +96,6 @@ func TestLimitTransportHandlesNil(t *testing.T) {
 		base:    mrtr,
 	}
 
-	tst := time.Now()
 	max := 4
 	for i := 0; i < max; i++ {
 		r, err := lt.RoundTrip(&http.Request{})
