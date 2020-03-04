@@ -263,7 +263,7 @@ func flagIssuesTombstoned(ctx context.Context, repo *drghs_v1.Repository, issueI
 
 	log.Infof("tombstoned: %v issues", resp.TombstonedCount)
 	if int(resp.TombstonedCount) != len(issueIds) {
-		log.Warn("expected to tombstone %v, actually tombstoned: %v", len(issueIds), resp.TombstonedCount)
+		log.Warnf("expected to tombstone %v, actually tombstoned: %v", len(issueIds), resp.TombstonedCount)
 	}
 
 	return err
