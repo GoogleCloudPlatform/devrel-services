@@ -179,7 +179,7 @@ func main() {
 		s := internalapi.NewTransferProxyServer(corpus)
 		maintner_internal.RegisterInternalIssueServiceServer(grpcServer, s)
 
-		lis, err := net.Listen("tcp", *listen)
+		lis, err := net.Listen("tcp", *intListen)
 		if err != nil {
 			log.Fatalf("failed to listen %v", err)
 		}
