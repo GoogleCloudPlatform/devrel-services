@@ -188,7 +188,7 @@ func main() {
 		}
 	}
 
-	log.Infof("fished!")
+	log.Infof("finished!")
 }
 
 type issue struct {
