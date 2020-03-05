@@ -43,6 +43,7 @@ spec:
         ]
         ports:
           - containerPort: 8080
+          - containerPort: 80
         readinessProbe:
           httpGet:
             path: /_healthz
@@ -105,6 +106,9 @@ spec:
     - port: 80
       targetPort: 8080
       name: http
+    - port: 5000
+      targetPort: 80
+      name: grpc
   selector:
     app: maintnerd-rtr
   type: NodePort
@@ -212,6 +216,9 @@ spec:
           containers:
           - name: maintner-swpr
             image: gcr.io/PROJECT_ID/maintner-swpr:BUILD_ID
+            args: [
+              "--rtr-address=esp-maintnerd-rtr-np:5000",
+            ]
             env:
               - name: GITHUB_TOKEN
                 valueFrom:
