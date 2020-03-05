@@ -131,11 +131,17 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 	resp := drghs_v1.ListRepositoriesResponse{}
 	for _, tr := range s.reps.GetTrackedRepos() {
 
+		if !tr.IsTrackingIssues {
+			log.Debugf("skipping repo: %v", tr.String())
+			continue
+		}
+
 		pth, err := calculateHost(tr.String())
 		if err != nil {
 			return nil, err
 		}
 		// Dial and get the repos
+		log.Debugf("getting tracked repos from repo: %v path: %v", tr.String(), pth)
 		conn, err := grpc.Dial(pth, grpc.WithInsecure())
 		if err != nil {
 			return nil, err
