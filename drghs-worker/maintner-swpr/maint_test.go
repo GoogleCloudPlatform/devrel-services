@@ -107,3 +107,25 @@ func TestLimitTransportHandlesNil(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildLimiter(t *testing.T) {
+	cases := []struct {
+		Name      string
+		NIssues   int32
+		WantLimit rate.Limit
+	}{
+		{
+			Name:      "LowFrequency",
+			NIssues:   620,
+			WantLimit: 71761.75098672407,
+		},
+	}
+	for _, c := range cases {
+
+		limiter := buildLimiter(c.NIssues)
+		gotLimit := limiter.Limit()
+		if gotLimit != c.WantLimit {
+			t.Errorf("test: %v failed. limiter improperly set. got: %v want: %v", c.Name, gotLimit, c.WantLimit)
+		}
+	}
+}

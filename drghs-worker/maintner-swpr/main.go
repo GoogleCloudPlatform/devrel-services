@@ -46,8 +46,10 @@ var (
 
 // Constants
 const (
-	GitHubEnvVar  = "GITHUB_TOKEN"
-	SecondsPerDay = 86400
+	GitHubEnvVar        = "GITHUB_TOKEN"
+	SecondsPerDay       = 86400.0
+	ServicePort         = "80"
+	ServicePortInternal = "8080"
 )
 
 // Uses
@@ -67,10 +69,10 @@ func init() {
 			TimestampFormat: time.RFC3339Nano,
 		}
 	}
+	log.SetLevel(logrus.TraceLevel)
 	log.Out = os.Stdout
 
 	flRtrAddr = flag.String("rtr-address", "", "specifies the address of the router to dial")
-
 }
 
 func main() {
@@ -94,6 +96,7 @@ func main() {
 		log.Fatalf("env var %v is empty", GitHubEnvVar)
 	}
 
+	log.Debugf("Setting up and dialing to maintner-rtr: %v", *flRtrAddr)
 	// Setup drghs client
 	var drghsc drghs_v1.IssueServiceClient
 
@@ -116,15 +119,15 @@ func main() {
 		nipr = nipr + repo.IssueCount
 	}
 
+	log.Debugf("have %v repositories to query with a total of %v Issues and PRs", len(repos), nipr)
+
 	// Setup GraphQL Client
 	//
 
 	// Queries per second as we retrieve 100 issues at a time from GitHub
-	qps := int((nipr / 100) / SecondsPerDay)
-	limit := rate.Every(time.Second / time.Duration(qps))
-	limiter := rate.NewLimiter(limit, qps)
+	limiter := buildLimiter(nipr)
 	src := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv(GitHubEnvVar)},
+		&oauth2.Token{AccessToken: strings.Trim(os.Getenv(GitHubEnvVar), "\n")},
 	)
 	hc := oauth2.NewClient(ctx, src)
 	transport := limitTransport{limiter, hc.Transport}
@@ -138,19 +141,31 @@ func main() {
 	// Finally, compare the two, find the ones in maintner that
 	// are not in GitHub && Flag them as NotExist
 	for _, repo := range repos {
+		log.Debugf("processing repo: %v", repo.String())
+
+		tr := repoToTrackedRepo(repo)
+
 		ghIssues, err := getGitHubIssuesForRepo(ctx, gqlc, repo)
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Debugf("repo: %v number of issues: %v\n", repo.String(), len(ghIssues))
 
-		log.Debugf("repo: %v number of issues: %v\n", repo.Name, len(ghIssues))
+		ghPrs, err := getGitHubPullRequestsForRepo(ctx, gqlc, repo)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Debugf("repo: %v number of pull requests: %v\n", repo.String(), len(ghPrs))
 
 		ghIssuesByID := make(map[int32]struct{})
 		for _, iss := range ghIssues {
 			ghIssuesByID[iss.Number] = struct{}{}
 		}
+		for _, pr := range ghPrs {
+			ghIssuesByID[pr.Number] = struct{}{}
+		}
 
-		mtrIssues, err := getMaintnerIssuesForRepo(ctx, nil, repo)
+		mtrIssues, err := getMaintnerIssuesForRepo(ctx, tr, repo)
 
 		log.Debugf("repo: %v number of maintner issues %v\n", repo.Name, len(mtrIssues))
 
@@ -161,12 +176,12 @@ func main() {
 			}
 		}
 
-		log.Debugf("repo: %v number of tombstoned issues %v\n", repo.Name, len(tmbIssues))
+		log.Debugf("repo: %v number of tombstoned issues %v\nissues to tombstone: %v\n", repo.Name, len(tmbIssues), tmbIssues)
 
 		if len(tmbIssues) > 0 {
 			log.Infof("repo: %v tombstoning: %v issues\n", repo.Name, len(tmbIssues))
 
-			err = flagIssuesTombstoned(ctx, repo, tmbIssues)
+			err = flagIssuesTombstoned(ctx, tr, repo, tmbIssues)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -175,6 +190,11 @@ func main() {
 }
 
 type issue struct {
+	ID     string
+	Number int32
+}
+
+type pullRequest struct {
 	ID     string
 	Number int32
 }
@@ -191,7 +211,34 @@ type ghIssuesQuery struct {
 	} `graphql:"repository(owner: $repositoryOwner, name: $repositoryName)"`
 }
 
-func getMaintnerIssuesForRepo(ctx context.Context, c drghs_v1.IssueServiceClient, repo *drghs_v1.Repository) ([]*drghs_v1.Issue, error) {
+type ghPullRequestsQuery struct {
+	Repository struct {
+		PullRequests struct {
+			Nodes    []pullRequest
+			PageInfo struct {
+				EndCursor   githubv4.String
+				HasNextPage bool
+			}
+		} `graphql:"pullRequests(first: 100, after: $cursor)"` // 100 per page.
+	} `graphql:"repository(owner: $repositoryOwner, name: $repositoryName)"`
+}
+
+func getMaintnerIssuesForRepo(ctx context.Context, tr *repos.TrackedRepository, repo *drghs_v1.Repository) ([]*drghs_v1.Issue, error) {
+	log.Debugf("getting Issues from maintner for repo: %v", repo.Name)
+
+	maddr, err := serviceName(tr)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := grpc.Dial(maddr+":"+ServicePort, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	c := drghs_v1.NewIssueServiceClient(conn)
+
 	ret := make([]*drghs_v1.Issue, 0)
 	npt := ""
 	for {
@@ -234,17 +281,13 @@ func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) 
 	return ret, nil
 }
 
-func flagIssuesTombstoned(ctx context.Context, repo *drghs_v1.Repository, issueIds []int32) error {
-	tr := repoToTrackedRepo(repo)
-	if tr == nil {
-		return fmt.Errorf("Bad repository: %v", repo)
-	}
-	maddr, err := serviceName(*tr)
+func flagIssuesTombstoned(ctx context.Context, tr *repos.TrackedRepository, repo *drghs_v1.Repository, issueIds []int32) error {
+	maddr, err := serviceName(tr)
 	if err != nil {
 		return err
 	}
 
-	conn, err := grpc.Dial(maddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(maddr+":"+ServicePortInternal, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -270,6 +313,8 @@ func flagIssuesTombstoned(ctx context.Context, repo *drghs_v1.Repository, issueI
 }
 
 func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs_v1.Repository) ([]issue, error) {
+	log.Debugf("getting GitHub issues for: %v", repo.String())
+
 	parts := strings.Split(repo.GetName(), "/")
 
 	var q ghIssuesQuery
@@ -295,7 +340,35 @@ func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs
 	return allIssues, nil
 }
 
-func serviceName(t repos.TrackedRepository) (string, error) {
+func getGitHubPullRequestsForRepo(ctx context.Context, c *githubv4.Client, repo *drghs_v1.Repository) ([]pullRequest, error) {
+	log.Debugf("getting GitHub pull requests for: %v", repo.String())
+
+	parts := strings.Split(repo.GetName(), "/")
+
+	var q ghPullRequestsQuery
+	variables := map[string]interface{}{
+		"repositoryOwner": githubv4.String(parts[0]),
+		"repositoryName":  githubv4.String(parts[1]),
+		"cursor":          (*githubv4.String)(nil), // Null after argument to get first page.
+	}
+	// Get pullRequests from all pages.
+	var allPullRequests []pullRequest
+	for {
+		err := c.Query(ctx, &q, variables)
+		if err != nil {
+			return make([]pullRequest, 0), err
+		}
+		allPullRequests = append(allPullRequests, q.Repository.PullRequests.Nodes...)
+		if !q.Repository.PullRequests.PageInfo.HasNextPage {
+			break
+		}
+		variables["cursor"] = githubv4.NewString(q.Repository.PullRequests.PageInfo.EndCursor)
+	}
+
+	return allPullRequests, nil
+}
+
+func serviceName(t *repos.TrackedRepository) (string, error) {
 	return strings.ToLower(fmt.Sprintf("mtr-s-%s", t.RepoSha())), nil
 }
 
@@ -313,6 +386,16 @@ func repoToTrackedRepo(r *drghs_v1.Repository) *repos.TrackedRepository {
 		}
 	}
 	return ta
+}
+
+func buildLimiter(nipr int32) *rate.Limiter {
+	var qps = (float64(nipr) / 100.0) / SecondsPerDay
+	log.Debugf("have a qps of %v", qps)
+
+	limit := rate.Every(time.Second / time.Duration(int(float64(time.Second)*qps)))
+	limiter := rate.NewLimiter(limit, int(qps)+1)
+
+	return limiter
 }
 
 type limitTransport struct {
