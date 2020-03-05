@@ -392,7 +392,8 @@ func buildLimiter(nipr int32) *rate.Limiter {
 	var qps = (float64(nipr) / 100.0) / SecondsPerDay
 	log.Debugf("have a qps of %v", qps)
 
-	limit := rate.Every(time.Second / time.Duration(int(float64(time.Second)*qps)))
+	dur := time.Duration(float64(time.Second) * (1.0 / qps))
+	limit := rate.Every(dur)
 	limiter := rate.NewLimiter(limit, int(qps)+1)
 
 	return limiter

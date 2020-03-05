@@ -53,35 +53,64 @@ func (t mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func TestLimitTransportLimits(t *testing.T) {
-	mqps := 1
-	limit := rate.Every(time.Second / time.Duration(mqps))
-	limitr := rate.NewLimiter(limit, mqps)
-	mrtr := mockRoundTripper{
-		Response: nil,
-		Err:      nil,
+
+	cases := []struct {
+		QPS        float64
+		Iterations int
+	}{
+		{
+			QPS:        .5,
+			Iterations: 4,
+		},
+		{
+			QPS:        1,
+			Iterations: 3,
+		},
+		{
+			QPS:        2,
+			Iterations: 5,
+		},
+		{
+			QPS:        1,
+			Iterations: 1,
+		},
+		{
+			QPS:        2,
+			Iterations: 1,
+		},
 	}
 
-	lt := limitTransport{
-		limiter: limitr,
-		base:    mrtr,
-	}
-
-	tst := time.Now()
-	max := 4
-	for i := 0; i < max; i++ {
-		r, err := lt.RoundTrip(&http.Request{})
-		if r != mrtr.Response {
-			t.Errorf("limitTransport did not return expected response")
+	for _, c := range cases {
+		dur := time.Duration(float64(time.Second) * (1.0 / c.QPS))
+		limit := rate.Every(dur)
+		limiter := rate.NewLimiter(limit, 1)
+		mrtr := mockRoundTripper{
+			Response: nil,
+			Err:      nil,
 		}
-		if err != mrtr.Err {
-			t.Errorf("limitTransport did not return expected error")
-		}
-	}
 
-	got := time.Since(tst).Seconds()
-	want := float64((max - 1) * mqps)
-	if got < want {
-		t.Errorf("limit transport did not limit our qps appropriately\nWant: %v Got: %v", want, got)
+		lt := limitTransport{
+			limiter: limiter,
+			base:    mrtr,
+		}
+
+		tst := time.Now()
+
+		for i := 0; i < c.Iterations; i++ {
+			r, err := lt.RoundTrip(&http.Request{})
+			if r != mrtr.Response {
+				t.Errorf("limitTransport did not return expected response")
+			}
+			if err != mrtr.Err {
+				t.Errorf("limitTransport did not return expected error. got: %v", err)
+			}
+		}
+
+		got := time.Since(tst)
+		want := time.Duration(float64(time.Second) * ((1.0 / c.QPS) * float64(c.Iterations-1)))
+		if got < want {
+			t.Errorf("limit transport did not limit our qps appropriately\nWant: %v Got: %v", want, got)
+		}
 	}
 }
 
@@ -116,8 +145,18 @@ func TestBuildLimiter(t *testing.T) {
 	}{
 		{
 			Name:      "LowFrequency",
-			NIssues:   620,
-			WantLimit: 71761.75098672407,
+			NIssues:   864000,
+			WantLimit: 0.1,
+		},
+		{
+			Name:      "HighFrequency",
+			NIssues:   86400000,
+			WantLimit: 10,
+		},
+		{
+			Name:      "EvenFrequency",
+			NIssues:   8640000,
+			WantLimit: 1,
 		},
 	}
 	for _, c := range cases {
