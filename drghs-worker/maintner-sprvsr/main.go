@@ -256,7 +256,7 @@ func buildService(ta repos.TrackedRepository) (*apiv1.Service, error) {
 					TargetPort: intstr.FromInt(80),
 				},
 				apiv1.ServicePort{
-					Name:       "http",
+					Name:       "internal",
 					Port:       8080,
 					TargetPort: intstr.FromInt(8080),
 				},
