@@ -54,7 +54,7 @@ const (
 
 // Uses
 var (
-	rNameRegex = regexp.MustCompile(`^([\w-]+)\/([\w-]+)$`)
+	rNameRegex = regexp.MustCompile(`^([.:\w-]+)\/([.:\w-]+)$`)
 )
 
 func init() {
