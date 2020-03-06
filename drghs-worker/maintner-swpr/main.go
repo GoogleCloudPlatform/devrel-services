@@ -54,7 +54,7 @@ const (
 
 // Uses
 var (
-	rNameRegex = regexp.MustCompile(`^([\w-]+)\/([\w-]+)$`)
+	rNameRegex = regexp.MustCompile(`^([.:\w-]+)\/([.:\w-]+)$`)
 )
 
 func init() {
@@ -257,8 +257,9 @@ func getMaintnerIssuesForRepo(ctx context.Context, tr *repos.TrackedRepository, 
 			break
 		}
 		npt = rep.NextPageToken
+		log.Debugf("getting Issues from maintner for repo: %v. requesting next page. current count: %v", repo.Name, len(ret))
 	}
-
+	log.Debugf("finished getting Issues from mainter for repo: %v. returning %v Issues", repo.Name, len(ret))
 	return ret, nil
 }
 
@@ -327,6 +328,7 @@ func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs
 	}
 	// Get issues from all pages.
 	var allIssues []issue
+	var pageN int
 	for {
 		err := c.Query(ctx, &q, variables)
 		if err != nil {
@@ -337,7 +339,11 @@ func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs
 			break
 		}
 		variables["cursor"] = githubv4.NewString(q.Repository.Issues.PageInfo.EndCursor)
+		log.Debugf("getting GitHub issues for repo: %v. finished page: %v. current count: %v", repo.Name, pageN, len(allIssues))
+		pageN++
 	}
+
+	log.Debugf("finished getting GitHub issues for: %v. returning issues count: %v", repo.String(), len(allIssues))
 
 	return allIssues, nil
 }
@@ -355,6 +361,7 @@ func getGitHubPullRequestsForRepo(ctx context.Context, c *githubv4.Client, repo 
 	}
 	// Get pullRequests from all pages.
 	var allPullRequests []pullRequest
+	var pageN int
 	for {
 		err := c.Query(ctx, &q, variables)
 		if err != nil {
@@ -365,7 +372,10 @@ func getGitHubPullRequestsForRepo(ctx context.Context, c *githubv4.Client, repo 
 			break
 		}
 		variables["cursor"] = githubv4.NewString(q.Repository.PullRequests.PageInfo.EndCursor)
+		log.Debugf("getting GitHub PullRequests for repo: %v. finished page: %v. current count: %v", repo.Name, pageN, len(allPullRequests))
+		pageN++
 	}
+	log.Debugf("finished getting GitHub PullRequests for: %v. returning PullRequests count: %v", repo.String(), len(allPullRequests))
 
 	return allPullRequests, nil
 }
@@ -409,6 +419,7 @@ type limitTransport struct {
 func (t limitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	limiter := t.limiter
 	if limiter != nil {
+		log.Debug("in limitTransport. Round trip Waiting for limiter")
 		if err := limiter.Wait(r.Context()); err != nil {
 			return nil, err
 		}
