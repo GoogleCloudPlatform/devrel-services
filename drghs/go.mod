@@ -18,10 +18,14 @@
 module github.com/GoogleCloudPlatform/devrel-services/drghs
 
 require (
-	github.com/golang/protobuf v1.2.0
-	golang.org/x/net v0.0.0-20181220203305-927f97764cc3
-	google.golang.org/genproto v0.0.0-20181221175505-bd9b4fb69e2f
-	google.golang.org/grpc v1.17.0
+	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
+	github.com/golang/protobuf v1.3.4
+	github.com/kisielk/gotool v1.0.0 // indirect
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
+	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/genproto v0.0.0-20200305110556-506484158171
+	google.golang.org/grpc v1.27.1
 )
 
 go 1.13

@@ -945,7 +945,9 @@ func init() {
 	proto.RegisterType((*Snippet)(nil), "drghs.v1.Snippet")
 }
 
-func init() { proto.RegisterFile("resources.proto", fileDescriptor_cf1b13971fe4c19d) }
+func init() {
+	proto.RegisterFile("resources.proto", fileDescriptor_cf1b13971fe4c19d)
+}
 
 var fileDescriptor_cf1b13971fe4c19d = []byte{
 	// 1158 bytes of a gzipped FileDescriptorProto
