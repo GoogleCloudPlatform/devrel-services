@@ -49,6 +49,18 @@ steps:
   id: 'maintner-sprvsr-push'
   waitFor: ['maintner-sprvsr-build']
 
+# Build Maintner-Sweeper
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-swpr:$BUILD_ID','-f', 'drghs-worker/maintner-swpr/Dockerfile', '.']
+  id: 'maintner-swpr-build'
+  waitFor: ['-'] # Start Immediately
+
+# Push Maintner-Sweeper to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ["push", "gcr.io/$PROJECT_ID/maintner-swpr:$BUILD_ID"]
+  id: 'maintner-swpr-push'
+  waitFor: ['maintner-swpr-build']
+
 # Prepare Kubernetes Manifest
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
@@ -82,6 +94,7 @@ steps:
       sed s/REPOS_FILE/$_REPO_FILE_NAME/g | \
       sed s/SERVICE_ACCOUNT_SECRET_NAME/$_SERVICE_ACCOUNT_SECRET/g | \
       sed s/GITHUB_SECRET_NAME/$_GITHUB_SECRET_NAME/g | \
+      sed s/SWPR_SECRET_KEY/$_SWPR_SECRET_KEY/g | \
       sed s/PREFIX/$_PREFIX/g \
       > target/deployment.yaml
 
@@ -101,3 +114,4 @@ images:
 - 'gcr.io/$PROJECT_ID/maintnerd'
 - 'gcr.io/$PROJECT_ID/maintner-rtr'
 - 'gcr.io/$PROJECT_ID/maintner-sprvsr'
+- 'gcr.io/$PROJECT_ID/maintner-swpr'

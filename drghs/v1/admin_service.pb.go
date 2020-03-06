@@ -9,8 +9,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -147,14 +145,6 @@ func (c *devRelServicesAdminClient) UpdateTrackedRepos(ctx context.Context, in *
 // DevRelServicesAdminServer is the server API for DevRelServicesAdmin service.
 type DevRelServicesAdminServer interface {
 	UpdateTrackedRepos(context.Context, *UpdateTrackedReposRequest) (*UpdateTrackedReposResponse, error)
-}
-
-// UnimplementedDevRelServicesAdminServer can be embedded to have forward compatible implementations.
-type UnimplementedDevRelServicesAdminServer struct {
-}
-
-func (*UnimplementedDevRelServicesAdminServer) UpdateTrackedRepos(ctx context.Context, req *UpdateTrackedReposRequest) (*UpdateTrackedReposResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateTrackedRepos not implemented")
 }
 
 func RegisterDevRelServicesAdminServer(s *grpc.Server, srv DevRelServicesAdminServer) {

@@ -37,9 +37,14 @@ import (
 )
 
 var (
-	listen      = flag.String("listen", ":6343", "listen address")
-	verbose     = flag.Bool("verbose", false, "enable verbose debug output")
-	sprvsrAddr  = flag.String("sprvsr", "maintner-sprvsr", "address for supervisor")
+	listen     = flag.String("listen", ":6343", "listen address")
+	verbose    = flag.Bool("verbose", false, "enable verbose debug output")
+	sprvsrAddr = flag.String("sprvsr", "maintner-sprvsr", "address for supervisor")
+	rbucket    = flag.String("settings-bucket", "", "bucket to get repo list")
+	rfile      = flag.String("repos-file", "", "file in bucket to read repos from")
+)
+
+var (
 	errorClient *errorreporting.Client
 	pathRegex   = regexp.MustCompile(`^([.:\w-]+)\/([.:\w-]+)[.:\w\/-]*$`)
 )
@@ -80,13 +85,28 @@ func main() {
 		log.Fatal("error: must specify --listen")
 	}
 
+	if *rbucket == "" {
+		log.Fatal("error: must specify --settings-bucket")
+	}
+	if *rfile == "" {
+		log.Fatal("error: must specify --repos-file")
+	}
+
+	rlist := repos.NewBucketRepo(*rbucket, *rfile)
+	_, err := rlist.UpdateTrackedRepos(context.Background())
+	if err != nil {
+		log.Fatalf("got error updating repos: %v", err)
+	}
+
 	lis, err := net.Listen("tcp", *listen)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
-	reverseProxy := &reverseProxyServer{}
+	reverseProxy := &reverseProxyServer{
+		reps: rlist,
+	}
 	drghs_v1.RegisterIssueServiceServer(grpcServer, reverseProxy)
 	drghs_v1.RegisterIssueServiceAdminServer(grpcServer, reverseProxy)
 	healthpb.RegisterHealthServer(grpcServer, reverseProxy)
@@ -94,7 +114,9 @@ func main() {
 	grpcServer.Serve(lis)
 }
 
-type reverseProxyServer struct{}
+type reverseProxyServer struct {
+	reps repos.RepoList
+}
 
 // Check is for health checking.
 func (s *reverseProxyServer) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
@@ -106,10 +128,34 @@ func (s *reverseProxyServer) Watch(req *healthpb.HealthCheckRequest, ws healthpb
 }
 
 func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
-	// TODO(orthros): This will need to reach out to the k8s api server
-	// get all services with "owner" tag == request owner && then read the "repo"
-	// tag from them
 	resp := drghs_v1.ListRepositoriesResponse{}
+	for _, tr := range s.reps.GetTrackedRepos() {
+
+		if !tr.IsTrackingIssues {
+			log.Debugf("skipping repo: %v", tr.String())
+			continue
+		}
+
+		pth, err := calculateHost(tr.String())
+		if err != nil {
+			return nil, err
+		}
+		// Dial and get the repos
+		log.Debugf("getting tracked repos from repo: %v path: %v", tr.String(), pth)
+		conn, err := grpc.Dial(pth, grpc.WithInsecure())
+		if err != nil {
+			return nil, err
+		}
+
+		client := drghs_v1.NewIssueServiceClient(conn)
+		// Naive right now... every service has exactly one repo
+		srepos, err := getTrackedRepositories(ctx, client)
+		if err != nil {
+			return nil, err
+		}
+
+		resp.Repositories = append(resp.Repositories, srepos...)
+	}
 	return &resp, nil
 }
 
@@ -150,9 +196,31 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 }
 
 func (s *reverseProxyServer) UpdateTrackedRepos(ctx context.Context, r *drghs_v1.UpdateTrackedReposRequest) (*drghs_v1.UpdateTrackedReposResponse, error) {
-	log.Trace("Updating repository list")
 	_, err := http.Get(fmt.Sprintf("http://%s/update", *sprvsrAddr))
+	s.reps.UpdateTrackedRepos(ctx)
+
 	return &drghs_v1.UpdateTrackedReposResponse{}, err
+}
+
+func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) ([]*drghs_v1.Repository, error) {
+	ret := make([]*drghs_v1.Repository, 0)
+	npt := ""
+	for {
+		rep, err := c.ListRepositories(ctx, &drghs_v1.ListRepositoriesRequest{
+			PageToken: npt,
+			PageSize:  500,
+		})
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, rep.Repositories...)
+		if rep.NextPageToken == "" {
+			break
+		}
+		npt = rep.NextPageToken
+	}
+
+	return ret, nil
 }
 
 func calculateHost(path string) (string, error) {

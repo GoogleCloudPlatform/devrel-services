@@ -9,8 +9,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -487,20 +485,6 @@ type IssueServiceServer interface {
 	GetIssue(context.Context, *GetIssueRequest) (*GetIssueResponse, error)
 }
 
-// UnimplementedIssueServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedIssueServiceServer struct {
-}
-
-func (*UnimplementedIssueServiceServer) ListRepositories(ctx context.Context, req *ListRepositoriesRequest) (*ListRepositoriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRepositories not implemented")
-}
-func (*UnimplementedIssueServiceServer) ListIssues(ctx context.Context, req *ListIssuesRequest) (*ListIssuesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListIssues not implemented")
-}
-func (*UnimplementedIssueServiceServer) GetIssue(ctx context.Context, req *GetIssueRequest) (*GetIssueResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetIssue not implemented")
-}
-
 func RegisterIssueServiceServer(s *grpc.Server, srv IssueServiceServer) {
 	s.RegisterService(&_IssueService_serviceDesc, srv)
 }
@@ -607,14 +591,6 @@ func (c *issueServiceAdminClient) UpdateTrackedRepos(ctx context.Context, in *Up
 // IssueServiceAdminServer is the server API for IssueServiceAdmin service.
 type IssueServiceAdminServer interface {
 	UpdateTrackedRepos(context.Context, *UpdateTrackedReposRequest) (*UpdateTrackedReposResponse, error)
-}
-
-// UnimplementedIssueServiceAdminServer can be embedded to have forward compatible implementations.
-type UnimplementedIssueServiceAdminServer struct {
-}
-
-func (*UnimplementedIssueServiceAdminServer) UpdateTrackedRepos(ctx context.Context, req *UpdateTrackedReposRequest) (*UpdateTrackedReposResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateTrackedRepos not implemented")
 }
 
 func RegisterIssueServiceAdminServer(s *grpc.Server, srv IssueServiceAdminServer) {

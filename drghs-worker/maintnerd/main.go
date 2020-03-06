@@ -25,8 +25,10 @@ import (
 	"strings"
 	"time"
 
+	maintner_internal "github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/internalapi"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/v1beta1"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
@@ -41,6 +43,7 @@ import (
 
 var (
 	listen    = flag.String("listen", "0.0.0.0:6343", "listen address")
+	intListen = flag.String("intListen", "0.0.0:6344", "listen for internal service")
 	verbose   = flag.Bool("verbose", false, "enable verbose debug output")
 	bucket    = flag.String("bucket", "cdpe-maintner", "Google Cloud Storage bucket to use for log storage")
 	token     = flag.String("token", "", "Token to Access GitHub with")
@@ -167,6 +170,21 @@ func main() {
 		}
 
 		log.Printf("gRPC server listening on: %s", *listen)
+		return grpcServer.Serve(lis)
+	})
+
+	group.Go(func() error {
+		// Add gRPC service for internal
+		grpcServer := grpc.NewServer()
+		s := internalapi.NewTransferProxyServer(corpus)
+		maintner_internal.RegisterInternalIssueServiceServer(grpcServer, s)
+
+		lis, err := net.Listen("tcp", *intListen)
+		if err != nil {
+			log.Fatalf("failed to listen %v", err)
+		}
+
+		log.Printf("internal gRPC server listening on: %s", *intListen)
 		return grpcServer.Serve(lis)
 	})
 	err = group.Wait()
