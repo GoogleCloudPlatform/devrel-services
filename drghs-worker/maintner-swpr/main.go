@@ -28,6 +28,7 @@ import (
 	maintner_internal "github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/shurcooL/githubv4"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -35,6 +36,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 // Log
@@ -101,7 +103,11 @@ func main() {
 	// Setup drghs client
 	var drghsc drghs_v1.IssueServiceClient
 
-	conn, err := grpc.Dial(*flRtrAddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(
+		*flRtrAddr,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -234,7 +240,11 @@ func getMaintnerIssuesForRepo(ctx context.Context, tr *repos.TrackedRepository, 
 		return nil, err
 	}
 
-	conn, err := grpc.Dial(maddr+":"+ServicePort, grpc.WithInsecure())
+	conn, err := grpc.Dial(
+		maddr+":"+ServicePort,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -296,7 +306,11 @@ func flagIssuesTombstoned(ctx context.Context, tr *repos.TrackedRepository, repo
 		return err
 	}
 
-	conn, err := grpc.Dial(maddr+":"+ServicePortInternal, grpc.WithInsecure())
+	conn, err := grpc.Dial(
+		maddr+":"+ServicePortInternal,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -431,4 +445,13 @@ func (t limitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 	}
 	return t.base.RoundTrip(r)
+}
+
+func buildRetryInterceptor() grpc.UnaryClientInterceptor {
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(500 * time.Millisecond)),
+		grpc_retry.WithCodes(codes.NotFound, codes.Aborted),
+		grpc_retry.WithMax(5),
+	}
+	return grpc_retry.UnaryClientInterceptor(opts...)
 }
