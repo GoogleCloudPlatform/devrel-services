@@ -29,6 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"cloud.google.com/go/errorreporting"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -142,7 +143,11 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 		}
 		// Dial and get the repos
 		log.Debugf("getting tracked repos from repo: %v path: %v", tr.String(), pth)
-		conn, err := grpc.Dial(pth, grpc.WithInsecure())
+		conn, err := grpc.Dial(
+			pth,
+			grpc.WithInsecure(),
+			grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -164,9 +169,11 @@ func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIss
 	if err != nil {
 		return nil, err
 	}
-	conn, err := grpc.Dial(pth,
+	conn, err := grpc.Dial(
+		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
 	)
 	if err != nil {
 		return nil, err
@@ -182,9 +189,11 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 	if err != nil {
 		return nil, err
 	}
-	conn, err := grpc.Dial(pth,
+	conn, err := grpc.Dial(
+		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
 	)
 	if err != nil {
 		return nil, err
@@ -269,4 +278,13 @@ func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryS
 
 	log.Tracef("Finishing RPC: %v. Took: %v", info.FullMethod, time.Now().Sub(start))
 	return m, err
+}
+
+func buildRetryInterceptor() grpc.UnaryClientInterceptor {
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(500 * time.Millisecond)),
+		grpc_retry.WithCodes(codes.NotFound, codes.Aborted),
+		grpc_retry.WithMax(5),
+	}
+	return grpc_retry.UnaryClientInterceptor(opts...)
 }
