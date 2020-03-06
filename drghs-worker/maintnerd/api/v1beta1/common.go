@@ -16,10 +16,12 @@ package v1beta1
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/utils"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"google.golang.org/genproto/protobuf/field_mask"
 
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/build/maintner"
@@ -59,67 +61,113 @@ func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 	}, nil
 }
 
-func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, includeComments, includeReviews bool) (*drghs_v1.Issue, error) {
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
 
-	createdAt, err := ptypes.TimestampProto(issue.Created)
-	if err != nil {
-		return nil, err
-	}
-	updatedAt, err := ptypes.TimestampProto(issue.Updated)
-	if err != nil {
-		return nil, err
-	}
-	closedAt, err := ptypes.TimestampProto(issue.ClosedAt)
-	if err != nil {
-		return nil, err
-	}
+func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, includeComments bool, includeReviews bool, fm *field_mask.FieldMask) (*drghs_v1.Issue, error) {
+	paths := fm.GetPaths()
+	riss := &drghs_v1.Issue{}
 
-	closedBy, err := makeUserPB(issue.ClosedBy)
-	if err != nil {
-		return nil, err
-	}
-	reporter, err := makeUserPB(issue.User)
-	if err != nil {
-		return nil, err
-	}
-
-	assignees := make([]*drghs_v1.GitHubUser, len(issue.Assignees))
-	for i, assign := range issue.Assignees {
-		u, err := makeUserPB(assign)
+	if paths == nil || contains(paths, "created_at") {
+		createdAt, err := ptypes.TimestampProto(issue.Created)
 		if err != nil {
 			return nil, err
 		}
-		assignees[i] = u
+		riss.CreatedAt = createdAt
 	}
 
-	commitID := ""
-	issue.ForeachEvent(func(event *maintner.GitHubIssueEvent) error {
-		// ForeachEvent processes events in chronological order
-		if event.CommitID != "" {
-			commitID = event.CommitID
+	if paths == nil || contains(paths, "updated_at") {
+		updatedAt, err := ptypes.TimestampProto(issue.Updated)
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
+		riss.UpdatedAt = updatedAt
+	}
 
-	riss := &drghs_v1.Issue{
-		Priority:        drghs_v1.Issue_PRIORITY_UNSPECIFIED,
-		PriorityUnknown: true,
-		IsPr:            issue.PullRequest,
-		Approved:        utils.IsApproved(issue),
-		Title:           issue.Title,
-		Body:            issue.Body,
-		CreatedAt:       createdAt,
-		UpdatedAt:       updatedAt,
-		Closed:          issue.Closed,
-		ClosedBy:        closedBy,
-		ClosedAt:        closedAt,
-		GitCommit:       nil,
-		Commit:          commitID,
-		IssueId:         issue.Number,
-		Assignees:       assignees,
-		Reporter:        reporter,
-		Url:             fmt.Sprintf("https://github.com/%v/%v/issues/%d", rID.Owner, rID.Repo, issue.Number),
-		Repo:            fmt.Sprintf("%v/%v", rID.Owner, rID.Repo),
+	if paths == nil || contains(paths, "closed_at") {
+		closedAt, err := ptypes.TimestampProto(issue.ClosedAt)
+		if err != nil {
+			return nil, err
+		}
+		riss.ClosedAt = closedAt
+	}
+
+	if paths == nil || contains(paths, "closed_by") {
+		closedBy, err := makeUserPB(issue.ClosedBy)
+		if err != nil {
+			return nil, err
+		}
+		riss.ClosedBy = closedBy
+	}
+
+	if paths == nil || contains(paths, "reporter") {
+		reporter, err := makeUserPB(issue.User)
+		if err != nil {
+			return nil, err
+		}
+		riss.Reporter = reporter
+	}
+
+	if paths == nil || contains(paths, "assignees") {
+		assignees := make([]*drghs_v1.GitHubUser, len(issue.Assignees))
+		for i, assign := range issue.Assignees {
+			u, err := makeUserPB(assign)
+			if err != nil {
+				return nil, err
+			}
+			assignees[i] = u
+		}
+		riss.Assignees = assignees
+	}
+
+	if paths == nil || contains(paths, "commit") {
+		commitID := ""
+		issue.ForeachEvent(func(event *maintner.GitHubIssueEvent) error {
+			// ForeachEvent processes events in chronological order
+			if event.CommitID != "" {
+				commitID = event.CommitID
+			}
+			return nil
+		})
+		riss.Commit = commitID
+	}
+
+	if paths == nil || contains(paths, "closed") {
+		riss.Closed = issue.Closed
+	}
+
+	if paths == nil || contains(paths, "is_pr") {
+		riss.IsPr = issue.PullRequest
+	}
+
+	if paths == nil || contains(paths, "title") {
+		riss.Title = issue.Title
+	}
+
+	if paths == nil || contains(paths, "body") {
+		riss.Body = issue.Body
+	}
+
+	if paths == nil || contains(paths, "issue_id") {
+		riss.IssueId = issue.Number
+	}
+
+	if paths == nil || contains(paths, "approved") {
+		riss.Approved = utils.IsApproved(issue)
+	}
+
+	if paths == nil || contains(paths, "url") {
+		riss.Url = fmt.Sprintf("https://github.com/%v/%v/issues/%d", rID.Owner, rID.Repo, issue.Number)
+	}
+
+	if paths == nil || contains(paths, "repo") {
+		riss.Repo = fmt.Sprintf("%v/%v", rID.Owner, rID.Repo)
 	}
 
 	labels := make([]string, len(issue.Labels))
@@ -129,13 +177,16 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 			labels[i] = l.Name
 			i++
 		}
+		sort.Strings(labels)
 	}
 
-	riss.Labels = labels
+	if paths == nil || contains(paths, "labels") {
+		riss.Labels = labels
+	}
 
-	fillFromLabels(riss)
+	fillFromLabels(riss, labels, fm)
 
-	if includeComments {
+	if includeComments || (paths != nil && contains(paths, "comments")) {
 		riss.Comments = make([]*drghs_v1.GitHubComment, 0)
 		err := issue.ForeachComment(func(co *maintner.GitHubComment) error {
 			cpb, err := makeCommentPB(co)
@@ -151,7 +202,7 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 		}
 	}
 
-	if includeReviews {
+	if includeReviews || (paths != nil && contains(paths, "reviews")) {
 		riss.Reviews = make([]*drghs_v1.GitHubReview, 0)
 		err := issue.ForeachReview(func(rev *maintner.GitHubReview) error {
 			rpb, err := makeReviewPB(rev)
@@ -170,44 +221,67 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 	return riss, nil
 }
 
-func fillFromLabels(s *drghs_v1.Issue) {
-	for _, l := range s.Labels {
+func fillFromLabels(s *drghs_v1.Issue, labels []string, fm *field_mask.FieldMask) {
+	priority := drghs_v1.Issue_PRIORITY_UNSPECIFIED
+	priorityUnknown := true
+	issueType := drghs_v1.Issue_GITHUB_ISSUE_TYPE_UNSPECIFIED
+	blocked := false
+	releaseBlocking := false
+
+	for _, l := range labels {
 		lowercaseName := strings.ToLower(l)
 		switch {
 		case strings.Contains(lowercaseName, "p0"):
-			s.Priority = drghs_v1.Issue_P0
-			s.PriorityUnknown = false
+			priority = drghs_v1.Issue_P0
+			priorityUnknown = false
 		case strings.Contains(lowercaseName, "p1"):
-			s.Priority = drghs_v1.Issue_P1
-			s.PriorityUnknown = false
+			priority = drghs_v1.Issue_P1
+			priorityUnknown = false
 		case strings.Contains(lowercaseName, "p2"):
-			s.Priority = drghs_v1.Issue_P2
-			s.PriorityUnknown = false
+			priority = drghs_v1.Issue_P2
+			priorityUnknown = false
 		case strings.Contains(lowercaseName, "p3"):
-			s.Priority = drghs_v1.Issue_P3
-			s.PriorityUnknown = false
+			priority = drghs_v1.Issue_P3
+			priorityUnknown = false
 		case strings.Contains(lowercaseName, "p4"):
-			s.Priority = drghs_v1.Issue_P4
-			s.PriorityUnknown = false
+			priority = drghs_v1.Issue_P4
+			priorityUnknown = false
 		case matchesAny(lowercaseName, bugLabels):
-			s.IssueType = drghs_v1.Issue_BUG
+			issueType = drghs_v1.Issue_BUG
 		case strings.Contains(lowercaseName, "enhanc"):
-			s.IssueType = drghs_v1.Issue_FEATURE
+			issueType = drghs_v1.Issue_FEATURE
 		case strings.Contains(lowercaseName, "feat"):
-			s.IssueType = drghs_v1.Issue_FEATURE
+			issueType = drghs_v1.Issue_FEATURE
 		case strings.Contains(lowercaseName, "addition"):
-			s.IssueType = drghs_v1.Issue_FEATURE
+			issueType = drghs_v1.Issue_FEATURE
 		case strings.Contains(lowercaseName, "question"):
-			s.IssueType = drghs_v1.Issue_QUESTION
+			issueType = drghs_v1.Issue_QUESTION
 		case strings.Contains(lowercaseName, "cleanup"):
-			s.IssueType = drghs_v1.Issue_CLEANUP
+			issueType = drghs_v1.Issue_CLEANUP
 		case strings.Contains(lowercaseName, "process"):
-			s.IssueType = drghs_v1.Issue_PROCESS
+			issueType = drghs_v1.Issue_PROCESS
 		case strings.Contains(lowercaseName, "blocked"):
-			s.Blocked = true
+			blocked = true
 		case strings.Contains(lowercaseName, "blocking"):
-			s.ReleaseBlocking = true
+			releaseBlocking = true
 		}
+	}
+
+	paths := fm.GetPaths()
+	if paths == nil || contains(paths, "priority") {
+		s.Priority = priority
+	}
+	if paths == nil || contains(paths, "priority_unknown") {
+		s.PriorityUnknown = priorityUnknown
+	}
+	if paths == nil || contains(paths, "issue_type") {
+		s.IssueType = issueType
+	}
+	if paths == nil || contains(paths, "blocked") {
+		s.Blocked = blocked
+	}
+	if paths == nil || contains(paths, "release_blocking") {
+		s.ReleaseBlocking = releaseBlocking
 	}
 }
 

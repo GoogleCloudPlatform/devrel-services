@@ -177,7 +177,7 @@ func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 					return nil
 				}
 
-				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
+				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
 				if err != nil {
 					return err
 				}
@@ -238,7 +238,7 @@ func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
 			if r.Name == getIssueName(repo, issue) && !issue.NotExist {
-				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
+				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
 				if err != nil {
 					return err
 				}

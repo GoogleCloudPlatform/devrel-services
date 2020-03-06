@@ -9,6 +9,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -92,7 +94,9 @@ func init() {
 	proto.RegisterType((*UpdateTrackedReposResponse)(nil), "drghs.v1.UpdateTrackedReposResponse")
 }
 
-func init() { proto.RegisterFile("admin_service.proto", fileDescriptor_f9bc00259dc38d22) }
+func init() {
+	proto.RegisterFile("admin_service.proto", fileDescriptor_f9bc00259dc38d22)
+}
 
 var fileDescriptor_f9bc00259dc38d22 = []byte{
 	// 186 bytes of a gzipped FileDescriptorProto
@@ -112,11 +116,11 @@ var fileDescriptor_f9bc00259dc38d22 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // DevRelServicesAdminClient is the client API for DevRelServicesAdmin service.
 //
@@ -126,10 +130,10 @@ type DevRelServicesAdminClient interface {
 }
 
 type devRelServicesAdminClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewDevRelServicesAdminClient(cc *grpc.ClientConn) DevRelServicesAdminClient {
+func NewDevRelServicesAdminClient(cc grpc.ClientConnInterface) DevRelServicesAdminClient {
 	return &devRelServicesAdminClient{cc}
 }
 
@@ -145,6 +149,14 @@ func (c *devRelServicesAdminClient) UpdateTrackedRepos(ctx context.Context, in *
 // DevRelServicesAdminServer is the server API for DevRelServicesAdmin service.
 type DevRelServicesAdminServer interface {
 	UpdateTrackedRepos(context.Context, *UpdateTrackedReposRequest) (*UpdateTrackedReposResponse, error)
+}
+
+// UnimplementedDevRelServicesAdminServer can be embedded to have forward compatible implementations.
+type UnimplementedDevRelServicesAdminServer struct {
+}
+
+func (*UnimplementedDevRelServicesAdminServer) UpdateTrackedRepos(ctx context.Context, req *UpdateTrackedReposRequest) (*UpdateTrackedReposResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateTrackedRepos not implemented")
 }
 
 func RegisterDevRelServicesAdminServer(s *grpc.Server, srv DevRelServicesAdminServer) {
