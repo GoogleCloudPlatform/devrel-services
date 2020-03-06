@@ -343,7 +343,7 @@ func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs
 		pageN++
 	}
 
-	log.Debugf("finished getting GitHub issues for: %v. returning %v issues: %v", repo.String(), len(allIssues))
+	log.Debugf("finished getting GitHub issues for: %v. returning issues count: %v", repo.String(), len(allIssues))
 
 	return allIssues, nil
 }
@@ -375,7 +375,7 @@ func getGitHubPullRequestsForRepo(ctx context.Context, c *githubv4.Client, repo 
 		log.Debugf("getting GitHub PullRequests for repo: %v. finished page: %v. current count: %v", repo.Name, pageN, len(allPullRequests))
 		pageN++
 	}
-	log.Debugf("finished getting GitHub PullRequests for: %v. returning %v PullRequests: %v", repo.String(), len(allPullRequests))
+	log.Debugf("finished getting GitHub PullRequests for: %v. returning PullRequests count: %v", repo.String(), len(allPullRequests))
 
 	return allPullRequests, nil
 }
