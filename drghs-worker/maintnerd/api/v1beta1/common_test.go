@@ -15,7 +15,6 @@
 package v1beta1
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	"google.golang.org/genproto/protobuf/field_mask"
 
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/build/maintner"
 )
 
@@ -222,12 +222,12 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual, err := makeIssuePB(ghIss, rID, false, false, test.fm)
+		got, err := makeIssuePB(ghIss, rID, false, false, test.fm)
 		if err != nil {
 			t.Errorf("Unexpected error from makeIssuePB. Wanted nil, Got %v", err)
 		}
-		if !reflect.DeepEqual(*actual, *test.want) {
-			t.Errorf("makeIssuePB. Want %v  Got %v", test.want, actual)
+		if diff := cmp.Diff(*test.want, *got); diff != "" {
+			t.Errorf("makeIssuePB() mismatch (-want +got):\n%s", diff)
 		}
 	}
 }
