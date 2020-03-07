@@ -18,16 +18,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/golang/protobuf/ptypes"
 
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/maintnerd/api/filters"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/googlers"
 
 	"golang.org/x/build/maintner"
-
-	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/checker/decls"
-	"github.com/google/cel-go/common/types"
 
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -41,6 +40,8 @@ const defaultFilter = "true"
 // IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
 type IssueServiceV1 struct {
 	corpus          *maintner.Corpus
+	rp              *repoPaginator
+	ip              *issuePaginator
 	googlerResolver googlers.Resolver
 }
 
@@ -48,67 +49,185 @@ type IssueServiceV1 struct {
 // drghs_v1.IssueServiceServer
 func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *IssueServiceV1 {
 	return &IssueServiceV1{
-		corpus:          corpus,
-		googlerResolver: resolver,
+		corpus: corpus,
+		rp: &repoPaginator{
+			set: make(map[time.Time]repoPage),
+		},
+		ip: &issuePaginator{
+			set: make(map[time.Time]issuePage),
+		},
 	}
 }
 
 // ListRepositories lists the set of repositories tracked by this maintner instance
 func (s *IssueServiceV1) ListRepositories(ctx context.Context, r *drghs_v1.ListRepositoriesRequest) (*drghs_v1.ListRepositoriesResponse, error) {
-	resp := drghs_v1.ListRepositoriesResponse{}
-	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		should, err := shouldAddRepository(repo.ID(), r.Filter)
+
+	var pg []*drghs_v1.Repository
+	var idx int
+	var err error
+	nextToken := ""
+
+	if r.PageToken != "" {
+		pageToken, err := decodePageToken(r.PageToken)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if should {
+
+		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
+		if err != nil {
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.rp.GetPage(ftime, pagesize)
+		if err != nil {
+			return nil, err
+		}
+		nextToken, err = makeNextPageToken(pageToken, idx)
+
+	} else {
+		filteredRepos := make([]*drghs_v1.Repository, 0)
+		err = s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 			rpb, err := makeRepoPB(repo)
 			if err != nil {
 				return err
 			}
-			resp.Repositories = append(resp.Repositories, rpb)
+			should, err := filters.FilterRepository(rpb, r.Filter)
+			if err != nil {
+				return err
+			}
+			if should {
+				filteredRepos = append(filteredRepos, rpb)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
+
+		t, err := s.rp.CreatePage(filteredRepos)
+		if err != nil {
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+		pg, idx, err = s.rp.GetPage(t, pagesize)
+		if err != nil {
+			return nil, err
+		}
+		if idx > 0 {
+			nextToken, err = makeFirstPageToken(t, idx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	resp := drghs_v1.ListRepositoriesResponse{
+		Repositories:  pg,
+		NextPageToken: nextToken,
+	}
 	return &resp, err
 }
 
 // ListIssues lists the issues for the repo in the ListIssuesRequest
 func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
-	resp := drghs_v1.ListIssuesResponse{}
+	var pg []*drghs_v1.Issue
+	var idx int
+	var err error
+	nextToken := ""
 
-	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
-		repoID := getRepoPath(repo)
-		if repoID != r.Parent {
-			// Not our repository... ignore
-			fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Parent)
-			return nil
+	if r.PageToken != "" {
+		//Handle pagination
+		pageToken, err := decodePageToken(r.PageToken)
+		if err != nil {
+			return nil, err
 		}
 
-		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			should, err := shouldAddIssue(issue, r)
-			if err != nil {
-				return err
+		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
+		if err != nil {
+
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.ip.GetPage(ftime, pagesize)
+		if err != nil {
+			return nil, err
+		}
+		nextToken, err = makeNextPageToken(pageToken, idx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		issues := make([]*drghs_v1.Issue, 0)
+
+		err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
+			repoID := getRepoPath(repo)
+			if repoID != r.Parent {
+				// Not our repository... ignore
+				fmt.Printf("Repo: %v not equal to parent: %v\n", repoID, r.Parent)
+				return nil
 			}
-			if should {
-				// Add
-				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
+
+			return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
+				if issue.NotExist {
+					return nil
+				}
+
+				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
 				if err != nil {
 					return err
 				}
-				resp.Issues = append(resp.Issues, iss)
-			}
-			return nil
-		})
-	})
 
-	return &resp, err
+				should, err := filters.FilterIssue(iss, r)
+				if err != nil {
+					return err
+				}
+				if should {
+					// Add
+					issues = append(issues, iss)
+				}
+				return nil
+			})
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		t, err := s.ip.CreatePage(issues)
+		if err != nil {
+			return nil, err
+		}
+
+		pagesize := getPageSize(int(r.PageSize))
+
+		pg, idx, err = s.ip.GetPage(t, pagesize)
+		if err != nil {
+			return nil, err
+		}
+
+		if idx > 0 {
+			nextToken, err = makeFirstPageToken(t, idx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return &drghs_v1.ListIssuesResponse{
+		Issues:        pg,
+		NextPageToken: nextToken,
+	}, err
 }
 
 // GetIssue returns the issue specified in the GetIssueRequest
 func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
 	resp := &drghs_v1.GetIssueResponse{}
 
+	var issueResp *drghs_v1.Issue = nil
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		repoID := getRepoPath(repo)
 		if !strings.HasPrefix(r.Name, repoID) {
@@ -118,16 +237,26 @@ func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 		}
 
 		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			if r.Name == getIssueName(repo, issue) {
-				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews)
+			if r.Name == getIssueName(repo, issue) && !issue.NotExist {
+				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
 				if err != nil {
 					return err
 				}
-				resp.Issue = re
+				issueResp = re
 			}
 			return nil
 		})
 	})
+
+	if err != nil {
+		return resp, err
+	}
+
+	if issueResp == nil {
+		return nil, status.Errorf(codes.NotFound, "issue: %v not found", r.Name)
+	}
+
+	resp.Issue = issueResp
 
 	return resp, err
 }
@@ -178,45 +307,4 @@ func getRepoPath(ta *maintner.GitHubRepo) string {
 
 func getIssueName(ta *maintner.GitHubRepo, iss *maintner.GitHubIssue) string {
 	return fmt.Sprintf("%v/%v/issues/%v", ta.ID().Owner, ta.ID().Repo, iss.Number)
-}
-
-// TODO(orthros) This should default to using *maintner.GitHubRepo, but
-// due to how maintner stores values, this is impossible to mock for tests
-// If other traits of a repository need to be added (labels, milestones etc)
-// in order to support filtering, this funciton signature must be changed
-// e.g. `owner == 'foo' && labels.size() > 10` to find repositories whose
-// owner is 'foo' and number of labels is > 10. This would need to be expanded
-func shouldAddRepository(repoID maintner.GitHubRepoID, filter string) (bool, error) {
-	if filter == "" {
-		filter = defaultFilter
-	}
-
-	env, err := cel.NewEnv(
-		cel.Declarations(
-			decls.NewIdent("repo", decls.String, nil),
-			decls.NewIdent("owner", decls.String, nil)))
-
-	parsed, issues := env.Parse(filter)
-	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
-	}
-	checked, issues := env.Check(parsed)
-	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
-	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
-	}
-
-	// The `out` var contains the output of a successful evaluation.
-	// The `details' var would contain intermediate evalaution state if enabled as
-	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
-	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
-		"repo":  repoID.Repo,
-		"owner": repoID.Owner,
-	})
-
-	return out == types.True, nil
 }

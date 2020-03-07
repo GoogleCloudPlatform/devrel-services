@@ -17,6 +17,7 @@ syntax = "proto3";
 package drghs.v1;
 
 import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
 import "resources.proto";
 import "service_resources.proto";
 import "admin_service.proto";
@@ -24,33 +25,35 @@ import "admin_service.proto";
 // Issue Service
 service IssueService {
   // Lists [Repositories][Repository].
-  rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse) {
+  rpc ListRepositories(ListRepositoriesRequest)
+      returns (ListRepositoriesResponse) {
     option (google.api.http) = {
-      get: "/api/v1/{parent=owners/*}/repositories"
+      get : "/api/v1/{parent=owners/*}/repositories"
     };
   }
 
   // Lists [Issues][Issue].
   rpc ListIssues(ListIssuesRequest) returns (ListIssuesResponse) {
     option (google.api.http) = {
-      get: "/api/v1/{parent=*/*}/issues"
+      get : "/api/v1/{parent=*/*}/issues"
     };
   }
 
   // Gets a [Issue][].
   rpc GetIssue(GetIssueRequest) returns (GetIssueResponse) {
     option (google.api.http) = {
-      get: "/api/v1/{name=*/*/issues/*}"
+      get : "/api/v1/{name=*/*/issues/*}"
     };
   }
 }
 
 // Issue Service Admin
-service IssueServiceAdmin{
-  rpc UpdateTrackedRepos(UpdateTrackedReposRequest) returns (UpdateTrackedReposResponse) {
+service IssueServiceAdmin {
+  rpc UpdateTrackedRepos(UpdateTrackedReposRequest)
+      returns (UpdateTrackedReposResponse) {
     option (google.api.http) = {
-      post: "/api/v1/update"
-    };  
+      post : "/api/v1/update"
+    };
   }
 }
 
@@ -100,14 +103,15 @@ message ListIssuesRequest {
   bool reviews = 7;
 
   // This is a workaround to allow nullable bools
-  oneof pull_request_nullable {
-    bool pull_request = 8 [deprecated=true];
-  }
+  oneof pull_request_nullable { bool pull_request = 8 [ deprecated = true ]; }
 
   // This is a workaround to allow nullable bools
-  oneof closed_nullable {
-    bool closed = 9 [deprecated=true];
-  }
+  oneof closed_nullable { bool closed = 9 [ deprecated = true ]; }
+
+  // If the FieldMask is NOT set or empty, all fields are returned. If the
+  // FieldMask is set, only the specified fields are returned. See
+  // https://pkg.go.dev/google.golang.org/genproto/protobuf/field_mask.
+  google.protobuf.FieldMask field_mask = 10;
 }
 
 // Response message for [DevRelGitHubService.ListIssues][].
@@ -136,8 +140,11 @@ message GetIssueRequest {
 
   // Specifies if to inlcude the [Issue]'s Reviews
   bool reviews = 3;
+
+  // If the FieldMask is NOT set or empty, all fields are returned. If the
+  // FieldMask is set, only the specified fields are returned. See
+  // https://pkg.go.dev/google.golang.org/genproto/protobuf/field_mask.
+  google.protobuf.FieldMask field_mask = 4;
 }
 
-message GetIssueResponse {
-  Issue issue = 1;
-}
+message GetIssueResponse { Issue issue = 1; }

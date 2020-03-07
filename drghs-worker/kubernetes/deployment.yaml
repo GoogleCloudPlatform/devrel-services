@@ -43,6 +43,7 @@ spec:
         ]
         ports:
           - containerPort: 8080
+          - containerPort: 80
         readinessProbe:
           httpGet:
             path: /_healthz
@@ -63,6 +64,8 @@ spec:
           "--listen=:80",
           "--verbose",
           "--sprvsr=maintnerd-sprvsr-cip",
+          "--settings-bucket=SETTINGS_BUCKET",
+          "--repos-file=REPOS_FILE",
         ]
         readinessProbe:
           exec:
@@ -103,6 +106,9 @@ spec:
     - port: 80
       targetPort: 8080
       name: http
+    - port: 5000
+      targetPort: 80
+      name: grpc
   selector:
     app: maintnerd-rtr
   type: NodePort
@@ -195,3 +201,28 @@ metadata:
 spec:
   domains:
     - drghs.endpoints.PROJECT_ID.cloud.goog
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: sweeper
+spec:
+  # Run Every day at 02:00 Hours
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: maintner-swpr
+            image: gcr.io/PROJECT_ID/maintner-swpr:BUILD_ID
+            args: [
+              "--rtr-address=esp-maintnerd-rtr-np:5000",
+            ]
+            env:
+              - name: GITHUB_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: GITHUB_SECRET_NAME
+                    key: SWPR_SECRET_KEY
+          restartPolicy: Never
