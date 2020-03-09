@@ -53,6 +53,7 @@ const (
 	SecondsPerDay       = 86400.0
 	ServicePort         = "80"
 	ServicePortInternal = "8080"
+	GitHubNotFoundFmt   = "Could not resolve to a Repository with the name '%v'."
 )
 
 // Uses
@@ -153,13 +154,19 @@ func main() {
 		tr := repoToTrackedRepo(repo)
 
 		ghIssues, err := getGitHubIssuesForRepo(ctx, gqlc, repo)
-		if err != nil {
+		if err != nil && err.Error() == fmt.Sprintf(GitHubNotFoundFmt, tr.Name) {
+			log.Warnf("could not find repository in the GitHub API: %v", tr.String())
+			continue
+		} else if err != nil {
 			log.Fatal(err)
 		}
 		log.Debugf("repo: %v number of issues: %v\n", repo.String(), len(ghIssues))
 
 		ghPrs, err := getGitHubPullRequestsForRepo(ctx, gqlc, repo)
-		if err != nil {
+		if err != nil && err.Error() == fmt.Sprintf(GitHubNotFoundFmt, tr.Name) {
+			log.Warnf("could not find repository in the GitHub API: %v", tr.String())
+			continue
+		} else if err != nil {
 			log.Fatal(err)
 		}
 		log.Debugf("repo: %v number of pull requests: %v\n", repo.String(), len(ghPrs))
