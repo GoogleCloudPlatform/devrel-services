@@ -199,12 +199,10 @@ func main() {
 }
 
 type issue struct {
-	ID     string
 	Number int32
 }
 
 type pullRequest struct {
-	ID     string
 	Number int32
 }
 
