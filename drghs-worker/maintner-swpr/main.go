@@ -34,6 +34,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
+	"google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -258,6 +259,11 @@ func getMaintnerIssuesForRepo(ctx context.Context, tr *repos.TrackedRepository, 
 			Parent:    repo.Name,
 			PageToken: npt,
 			PageSize:  500,
+			FieldMask: &field_mask.FieldMask{
+				Paths: []string{
+					"issue_id",
+				},
+			},
 		})
 		if err != nil {
 			return nil, err
