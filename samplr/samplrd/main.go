@@ -120,6 +120,13 @@ func main() {
 		grpcServer := grpc.NewServer()
 		drghs_v1.RegisterSampleServiceServer(grpcServer, samplrapi.NewSampleServiceServer(corpus))
 
+		go func() {
+			select {
+			case <-ctx.Done():
+				grpcServer.GracefulStop()
+			}
+		}()
+
 		log.Printf("gRPC server listening on: %s", *listen)
 		return grpcServer.Serve(lis)
 	})
