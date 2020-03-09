@@ -53,13 +53,14 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 		Body:        "body",
 		Number:      1234,
 		Labels: map[int64]*maintner.GitHubLabel{
-			1: &maintner.GitHubLabel{Name: "Bug"},
+			1: &maintner.GitHubLabel{Name: "bug"},
 			2: &maintner.GitHubLabel{Name: "foo"},
 			3: &maintner.GitHubLabel{Name: "Zebra"},
 			4: &maintner.GitHubLabel{Name: "bar"},
-			5: &maintner.GitHubLabel{Name: "p0"},
-			6: &maintner.GitHubLabel{Name: "blocked"},
-			7: &maintner.GitHubLabel{Name: "blocking"},
+			5: &maintner.GitHubLabel{Name: "Feat"},
+			6: &maintner.GitHubLabel{Name: "p0"},
+			7: &maintner.GitHubLabel{Name: "blocked"},
+			8: &maintner.GitHubLabel{Name: "blocking"},
 		},
 	}
 
@@ -101,7 +102,7 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 				IssueId:         1234,
 				Url:             "https://github.com/foo/bar/issues/1234",
 				Repo:            "foo/bar",
-				Labels:          []string{"Bug", "Zebra", "bar", "blocked", "blocking", "foo", "p0"},
+				Labels:          []string{"bar", "blocked", "blocking", "bug", "Feat", "foo", "p0", "Zebra"},
 				Priority:        drghs_v1.Issue_P0,
 				PriorityUnknown: false,
 				IssueType:       drghs_v1.Issue_BUG,
@@ -186,7 +187,7 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 		},
 		{
 			fm:   &field_mask.FieldMask{Paths: []string{"labels"}},
-			want: &drghs_v1.Issue{Labels: []string{"Bug", "Zebra", "bar", "blocked", "blocking", "foo", "p0"}},
+			want: &drghs_v1.Issue{Labels: []string{"bar", "blocked", "blocking", "bug", "Feat", "foo", "p0", "Zebra"}},
 		},
 		{
 			fm:   &field_mask.FieldMask{Paths: []string{"priority"}},
