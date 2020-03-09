@@ -177,7 +177,7 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 			labels[i] = l.Name
 			i++
 		}
-		sort.Strings(labels)
+		sort.Slice(labels, func(i, j int) bool { return strings.ToLower(labels[i]) < strings.ToLower(labels[j]) })
 	}
 
 	if paths == nil || contains(paths, "labels") {
@@ -230,36 +230,46 @@ func fillFromLabels(s *drghs_v1.Issue, labels []string, fm *field_mask.FieldMask
 
 	for _, l := range labels {
 		lowercaseName := strings.ToLower(l)
+		if priorityUnknown == true {
+			switch {
+			case strings.Contains(lowercaseName, "p0"):
+				priority = drghs_v1.Issue_P0
+				priorityUnknown = false
+			case strings.Contains(lowercaseName, "p1"):
+				priority = drghs_v1.Issue_P1
+				priorityUnknown = false
+			case strings.Contains(lowercaseName, "p2"):
+				priority = drghs_v1.Issue_P2
+				priorityUnknown = false
+			case strings.Contains(lowercaseName, "p3"):
+				priority = drghs_v1.Issue_P3
+				priorityUnknown = false
+			case strings.Contains(lowercaseName, "p4"):
+				priority = drghs_v1.Issue_P4
+				priorityUnknown = false
+			}
+		}
+
+		if issueType == drghs_v1.Issue_GITHUB_ISSUE_TYPE_UNSPECIFIED {
+			switch {
+			case matchesAny(lowercaseName, bugLabels):
+				issueType = drghs_v1.Issue_BUG
+			case strings.Contains(lowercaseName, "enhanc"):
+				issueType = drghs_v1.Issue_FEATURE
+			case strings.Contains(lowercaseName, "feat"):
+				issueType = drghs_v1.Issue_FEATURE
+			case strings.Contains(lowercaseName, "addition"):
+				issueType = drghs_v1.Issue_FEATURE
+			case strings.Contains(lowercaseName, "question"):
+				issueType = drghs_v1.Issue_QUESTION
+			case strings.Contains(lowercaseName, "cleanup"):
+				issueType = drghs_v1.Issue_CLEANUP
+			case strings.Contains(lowercaseName, "process"):
+				issueType = drghs_v1.Issue_PROCESS
+			}
+		}
+
 		switch {
-		case strings.Contains(lowercaseName, "p0"):
-			priority = drghs_v1.Issue_P0
-			priorityUnknown = false
-		case strings.Contains(lowercaseName, "p1"):
-			priority = drghs_v1.Issue_P1
-			priorityUnknown = false
-		case strings.Contains(lowercaseName, "p2"):
-			priority = drghs_v1.Issue_P2
-			priorityUnknown = false
-		case strings.Contains(lowercaseName, "p3"):
-			priority = drghs_v1.Issue_P3
-			priorityUnknown = false
-		case strings.Contains(lowercaseName, "p4"):
-			priority = drghs_v1.Issue_P4
-			priorityUnknown = false
-		case matchesAny(lowercaseName, bugLabels):
-			issueType = drghs_v1.Issue_BUG
-		case strings.Contains(lowercaseName, "enhanc"):
-			issueType = drghs_v1.Issue_FEATURE
-		case strings.Contains(lowercaseName, "feat"):
-			issueType = drghs_v1.Issue_FEATURE
-		case strings.Contains(lowercaseName, "addition"):
-			issueType = drghs_v1.Issue_FEATURE
-		case strings.Contains(lowercaseName, "question"):
-			issueType = drghs_v1.Issue_QUESTION
-		case strings.Contains(lowercaseName, "cleanup"):
-			issueType = drghs_v1.Issue_CLEANUP
-		case strings.Contains(lowercaseName, "process"):
-			issueType = drghs_v1.Issue_PROCESS
 		case strings.Contains(lowercaseName, "blocked"):
 			blocked = true
 		case strings.Contains(lowercaseName, "blocking"):
