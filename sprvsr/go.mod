@@ -21,6 +21,7 @@ require (
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
 
 	github.com/deckarep/golang-set v1.7.1
+	github.com/google/go-cmp v0.3.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gregjones/httpcache v0.0.0-20190203031600-7a902570cb17 // indirect
 	github.com/matryer/is v1.2.0
