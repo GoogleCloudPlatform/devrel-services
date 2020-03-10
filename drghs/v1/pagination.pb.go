@@ -74,7 +74,9 @@ func init() {
 	proto.RegisterType((*PageToken)(nil), "drghs.v1.PageToken")
 }
 
-func init() { proto.RegisterFile("pagination.proto", fileDescriptor_567bfb3a87c868dd) }
+func init() {
+	proto.RegisterFile("pagination.proto", fileDescriptor_567bfb3a87c868dd)
+}
 
 var fileDescriptor_567bfb3a87c868dd = []byte{
 	// 167 bytes of a gzipped FileDescriptorProto

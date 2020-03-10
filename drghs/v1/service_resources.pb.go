@@ -188,7 +188,9 @@ func init() {
 	proto.RegisterType((*ListRepositoriesResponse)(nil), "drghs.v1.ListRepositoriesResponse")
 }
 
-func init() { proto.RegisterFile("service_resources.proto", fileDescriptor_761f26e4ca1188dd) }
+func init() {
+	proto.RegisterFile("service_resources.proto", fileDescriptor_761f26e4ca1188dd)
+}
 
 var fileDescriptor_761f26e4ca1188dd = []byte{
 	// 278 bytes of a gzipped FileDescriptorProto

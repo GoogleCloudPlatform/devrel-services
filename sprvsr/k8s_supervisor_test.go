@@ -17,11 +17,11 @@ package sprvsr
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -32,38 +32,38 @@ import (
 func TestSetDifference(t *testing.T) {
 	cases := []struct {
 		Name  string
-		Left  map[repos.TrackedRepository]bool
-		Right map[repos.TrackedRepository]bool
+		Left  map[string]repos.TrackedRepository
+		Right map[string]repos.TrackedRepository
 		Want  map[repos.TrackedRepository]bool
 	}{
 		{
 			Name:  "Empty left empty right yields empty",
-			Left:  map[repos.TrackedRepository]bool{},
-			Right: map[repos.TrackedRepository]bool{},
+			Left:  map[string]repos.TrackedRepository{},
+			Right: map[string]repos.TrackedRepository{},
 			Want:  map[repos.TrackedRepository]bool{},
 		},
 		{
 			Name:  "Empty left full right yields empty",
-			Left:  map[repos.TrackedRepository]bool{},
-			Right: map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
+			Left:  map[string]repos.TrackedRepository{},
+			Right: map[string]repos.TrackedRepository{"foo/bar": repos.TrackedRepository{Owner: "foo", Name: "bar"}},
 			Want:  map[repos.TrackedRepository]bool{},
 		},
 		{
 			Name:  "Full left empty right yields Left",
-			Left:  map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
-			Right: map[repos.TrackedRepository]bool{},
+			Left:  map[string]repos.TrackedRepository{"foo/bar": repos.TrackedRepository{Owner: "foo", Name: "bar"}},
+			Right: map[string]repos.TrackedRepository{},
 			Want:  map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
 		},
 		{
 			Name:  "Full left full right yields Left",
-			Left:  map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
-			Right: map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "baz", Name: "biz"}: true},
+			Left:  map[string]repos.TrackedRepository{"foo/bar": repos.TrackedRepository{Owner: "foo", Name: "bar"}},
+			Right: map[string]repos.TrackedRepository{"baz/biz": repos.TrackedRepository{Owner: "baz", Name: "biz"}},
 			Want:  map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
 		},
 		{
 			Name:  "Equal Left and Right yields empty",
-			Left:  map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
-			Right: map[repos.TrackedRepository]bool{repos.TrackedRepository{Owner: "foo", Name: "bar"}: true},
+			Left:  map[string]repos.TrackedRepository{"foo/bar": repos.TrackedRepository{Owner: "foo", Name: "bar"}},
+			Right: map[string]repos.TrackedRepository{"foo/bar": repos.TrackedRepository{Owner: "foo", Name: "bar"}},
 			Want:  map[repos.TrackedRepository]bool{},
 		},
 	}
@@ -71,8 +71,8 @@ func TestSetDifference(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
 			got := setDifference(c.Left, c.Right)
-			if !reflect.DeepEqual(got, c.Want) {
-				t.Errorf("Test: %v failed. Want: %v Got: %v", c.Name, c.Want, got)
+			if diff := cmp.Diff(c.Want, got); diff != "" {
+				t.Errorf("Test: %v Repositories differ (-want +got)\n%s", c.Name, diff)
 			}
 		})
 	}
