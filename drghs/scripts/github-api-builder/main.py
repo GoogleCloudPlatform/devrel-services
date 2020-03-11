@@ -58,7 +58,9 @@ def make_operation(path: str, oper: str) -> Dict:
         # at GitHub the proxy will still return 401 even
         # though this spec says it can only return 200.
         'responses': {
-            '200':{}
+            '200':{
+                'description': 'A proxy response from GitHub'
+            }
         }
     }
 
