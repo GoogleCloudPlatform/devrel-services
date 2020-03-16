@@ -30,6 +30,9 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 && \
     chmod +x /bin/grpc_health_probe
 
 FROM gcr.io/distroless/base
+# Enable verbose GRPC debug logging
+ENV GRPC_GO_LOG_VERBOSITY_LEVEL=99 
+ENV GRPC_GO_LOG_SEVERITY_LEVEL=info
 
 COPY --from=build /go/bin/maintner-rtr /
 COPY --from=health /bin/grpc_health_probe /bin/grpc_health_probe
