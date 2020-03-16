@@ -163,15 +163,15 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 
 	s.log.Debugf("got n tracked repos: %v", len(trackedRepos))
 
-	trSet := make(map[repos.TrackedRepository]bool)
+	trSet := make(map[string]repos.TrackedRepository)
 	for _, tr := range trackedRepos {
-		trSet[tr] = true
+		trSet[tr.String()] = tr
 	}
 
 	s.log.Debugf("trSet: %v", trSet)
 
-	deploymentsSet := make(map[repos.TrackedRepository]bool)
-	servicesSet := make(map[repos.TrackedRepository]bool)
+	deploymentsSet := make(map[string]repos.TrackedRepository)
+	servicesSet := make(map[string]repos.TrackedRepository)
 
 	// Store this as a variable here in the event we want this configurable
 	ns := apiv1.NamespaceDefault
@@ -187,6 +187,7 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 	for _, deployment := range deployments.Items {
 		// Now we have the deployment.... inspect the
 		// labels in the deployment to get the owner and repository
+		s.log.Infof("processing deployment: %v. Labels: %v", deployment.Name, deployment.Labels)
 		if _, ok := deployment.Labels["owner"]; !ok {
 			// Log here?
 			continue
@@ -198,11 +199,11 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 
 		o := deployment.Labels["owner"]
 		r := deployment.Labels["repository"]
-
-		deploymentsSet[repos.TrackedRepository{
+		tr := repos.TrackedRepository{
 			Owner: o,
 			Name:  r,
-		}] = true
+		}
+		deploymentsSet[tr.String()] = tr
 	}
 
 	s.log.Debugf("have deployments from k8s: %v", deploymentsSet)
@@ -226,10 +227,11 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 
 		o := service.Labels["owner"]
 		r := service.Labels["repository"]
-		servicesSet[repos.TrackedRepository{
+		tr := repos.TrackedRepository{
 			Owner: o,
 			Name:  r,
-		}] = true
+		}
+		servicesSet[tr.String()] = tr
 	}
 
 	s.log.Debugf("have services from k8s: %v", servicesSet)
@@ -353,11 +355,11 @@ func createService(cs kubernetes.Interface, ns string, labelgenkey string, sb Se
 // and other. The returned set will contain
 // all elements of this set that are not also
 // elements of other.
-func setDifference(this, other map[repos.TrackedRepository]bool) map[repos.TrackedRepository]bool {
+func setDifference(this, other map[string]repos.TrackedRepository) map[repos.TrackedRepository]bool {
 	diff := make(map[repos.TrackedRepository]bool)
-	for k := range this {
+	for k, v := range this {
 		if _, ok := other[k]; !ok {
-			diff[k] = true
+			diff[v] = true
 		}
 	}
 	return diff
