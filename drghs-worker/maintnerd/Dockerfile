@@ -31,11 +31,6 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 && \
 
 FROM golang:1.13
 
-ENV GRPC_TRACE=all
-ENV GRPC_VERBOSITY=DEBUG
-ENV GRPC_GO_LOG_VERBOSITY_LEVEL=2
-ENV GRPC_GO_LOG_SEVERITY_LEVEL=info
-
 COPY --from=build /go/bin/maintnerd /
 COPY --from=health /bin/grpc_health_probe /bin/grpc_health_probe
 
