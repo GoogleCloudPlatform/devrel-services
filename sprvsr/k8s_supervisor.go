@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
@@ -165,10 +166,27 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 
 	trSet := make(map[string]repos.TrackedRepository)
 	for _, tr := range trackedRepos {
-		trSet[tr.String()] = tr
+		d, err := s.deploymentBuilder(tr)
+		if err != nil {
+			handle(err)
+			return
+		}
+		imgs := make([]string, 0)
+		for _, i := range d.Spec.Template.Spec.Containers {
+			imgs = append(imgs, i.Image)
+		}
+		name := fmt.Sprintf("%v-%v", tr.String(), strings.Join(imgs, "/"))
+		trSet[name] = tr
 	}
 
 	s.log.Debugf("trSet: %v", trSet)
+
+	tServicesSet := make(map[string]repos.TrackedRepository)
+	for _, tr := range trackedRepos {
+		tServicesSet[tr.String()] = tr
+	}
+
+	s.log.Debugf("tServicesSet: %v", tServicesSet)
 
 	deploymentsSet := make(map[string]repos.TrackedRepository)
 	servicesSet := make(map[string]repos.TrackedRepository)
@@ -203,7 +221,12 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 			Owner: o,
 			Name:  r,
 		}
-		deploymentsSet[tr.String()] = tr
+		imgs := make([]string, 0)
+		for _, c := range deployment.Spec.Template.Spec.Containers {
+			imgs = append(imgs, c.Image)
+		}
+		name := fmt.Sprintf("%v-%v", tr.String(), strings.Join(imgs, "/"))
+		deploymentsSet[name] = tr
 	}
 
 	s.log.Debugf("have deployments from k8s: %v", deploymentsSet)
@@ -237,7 +260,7 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 	s.log.Debugf("have services from k8s: %v", servicesSet)
 
 	// Delete Services before deployments
-	servicesToDelete := setDifference(servicesSet, trSet)
+	servicesToDelete := setDifference(servicesSet, tServicesSet)
 	s.log.Debugf("have services to delete: %v", servicesToDelete)
 	for td := range servicesToDelete {
 		// Delete the service
@@ -283,7 +306,7 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 		}
 	}
 
-	servicesToAdd := setDifference(trSet, servicesSet)
+	servicesToAdd := setDifference(tServicesSet, servicesSet)
 	s.log.Debugf("have services to add: %v", servicesToAdd)
 	for ta := range servicesToAdd {
 		// Add the service
