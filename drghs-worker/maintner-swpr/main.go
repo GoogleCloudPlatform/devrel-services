@@ -450,7 +450,7 @@ func (t limitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 func buildRetryInterceptor() grpc.UnaryClientInterceptor {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(500 * time.Millisecond)),
-		grpc_retry.WithCodes(codes.NotFound, codes.Aborted),
+		grpc_retry.WithCodes(codes.NotFound, codes.Aborted, codes.Unavailable, codes.DeadlineExceeded),
 		grpc_retry.WithMax(5),
 	}
 	return grpc_retry.UnaryClientInterceptor(opts...)

@@ -375,3 +375,105 @@ func TestDeletedReposAreRemoved(t *testing.T) {
 		t.Errorf("Wanted %v Deleted. Got %v", 2, ndelete)
 	}
 }
+
+func TestUpdatedImagesAreReplaced(t *testing.T) {
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+
+	appid := "testapp"
+
+	// This desployment has an image that is DIFFERENT than the
+	// desired on to be built, so it should be deleted and replaced.
+	existingDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "d-foo-bar",
+			Labels: map[string]string{
+				"owner":                  "foo",
+				"repository":             "bar",
+				"testapp-sprvsr-autogen": "true",
+			},
+			Namespace: apiv1.NamespaceDefault,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: apiv1.PodTemplateSpec{
+				Spec: apiv1.PodSpec{
+					Volumes: []apiv1.Volume{},
+					Containers: []apiv1.Container{
+						apiv1.Container{
+							Image: "foo-bar:baz",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	clientSet := fake.NewSimpleClientset(existingDeployment)
+	config := K8sConfiguration{
+		ServiceNamer: func(a repos.TrackedRepository) (string, error) {
+			return fmt.Sprintf("s-%v-%v", a.Owner, a.Name), nil
+		},
+		DeploymentNamer: func(a repos.TrackedRepository) (string, error) {
+			return fmt.Sprintf("d-%v-%v", a.Owner, a.Name), nil
+		},
+		ServiceBuilder: func(repos.TrackedRepository) (*apiv1.Service, error) {
+			return &apiv1.Service{}, nil
+		},
+		DeploymentBuilder: func(repos.TrackedRepository) (*appsv1.Deployment, error) {
+			return &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: apiv1.PodTemplateSpec{
+						Spec: apiv1.PodSpec{
+							Volumes: []apiv1.Volume{},
+							Containers: []apiv1.Container{
+								apiv1.Container{
+									Image: "foo-bar:biz",
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		},
+		PreDeploy: func(repos.TrackedRepository) error { return nil },
+	}
+	repoList := &fakeRepoList{
+		idx: -1,
+		RepoStack: [][]repos.TrackedRepository{
+			{
+				repos.TrackedRepository{
+					Owner: "foo",
+					Name:  "bar",
+				},
+			},
+		},
+	}
+
+	spr, err := newK8sSupervisor(log, clientSet, config, repoList, appid)
+	if err != nil {
+		t.Errorf("Got an error making a new supervisor: %v", err)
+	}
+
+	ctx := context.Background()
+	spr.updateCorpusRepoList(ctx, func(error) {})
+
+	ncreate := 0
+	ndelete := 0
+	for _, a := range clientSet.Actions() {
+		t.Logf("Got verb %v", a.GetVerb())
+
+		if a.GetVerb() == "create" {
+			ncreate++
+		} else if a.GetVerb() == "delete" {
+			ndelete++
+		}
+	}
+	// Want 2*len as we are creating one service and one deployment
+	if ncreate != 2*len(repoList.GetTrackedRepos()) {
+		t.Errorf("Wanted %v Created. Got %v", len(repoList.GetTrackedRepos()), ncreate)
+	}
+	// We should delete the existing deployment
+	if ndelete != 1 {
+		t.Errorf("Wanted %v Deleted. Got %v", 1, ndelete)
+	}
+}
