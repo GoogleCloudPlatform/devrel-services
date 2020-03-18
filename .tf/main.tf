@@ -19,6 +19,7 @@ module "project_resources" {
     
   project_id = var.project_id
   region = var.region
+  settings_bucket_name = var.settings_bucket_name
 }
 
 module "maintner" {

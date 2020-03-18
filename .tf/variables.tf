@@ -23,3 +23,8 @@ variable "billing_account" {
 variable "maintner_bucket_name" {
   description = "Name of the GCS bucket to store Maintner logs to"
 }
+
+
+variable "settings_bucket_name" {
+  description = "Name of the GCS bucket to store the list of Repositories"
+}
