@@ -24,5 +24,7 @@ output "host" {
   sensitive = true
 }
 
-
+output "settings_bucket_name" {
+  value = "${google_storage_bucket.repos_list_bucket.name}"
+}
 
