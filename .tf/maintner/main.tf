@@ -78,3 +78,23 @@ resource "google_project_iam_member" "maintner_account_iam" {
   role   = "projects/${var.project_id}/roles/${google_project_iam_custom_role.maintner_sprvsr_bucket_creator.role_id}"
   member = "serviceAccount:${google_service_account.maintner_service_account.email}"
 }
+
+
+
+resource "google_service_account_key" "maintner_service_account_key" {
+  service_account_id = google_service_account.maintner_service_account.name
+}
+
+data "google_service_account_key" "maintner_service_account_key" {
+  name  = google_service_account_key.maintner_service_account_key.name
+}
+
+resource "google_compute_managed_ssl_certificate" "maintner-ssl" {
+  provider = google-beta
+
+  name = "drghs-endpoints-cert"
+
+  managed {
+    domains = [google_endpoints_service.maintner_grpc_service.service_name]
+  }
+}

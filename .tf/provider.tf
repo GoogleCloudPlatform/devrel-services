@@ -3,7 +3,7 @@
 provider "google" {
   project = var.project_id
   region  = var.region
-  version = "~> 2.14"
+  version = "~> 3.12.0"
   batching {
     enable_batching = false
   }
@@ -12,7 +12,7 @@ provider "google" {
 provider "google-beta" {
   project = var.project_id
   region  = var.region
-  version = "~> 2.20"
+  version = "~> 3.12.0"
   batching {
     enable_batching = false
   }
