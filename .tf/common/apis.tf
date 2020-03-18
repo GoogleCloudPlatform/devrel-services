@@ -37,6 +37,7 @@ resource "google_project_service" "services" {
     "sql-component.googleapis.com",
     "stackdriver.googleapis.com",
     "storage-api.googleapis.com",
+    "secretmanager.googleapis.com",
     "storage-component.googleapis.com",
   ])
   service = each.key
