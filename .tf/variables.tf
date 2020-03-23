@@ -17,10 +17,12 @@ variable "folder_id" {
 }
 
 variable "billing_account" {
+  type = string
   description = "The Billing Account associated with the project"
 }
 
 variable "maintner_bucket_name" {
+  type = string
   description = "Name of the GCS bucket to store Maintner logs to"
 }
 
@@ -37,4 +39,19 @@ variable "github_api_key_secret_names" {
 variable "sweeper_github_secret_key" {
   type = string
   description = "The name of the Cloud Secret Manager Secret to use for sweeper"
+}
+
+variable "mghp_bucket_name" {
+  type = string
+  description = "The name of the Cloud Storage Bucket to store the Private Key and Certificate in"
+}
+
+variable "mghp_certificate_secret_name" {
+  type = string
+  description = "The name of the Cloud Secret Manager Secret to use for the Magic GitHub Proxy certificate"
+}
+
+variable "mghp_private_key_secret_name" {
+  type = string
+  description = "The name of the Cloud Secret Manager Secret to use for the Magic GitHub Proxy private key"
 }

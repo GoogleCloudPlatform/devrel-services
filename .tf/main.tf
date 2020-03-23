@@ -56,4 +56,13 @@ module "mghp" {
   source = "./mghp"
 
   project_id = var.project_id
+
+  host = "${module.project_resources.host}"
+  client_key = "${module.project_resources.client_key}"
+  client_certificate = "${module.project_resources.client_certificate}"
+  cluster_ca_certificate = "${module.project_resources.cluster_ca_certificate}"
+
+  mghp_bucket_name = var.mghp_bucket_name
+  mghp_certificate_secret_name = var.mghp_certificate_secret_name
+  mghp_private_key_secret_name = var.mghp_private_key_secret_name
 }

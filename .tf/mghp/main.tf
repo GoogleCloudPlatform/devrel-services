@@ -40,6 +40,15 @@ resource "google_service_account" "mghp_service_account" {
   description  = "Service Account used by Magic GitHub Proxy service"
 }
 
+resource "google_service_account_key" "mghp_service_account_key" {
+  service_account_id = google_service_account.mghp_service_account.name
+}
+
+data "google_service_account_key" "mghp_service_account_key" {
+  name = google_service_account_key.mghp_service_account_key.name
+}
+
+
 resource "google_project_iam_custom_role" "mghp_kms_access" {
   role_id     = "magic_github_proxy_kms_accessor"
   title       = "Magic GitHub Proxy KMS"
@@ -83,4 +92,51 @@ resource "google_kms_crypto_key_iam_member" "mghp_crypto_key_decrypter" {
         google_service_account.mghp_service_account,
         google_kms_crypto_key.mghp_crypto_key
   ]
+}
+
+#
+# SSL Cert
+#
+
+
+resource "google_compute_managed_ssl_certificate" "mghp_ssl" {
+  provider = google-beta
+  name = "mghp-endpoints-cert"
+  managed {
+    domains = [google_endpoints_service.mghp_service.service_name]
+  }
+}
+
+#
+# Private Key and Certificate
+#
+
+#
+# MGHP BUCKET
+#
+resource "google_storage_bucket" "mghp_bucket" {
+  name = var.mghp_bucket_name
+  location = "US"
+}
+
+data "google_secret_manager_secret_version" "mghp_private_key" {
+    provider = google-beta
+    secret = var.mghp_private_key_secret_name
+}
+
+resource "google_storage_bucket_object" "mghp_private_key" {
+  name   = "private.pem.enc"
+  content = data.google_secret_manager_secret_version.mghp_private_key.secret_data
+  bucket = google_storage_bucket.mghp_bucket.name
+}
+
+data "google_secret_manager_secret_version" "mghp_certificate" {
+    provider = google-beta
+    secret = var.mghp_certificate_secret_name
+}
+
+resource "google_storage_bucket_object" "mghp_cert" {
+  name = "public.x509.cer.enc"
+  content = data.google_secret_manager_secret_version.mghp_certificate.secret_data
+  bucket = google_storage_bucket.mghp_bucket.name
 }
