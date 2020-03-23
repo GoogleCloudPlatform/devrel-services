@@ -79,6 +79,11 @@ resource "google_project_iam_member" "maintner_account_iam" {
   member = "serviceAccount:${google_service_account.maintner_service_account.email}"
 }
 
+resource "google_project_iam_member" "error_reporting" {
+  project = var.project_id
+  role    = "roles/errorreporting.writer"
+  member  = "serviceAccount:${google_service_account.maintner_service_account.email}"
+}
 
 
 resource "google_service_account_key" "maintner_service_account_key" {
