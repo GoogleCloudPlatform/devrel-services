@@ -57,12 +57,12 @@ resource "google_service_account_key" "samplr_service_account_key" {
 }
 
 data "google_service_account_key" "samplr_service_account_key" {
-  name  = google_service_account_key.samplr_service_account_key.name
+  name = google_service_account_key.samplr_service_account_key.name
 }
 
 resource "google_storage_bucket_iam_binding" "editor" {
   bucket = var.settings_bucket_name
-  role = "roles/storage.admin"
+  role   = "roles/storage.admin"
   members = [
     "serviceAccount:${google_service_account.samplr_service_account.email}",
   ]
@@ -80,7 +80,7 @@ resource "google_project_iam_member" "error_reporting" {
 
 resource "google_compute_managed_ssl_certificate" "samplr-ssl" {
   provider = google-beta
-  name = "samplr-endpoints-cert"
+  name     = "samplr-endpoints-cert"
   managed {
     domains = [google_endpoints_service.samplr_grpc_service.service_name]
   }

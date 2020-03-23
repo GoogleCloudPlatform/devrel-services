@@ -6,7 +6,7 @@ variable "project_id" {
 
 variable "repos_file_name" {
   description = "The name of the file which lists the repositories to track"
-  default = "public_repos.json"
+  default     = "public_repos.json"
 }
 
 variable "settings_bucket_name" {
