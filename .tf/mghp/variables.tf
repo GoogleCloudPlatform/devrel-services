@@ -4,17 +4,17 @@ variable "project_id" {
 }
 
 variable "mghp_bucket_name" {
-  type = string
+  type        = string
   description = "The name of the Cloud Storage Bucket to store the Private Key and Certificate in"
 }
 
 variable "mghp_certificate_secret_name" {
-  type = string 
+  type        = string
   description = "The name of the Cloud Secret Manager Secret to use for the Magic GitHub Proxy certificate"
 }
 
 variable "mghp_private_key_secret_name" {
-  type = string 
+  type        = string
   description = "The name of the Cloud Secret Manager Secret to use for the Magic GitHub Proxy private key"
 }
 

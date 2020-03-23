@@ -15,13 +15,13 @@ data "google_compute_global_address" "mghp_address" {
 }
 
 resource "google_endpoints_service" "mghp_service" {
-  service_name         = "magic-github-proxy.endpoints.${var.project_id}.cloud.goog"
-  openapi_config       = templatefile("${path.module}/magic-github-proxy.yaml.tmpl",
-  {
-    project_id = var.project_id,
-    ip_addr = data.google_compute_global_address.mghp_address.address,  
+  service_name = "magic-github-proxy.endpoints.${var.project_id}.cloud.goog"
+  openapi_config = templatefile("${path.module}/magic-github-proxy.yaml.tmpl",
+    {
+      project_id = var.project_id,
+      ip_addr    = data.google_compute_global_address.mghp_address.address,
   })
-  
+
   depends_on = [
     data.google_compute_global_address.mghp_address,
   ]
@@ -67,15 +67,15 @@ resource "google_project_iam_member" "mghp_kms_iam" {
   ]
 }
 
-resource "google_kms_key_ring" "mghp_key_ring"{
-  name = "magic-github-proxy"
+resource "google_kms_key_ring" "mghp_key_ring" {
+  name     = "magic-github-proxy"
   location = "global"
 }
 
 resource "google_kms_crypto_key" "mghp_crypto_key" {
   name     = "enc-at-rest"
   key_ring = google_kms_key_ring.mghp_key_ring.self_link
-  purpose = "ENCRYPT_DECRYPT"
+  purpose  = "ENCRYPT_DECRYPT"
   depends_on = [
     google_kms_key_ring.mghp_key_ring,
   ]
@@ -89,8 +89,8 @@ resource "google_kms_crypto_key_iam_member" "mghp_crypto_key_decrypter" {
   role          = "roles/cloudkms.cryptoKeyDecrypter"
   member        = "serviceAccount:${google_service_account.mghp_service_account.email}"
   depends_on = [
-        google_service_account.mghp_service_account,
-        google_kms_crypto_key.mghp_crypto_key
+    google_service_account.mghp_service_account,
+    google_kms_crypto_key.mghp_crypto_key
   ]
 }
 
@@ -101,7 +101,7 @@ resource "google_kms_crypto_key_iam_member" "mghp_crypto_key_decrypter" {
 
 resource "google_compute_managed_ssl_certificate" "mghp_ssl" {
   provider = google-beta
-  name = "mghp-endpoints-cert"
+  name     = "mghp-endpoints-cert"
   managed {
     domains = [google_endpoints_service.mghp_service.service_name]
   }
@@ -115,28 +115,28 @@ resource "google_compute_managed_ssl_certificate" "mghp_ssl" {
 # MGHP BUCKET
 #
 resource "google_storage_bucket" "mghp_bucket" {
-  name = var.mghp_bucket_name
+  name     = var.mghp_bucket_name
   location = "US"
 }
 
 data "google_secret_manager_secret_version" "mghp_private_key" {
-    provider = google-beta
-    secret = var.mghp_private_key_secret_name
+  provider = google-beta
+  secret   = var.mghp_private_key_secret_name
 }
 
 resource "google_storage_bucket_object" "mghp_private_key" {
-  name   = "private.pem.enc"
+  name    = "private.pem.enc"
   content = data.google_secret_manager_secret_version.mghp_private_key.secret_data
-  bucket = google_storage_bucket.mghp_bucket.name
+  bucket  = google_storage_bucket.mghp_bucket.name
 }
 
 data "google_secret_manager_secret_version" "mghp_certificate" {
-    provider = google-beta
-    secret = var.mghp_certificate_secret_name
+  provider = google-beta
+  secret   = var.mghp_certificate_secret_name
 }
 
 resource "google_storage_bucket_object" "mghp_cert" {
-  name = "public.x509.cer.enc"
+  name    = "public.x509.cer.enc"
   content = data.google_secret_manager_secret_version.mghp_certificate.secret_data
-  bucket = google_storage_bucket.mghp_bucket.name
+  bucket  = google_storage_bucket.mghp_bucket.name
 }
