@@ -91,7 +91,7 @@ resource "google_service_account_key" "maintner_service_account_key" {
 }
 
 data "google_service_account_key" "maintner_service_account_key" {
-  name  = google_service_account_key.maintner_service_account_key.name
+  name = google_service_account_key.maintner_service_account_key.name
 }
 
 resource "google_compute_managed_ssl_certificate" "maintner-ssl" {

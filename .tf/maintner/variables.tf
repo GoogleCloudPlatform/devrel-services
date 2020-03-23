@@ -9,7 +9,7 @@ variable "maintner_bucket_name" {
 
 variable "repos_file_name" {
   description = "The name of the file which lists the repositories to track"
-  default = "public_repos.json"
+  default     = "public_repos.json"
 }
 
 variable "settings_bucket_name" {
@@ -17,12 +17,12 @@ variable "settings_bucket_name" {
 }
 
 variable "github_api_key_secret_names" {
-  type = set(string)
+  type        = set(string)
   description = "List of names of Cloud Secret Manager Secrets for API keys."
 }
 
-variable "sweeper_github_secret_key" { 
-  type = string
+variable "sweeper_github_secret_key" {
+  type        = string
   description = "The name of the Cloud Secret Manager Secret to use for sweeper"
 }
 
