@@ -43,6 +43,13 @@ module "samplr" {
   source = "./samplr"
 
   project_id = var.project_id
+
+  host = "${module.project_resources.host}"
+  client_key = "${module.project_resources.client_key}"
+  client_certificate = "${module.project_resources.client_certificate}"
+  cluster_ca_certificate = "${module.project_resources.cluster_ca_certificate}"
+
+  settings_bucket_name = "${module.project_resources.settings_bucket_name}"
 }
 
 module "mghp" {
