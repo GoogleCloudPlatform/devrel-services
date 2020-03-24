@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/errorreporting"
 	maintner_internal "github.com/GoogleCloudPlatform/devrel-services/drghs-worker/internal"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
@@ -44,7 +45,8 @@ var log *logrus.Logger
 
 // Flags
 var (
-	flRtrAddr *string
+	flRtrAddr   *string
+	flProjectID *string
 )
 
 // Constants
@@ -76,6 +78,7 @@ func init() {
 	log.Out = os.Stdout
 
 	flRtrAddr = flag.String("rtr-address", "", "specifies the address of the router to dial")
+	flProjectID = flag.String("project-id", "", "the GCP Project ID this is running in.")
 }
 
 func main() {
@@ -99,6 +102,21 @@ func main() {
 		log.Fatalf("env var %v is empty", GitHubEnvVar)
 	}
 
+	if *flProjectID == "" {
+		log.Fatal("--project-id is empty")
+	}
+
+	var errorClient, err = errorreporting.NewClient(ctx, *flProjectID, errorreporting.Config{
+		ServiceName: "maintner-sweeper",
+		OnError: func(err error) {
+			log.Printf("Could not report error: %v", err)
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer errorClient.Close()
+
 	log.Debugf("Setting up and dialing to maintner-rtr: %v", *flRtrAddr)
 	// Setup drghs client
 	var drghsc drghs_v1.IssueServiceClient
@@ -109,6 +127,9 @@ func main() {
 		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
 	)
 	if err != nil {
+		errorClient.Report(errorreporting.Entry{
+			Error: err,
+		})
 		log.Fatal(err)
 	}
 	defer conn.Close()
@@ -117,6 +138,9 @@ func main() {
 
 	repos, err := getTrackedRepositories(ctx, drghsc)
 	if err != nil {
+		errorClient.Report(errorreporting.Entry{
+			Error: err,
+		})
 		log.Fatal(err)
 	}
 
@@ -147,89 +171,75 @@ func main() {
 	// Then get all the mainter issues for the repo
 	// Finally, compare the two, find the ones in maintner that
 	// are not in GitHub && Flag them as NotExist
+	errs := make([]error, 0)
 	for _, repo := range repos {
-		log.Debugf("processing repo: %v", repo.String())
-
-		tr := repoToTrackedRepo(repo)
-
-		ghIssues, err := getGitHubIssuesForRepo(ctx, gqlc, repo)
+		err := processRepo(ctx, repo, gqlc)
 		if err != nil {
-			log.Fatal(err)
-		}
-		log.Debugf("repo: %v number of issues: %v\n", repo.String(), len(ghIssues))
-
-		ghPrs, err := getGitHubPullRequestsForRepo(ctx, gqlc, repo)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Debugf("repo: %v number of pull requests: %v\n", repo.String(), len(ghPrs))
-
-		ghIssuesByID := make(map[int32]struct{})
-		for _, iss := range ghIssues {
-			ghIssuesByID[iss.Number] = struct{}{}
-		}
-		for _, pr := range ghPrs {
-			ghIssuesByID[pr.Number] = struct{}{}
-		}
-
-		mtrIssues, err := getMaintnerIssuesForRepo(ctx, tr, repo)
-
-		log.Debugf("repo: %v number of maintner issues %v\n", repo.Name, len(mtrIssues))
-
-		tmbIssues := make([]int32, 0)
-		for _, mtri := range mtrIssues {
-			if _, ok := ghIssuesByID[mtri.IssueId]; !ok {
-				tmbIssues = append(tmbIssues, mtri.IssueId)
-			}
-		}
-
-		log.Debugf("repo: %v number of tombstoned issues %v\nissues to tombstone: %v\n", repo.Name, len(tmbIssues), tmbIssues)
-
-		if len(tmbIssues) > 0 {
-			log.Infof("repo: %v tombstoning: %v issues\n", repo.Name, len(tmbIssues))
-
-			err = flagIssuesTombstoned(ctx, tr, repo, tmbIssues)
-			if err != nil {
-				log.Fatal(err)
-			}
+			// Append and report
+			errs = append(errs, err)
+			errorClient.Report(errorreporting.Entry{
+				Error: err,
+			})
 		}
 	}
 
-	log.Infof("finished!")
+	log.Infof("finished with %v errors: %v", len(errs), errs)
 }
 
-type issue struct {
-	ID     string
-	Number int32
-}
+func processRepo(ctx context.Context, repo *drghs_v1.Repository, gqlc *githubv4.Client) error {
+	log.Debugf("processing repo: %v", repo.String())
 
-type pullRequest struct {
-	ID     string
-	Number int32
-}
+	tr := repoToTrackedRepo(repo)
 
-type ghIssuesQuery struct {
-	Repository struct {
-		Issues struct {
-			Nodes    []issue
-			PageInfo struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-		} `graphql:"issues(first: 100, after: $cursor)"` // 100 per page.
-	} `graphql:"repository(owner: $repositoryOwner, name: $repositoryName)"`
-}
+	ghIssues, err := getGitHubIssuesForRepo(ctx, gqlc, repo)
+	if err != nil {
+		log.Errorf("processing repo %v. hit an error getting GitHub Issues: %v", repo.String(), err)
+		return err
+	}
+	log.Debugf("repo: %v number of issues: %v\n", repo.String(), len(ghIssues))
 
-type ghPullRequestsQuery struct {
-	Repository struct {
-		PullRequests struct {
-			Nodes    []pullRequest
-			PageInfo struct {
-				EndCursor   githubv4.String
-				HasNextPage bool
-			}
-		} `graphql:"pullRequests(first: 100, after: $cursor)"` // 100 per page.
-	} `graphql:"repository(owner: $repositoryOwner, name: $repositoryName)"`
+	ghPrs, err := getGitHubPullRequestsForRepo(ctx, gqlc, repo)
+	if err != nil {
+		log.Errorf("processing repo %v. hit an error getting GitHub Pull Requests: %v", repo.String(), err)
+		return err
+	}
+	log.Debugf("repo: %v number of pull requests: %v\n", repo.String(), len(ghPrs))
+
+	ghIssuesByID := make(map[int32]struct{})
+	for _, iss := range ghIssues {
+		ghIssuesByID[iss.Number] = struct{}{}
+	}
+	for _, pr := range ghPrs {
+		ghIssuesByID[pr.Number] = struct{}{}
+	}
+
+	mtrIssues, err := getMaintnerIssuesForRepo(ctx, tr, repo)
+	if err != nil {
+		log.Errorf("processing repo %v. hit an error getting Maintner Issues and PRs: %v", repo.String(), err)
+		return err
+	}
+
+	log.Debugf("repo: %v number of maintner issues %v\n", repo.Name, len(mtrIssues))
+
+	tmbIssues := make([]int32, 0)
+	for _, mtri := range mtrIssues {
+		if _, ok := ghIssuesByID[mtri.IssueId]; !ok {
+			tmbIssues = append(tmbIssues, mtri.IssueId)
+		}
+	}
+
+	log.Debugf("repo: %v number of tombstoned issues %v\nissues to tombstone: %v\n", repo.Name, len(tmbIssues), tmbIssues)
+
+	if len(tmbIssues) > 0 {
+		log.Infof("repo: %v tombstoning: %v issues\n", repo.Name, len(tmbIssues))
+
+		err = flagIssuesTombstoned(ctx, tr, repo, tmbIssues)
+		if err != nil {
+			log.Errorf("processing repo %v. hit an error getting Tombstoning Issues: %v", repo.String(), err)
+			return err
+		}
+	}
+	return nil
 }
 
 func getMaintnerIssuesForRepo(ctx context.Context, tr *repos.TrackedRepository, repo *drghs_v1.Repository) ([]*drghs_v1.Issue, error) {
@@ -335,71 +345,6 @@ func flagIssuesTombstoned(ctx context.Context, tr *repos.TrackedRepository, repo
 	return err
 }
 
-func getGitHubIssuesForRepo(ctx context.Context, c *githubv4.Client, repo *drghs_v1.Repository) ([]issue, error) {
-	log.Debugf("getting GitHub issues for: %v", repo.String())
-
-	parts := strings.Split(repo.GetName(), "/")
-
-	var q ghIssuesQuery
-	variables := map[string]interface{}{
-		"repositoryOwner": githubv4.String(parts[0]),
-		"repositoryName":  githubv4.String(parts[1]),
-		"cursor":          (*githubv4.String)(nil), // Null after argument to get first page.
-	}
-	// Get issues from all pages.
-	var allIssues []issue
-	var pageN int
-	for {
-		err := c.Query(ctx, &q, variables)
-		if err != nil {
-			return make([]issue, 0), err
-		}
-		allIssues = append(allIssues, q.Repository.Issues.Nodes...)
-		if !q.Repository.Issues.PageInfo.HasNextPage {
-			break
-		}
-		variables["cursor"] = githubv4.NewString(q.Repository.Issues.PageInfo.EndCursor)
-		log.Debugf("getting GitHub issues for repo: %v. finished page: %v. current count: %v", repo.Name, pageN, len(allIssues))
-		pageN++
-	}
-
-	log.Debugf("finished getting GitHub issues for: %v. returning issues count: %v", repo.String(), len(allIssues))
-
-	return allIssues, nil
-}
-
-func getGitHubPullRequestsForRepo(ctx context.Context, c *githubv4.Client, repo *drghs_v1.Repository) ([]pullRequest, error) {
-	log.Debugf("getting GitHub pull requests for: %v", repo.String())
-
-	parts := strings.Split(repo.GetName(), "/")
-
-	var q ghPullRequestsQuery
-	variables := map[string]interface{}{
-		"repositoryOwner": githubv4.String(parts[0]),
-		"repositoryName":  githubv4.String(parts[1]),
-		"cursor":          (*githubv4.String)(nil), // Null after argument to get first page.
-	}
-	// Get pullRequests from all pages.
-	var allPullRequests []pullRequest
-	var pageN int
-	for {
-		err := c.Query(ctx, &q, variables)
-		if err != nil {
-			return make([]pullRequest, 0), err
-		}
-		allPullRequests = append(allPullRequests, q.Repository.PullRequests.Nodes...)
-		if !q.Repository.PullRequests.PageInfo.HasNextPage {
-			break
-		}
-		variables["cursor"] = githubv4.NewString(q.Repository.PullRequests.PageInfo.EndCursor)
-		log.Debugf("getting GitHub PullRequests for repo: %v. finished page: %v. current count: %v", repo.Name, pageN, len(allPullRequests))
-		pageN++
-	}
-	log.Debugf("finished getting GitHub PullRequests for: %v. returning PullRequests count: %v", repo.String(), len(allPullRequests))
-
-	return allPullRequests, nil
-}
-
 func serviceName(t *repos.TrackedRepository) (string, error) {
 	return strings.ToLower(fmt.Sprintf("mtr-s-%s", t.RepoSha())), nil
 }
@@ -429,22 +374,6 @@ func buildLimiter(nipr int32) *rate.Limiter {
 	limiter := rate.NewLimiter(limit, int(qps)+1)
 
 	return limiter
-}
-
-type limitTransport struct {
-	limiter *rate.Limiter
-	base    http.RoundTripper
-}
-
-func (t limitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	limiter := t.limiter
-	if limiter != nil {
-		log.Debug("in limitTransport. Round trip Waiting for limiter")
-		if err := limiter.Wait(r.Context()); err != nil {
-			return nil, err
-		}
-	}
-	return t.base.RoundTrip(r)
 }
 
 func buildRetryInterceptor() grpc.UnaryClientInterceptor {
