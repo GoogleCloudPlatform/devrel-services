@@ -127,6 +127,9 @@ func main() {
 		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
 	)
 	if err != nil {
+		errorClient.Report(errorreporting.Entry{
+			Error: err,
+		})
 		log.Fatal(err)
 	}
 	defer conn.Close()
@@ -135,6 +138,9 @@ func main() {
 
 	repos, err := getTrackedRepositories(ctx, drghsc)
 	if err != nil {
+		errorClient.Report(errorreporting.Entry{
+			Error: err,
+		})
 		log.Fatal(err)
 	}
 
