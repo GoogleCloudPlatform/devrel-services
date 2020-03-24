@@ -218,6 +218,7 @@ spec:
             image: gcr.io/PROJECT_ID/maintner-swpr:BUILD_ID
             args: [
               "--rtr-address=esp-maintnerd-rtr-np:5000",
+              "--project-id=PROJECT_ID",
             ]
             env:
               - name: GITHUB_TOKEN
@@ -225,4 +226,13 @@ spec:
                   secretKeyRef:
                     name: GITHUB_SECRET_NAME
                     key: SWPR_SECRET_KEY
+              - name: GOOGLE_APPLICATION_CREDENTIALS
+                value: /var/secrets/google/key.json
+            volumeMounts:
+            - mountPath: /var/secrets/google
+              name: gcp-sa
           restartPolicy: Never
+          volumes:
+          - name: gcp-sa
+            secret:
+              secretName: SERVICE_ACCOUNT_SECRET_NAME
