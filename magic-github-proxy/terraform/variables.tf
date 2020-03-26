@@ -1,4 +1,4 @@
-# Variables for DRGHS
+# Variables for the Platform/Core
 
 variable "project_id" {
   description = "The GCP project ID for this module."
@@ -21,26 +21,11 @@ variable "billing_account" {
   description = "The Billing Account associated with the project"
 }
 
-variable "maintner_bucket_name" {
-  type        = string
-  description = "Name of the GCS bucket to store Maintner logs to"
-}
-
-
 variable "settings_bucket_name" {
   description = "Name of the GCS bucket to store the list of Repositories"
 }
 
-variable "github_api_key_secret_names" {
-  type        = set(string)
-  description = "List of names of Cloud Secret Manager Secrets for API keys."
-}
-
-variable "sweeper_github_secret_key" {
-  type        = string
-  description = "The name of the Cloud Secret Manager Secret to use for sweeper"
-}
-
+#  Variables for MGHP
 variable "mghp_bucket_name" {
   type        = string
   description = "The name of the Cloud Storage Bucket to store the Private Key and Certificate in"

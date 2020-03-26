@@ -85,8 +85,3 @@ resource "google_container_node_pool" "samplr_nodes" {
     auto_upgrade = false
   }
 }
-
-resource "google_storage_bucket" "repos_list_bucket" {
-  name     = var.settings_bucket_name
-  location = "US"
-}
