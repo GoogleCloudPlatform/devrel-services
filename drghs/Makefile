@@ -23,36 +23,6 @@ build: ## Generates the go protobuf files
 	git clone --single-branch https://github.com/googleapis/googleapis googleapis
 	protoc --go_out=plugins=grpc:v1/ --proto_path=v1/ --proto_path=googleapis/ --include_imports --descriptor_set_out=v1/api_descriptor.pb v1/*.proto;
 
-.PHONY: build-magic-github-spec
-build-magic-github-spec: ## Builds the OpenAPI Specification for magic-github-proxy
-	docker build -t github-builder scripts/github-api-builder && docker run -it github-builder > endpoints/magic-github-proxy.yaml
-
-
-.PHONY: dev-deploy
-dev-deploy: check-project build-magic-github-spec ## Deploys the endpoints configuration to dev
-	gcloud builds submit \
-		--config=endpoints/cloudbuild.yaml \
-		--timeout=30m \
-		--substitutions _TYPE=DEV \
-		.
-
-.PHONY: prod-deploy
-prod-deploy: check-project check-deploy build-magic-github-spec ## Deploys the endpoints configuration to prod.
-	# do dangerous stuff
-	gcloud builds submit \
-		--config=endpoints/cloudbuild.yaml \
-		--timeout=30m \
-		--substitutions _TYPE=PROD \
-		.
-
-.PHONY: check-deploy
-check-deploy:
-	 @echo -n "Are you sure? [yN] " && read ans && [ $$ans == y ]
-
-.PHONY: check-project
-check-project:
-	@echo "Active project is: $$(gcloud config list --format 'value(core.project)')"
-	@echo -n "Are you sure? [yN] " && read ans && [ $$ans == y ]
 
 .PHONY: help
 help: ## Prints help message
