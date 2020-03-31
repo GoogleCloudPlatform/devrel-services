@@ -192,7 +192,7 @@ resource "kubernetes_deployment" "samplr_sprvsr" {
             "--listen=:80",
             "--verbose",
             "--gcp-project=${var.project_id}",
-            "--settings-bucket=${var.settings_bucket_name}",
+            "--settings-bucket=${data.terraform_remote_state.common.outputs.settings_bucket_name}",
             "--repos-file=${var.repos_file_name}",
             "--service-account-secret=SERVICE_ACCOUNT_SECRET_NAME",
             "--samplr-image-name=gcr.io/${var.project_id}/samplrd:latest"

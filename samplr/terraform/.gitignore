@@ -14,6 +14,7 @@ crash.log
 #
 # example.tfvars
 testing.tfvars
+deploy.tfvars
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
@@ -28,3 +29,6 @@ override.tf.json
 
 # Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
 # example: *tfplan*
+
+# Exclude the backend 
+backend.tf

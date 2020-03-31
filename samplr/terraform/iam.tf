@@ -18,7 +18,7 @@ data "google_service_account_key" "samplr_service_account_key" {
 }
 
 resource "google_storage_bucket_iam_binding" "editor" {
-  bucket = var.settings_bucket_name
+  bucket = data.terraform_remote_state.common.outputs.settings_bucket_name
   role   = "roles/storage.admin"
   members = [
     "serviceAccount:${google_service_account.samplr_service_account.email}",

@@ -25,6 +25,7 @@ variable "repos_file_name" {
   default     = "public_repos.json"
 }
 
-variable "settings_bucket_name" {
-  description = "The name of the bucket that stores the list of repositories to track"
+variable "core_state_bucket" {
+  type        = string
+  description = "The name of the GCS bucket which stores the state of the core infrastructure"
 }
