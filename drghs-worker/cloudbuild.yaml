@@ -15,100 +15,51 @@
 steps:
 # Build Maintner
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintnerd:$BUILD_ID','-f', 'drghs-worker/maintnerd/Dockerfile', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintnerd:latest','-f', 'drghs-worker/maintnerd/Dockerfile', '.']
   id: 'maintnerd-build'
   waitFor: ['-'] # Start Immediately
 
 # Push Maintner to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ["push", "gcr.io/$PROJECT_ID/maintnerd:$BUILD_ID"]
+  args: ["push", "gcr.io/$PROJECT_ID/maintnerd:latest"]
   waitFor: ['maintnerd-build']
   id: 'maintnerd-push'
 
 # Build Maintner-Router
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-rtr:$BUILD_ID','-f', 'drghs-worker/maintner-rtr/Dockerfile', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-rtr:latest','-f', 'drghs-worker/maintner-rtr/Dockerfile', '.']
   id: 'maintner-rtr-build'
   waitFor: ['-'] # Start Immediately
 
 # Push Maintner-Router to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ["push", "gcr.io/$PROJECT_ID/maintner-rtr:$BUILD_ID"]
+  args: ["push", "gcr.io/$PROJECT_ID/maintner-rtr:latest"]
   id: 'maintner-rtr-push'
   waitFor: ['maintner-rtr-build']
 
 # Build Maintner-Supervisor
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-sprvsr:$BUILD_ID','-f', 'drghs-worker/maintner-sprvsr/Dockerfile', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-sprvsr:latest','-f', 'drghs-worker/maintner-sprvsr/Dockerfile', '.']
   id: 'maintner-sprvsr-build'
   waitFor: ['-'] # Start Immediately
 
 # Push Maintner-Supervisor to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ["push", "gcr.io/$PROJECT_ID/maintner-sprvsr:$BUILD_ID"]
+  args: ["push", "gcr.io/$PROJECT_ID/maintner-sprvsr:latest"]
   id: 'maintner-sprvsr-push'
   waitFor: ['maintner-sprvsr-build']
 
 # Build Maintner-Sweeper
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-swpr:$BUILD_ID','-f', 'drghs-worker/maintner-swpr/Dockerfile', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/maintner-swpr:latest','-f', 'drghs-worker/maintner-swpr/Dockerfile', '.']
   id: 'maintner-swpr-build'
   waitFor: ['-'] # Start Immediately
 
 # Push Maintner-Sweeper to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ["push", "gcr.io/$PROJECT_ID/maintner-swpr:$BUILD_ID"]
+  args: ["push", "gcr.io/$PROJECT_ID/maintner-swpr:latest"]
   id: 'maintner-swpr-push'
   waitFor: ['maintner-swpr-build']
-
-# Prepare Kubernetes Manifest
-- name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'bash'
-  id: 'k8s-manifest-prep'
-  waitFor: ['-'] # Start Immediately
-  args:
-  - '-e'
-  - '-c'
-  - |
-    # Dynamically create service name based on the current project ID
-    SERVICE_NAME=drghs.endpoints.$PROJECT_ID.cloud.goog
-
-    ## Image name
-    MIMAGE_NAME=gcr.io/$PROJECT_ID/maintnerd:$BUILD_ID
-
-    # Deploy to Cloud Endpoints (note that some escaping is necessary
-    # for bash variable references)
-    #sed s/SERVICE_NAME/$$SERVICE_NAME/g api_config.yaml > target/api_config.yaml && \
-    #  gcloud endpoints services deploy target/api_descriptor.pb target/api_config.yaml
-
-    # Obtain the service config ID created by the deployment to Cloud Endpoints
-    SERVICE_CONFIG_ID=`gcloud endpoints services describe $$SERVICE_NAME --format=value\(serviceConfig.id\)`
-    # Substitute variables in Kubernetes manifest
-    mkdir -p target
-    cat drghs-worker/kubernetes/deployment.yaml | \
-      sed s/BUILD_ID/$BUILD_ID/g | \
-      sed s/PROJECT_ID/$PROJECT_ID/g | \
-      sed s/SERVICE_NAME/$$SERVICE_NAME/g | \
-      sed s/SERVICE_CONFIG_ID/$$SERVICE_CONFIG_ID/g | \
-      sed s/SETTINGS_BUCKET/$_BUCKET_NAME/g | \
-      sed s/REPOS_FILE/$_REPO_FILE_NAME/g | \
-      sed s/SERVICE_ACCOUNT_SECRET_NAME/$_SERVICE_ACCOUNT_SECRET/g | \
-      sed s/GITHUB_SECRET_NAME/$_GITHUB_SECRET_NAME/g | \
-      sed s/SWPR_SECRET_KEY/$_SWPR_SECRET_KEY/g | \
-      sed s/PREFIX/$_PREFIX/g \
-      > target/deployment.yaml
-
-# Perform Kubernetes Deployment
-- name: 'gcr.io/cloud-builders/kubectl'
-  entrypoint: 'bash'
-  id: 'k8s-push'
-  waitFor: ['k8s-manifest-prep','maintnerd-push','maintner-rtr-push','maintner-sprvsr-push']
-  args:
-  - '-e'
-  - '-c'
-  - |
-    gcloud container clusters get-credentials --project="$PROJECT_ID" --zone="$_ZONE" "$_CLUSTER"
-    kubectl apply -f target/deployment.yaml
 
 images:
 - 'gcr.io/$PROJECT_ID/maintnerd'

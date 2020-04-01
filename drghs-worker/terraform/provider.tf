@@ -5,6 +5,15 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(data.terraform_remote_state.common.outputs.cluster_ca_certificate)
 }
 
+provider "google" {
+  project = data.terraform_remote_state.common.outputs.project_id
+  region  = data.terraform_remote_state.common.outputs.region
+  version = "~> 3.12.0"
+  batching {
+    enable_batching = false
+  }
+}
+
 provider "google-beta" {
   project = data.terraform_remote_state.common.outputs.project_id
   region  = data.terraform_remote_state.common.outputs.region
