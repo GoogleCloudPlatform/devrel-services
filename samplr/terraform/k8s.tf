@@ -60,7 +60,7 @@ resource "kubernetes_deployment" "samplr_rtr" {
           }
         }
         container {
-          image = "gcr.io/${var.project_id}/samplr-rtr:latest"
+          image = "gcr.io/${var.project_id}/samplr-rtr:${var.image_tag}"
           name  = "samplrd-rtr"
           command = [
             "/samplr-rtr",
@@ -186,7 +186,7 @@ resource "kubernetes_deployment" "samplr_sprvsr" {
         }
         container {
           name  = "samplrd-sprvsr"
-          image = "gcr.io/${var.project_id}/samplr-sprvsr:latest"
+          image = "gcr.io/${var.project_id}/samplr-sprvsr:${var.image_tag}"
           command = [
             "/samplr-sprvsr",
             "--listen=:80",
@@ -195,7 +195,7 @@ resource "kubernetes_deployment" "samplr_sprvsr" {
             "--settings-bucket=${data.terraform_remote_state.common.outputs.settings_bucket_name}",
             "--repos-file=${var.repos_file_name}",
             "--service-account-secret=SERVICE_ACCOUNT_SECRET_NAME",
-            "--samplr-image-name=gcr.io/${var.project_id}/samplrd:latest"
+            "--samplr-image-name=gcr.io/${var.project_id}/samplrd:${var.image_tag}"
           ]
           liveness_probe {
             http_get {
