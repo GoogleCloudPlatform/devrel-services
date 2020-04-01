@@ -26,12 +26,12 @@ resource "google_service_account" "maintner_service_account" {
 }
 
 resource "google_project_iam_member" "maintner_account_iam" {
-  role   = "projects/${var.project_id}/roles/${google_project_iam_custom_role.maintner_sprvsr_bucket_creator.role_id}"
+  role   = "projects/${data.terraform_remote_state.common.outputs.project_id}/roles/${google_project_iam_custom_role.maintner_sprvsr_bucket_creator.role_id}"
   member = "serviceAccount:${google_service_account.maintner_service_account.email}"
 }
 
 resource "google_project_iam_member" "error_reporting" {
-  project = var.project_id
+  project = data.terraform_remote_state.common.outputs.project_id
   role    = "roles/errorreporting.writer"
   member  = "serviceAccount:${google_service_account.maintner_service_account.email}"
 }

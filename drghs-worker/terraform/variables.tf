@@ -1,23 +1,6 @@
-
-variable "project_id" {
-  description = "The GCP project ID for this module."
-}
-
-variable "project_name" {
-  description = "The GCP project name for this module, *might* be the same as project_id."
-}
-
-variable "region" {
-  description = "The GCP region for this module."
-}
-
-variable "folder_id" {
-  description = "The Folder the GCP Project is stored in."
-}
-
-variable "billing_account" {
+variable "core_state_bucket" {
   type        = string
-  description = "The Billing Account associated with the project"
+  description = "The name of the GCS bucket which stores the state of the core infrastructure"
 }
 
 variable "maintner_bucket_name" {
@@ -41,4 +24,10 @@ variable "github_api_key_secret_names" {
 variable "sweeper_github_secret_key" {
   type        = string
   description = "The name of the Cloud Secret Manager Secret to use for sweeper"
+}
+
+variable "image_tag" {
+  type        = string
+  description = "The tag of the Docker Images to use to deploy"
+  default     = "latest"
 }

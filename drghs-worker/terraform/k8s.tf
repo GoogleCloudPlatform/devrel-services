@@ -36,7 +36,7 @@ resource "kubernetes_deployment" "maintner_rtr" {
           args = [
             "--http_port", "8080",
             "--backend", "grpc://127.0.0.1:80",
-            "--service=drghs.endpoints.${var.project_id}.cloud.goog",
+            "--service=drghs.endpoints.${data.terraform_remote_state.common.outputs.project_id}.cloud.goog",
             "--version=${google_endpoints_service.maintner_grpc_service.config_id}",
             "--healthz=_healthz"
           ]
@@ -66,7 +66,7 @@ resource "kubernetes_deployment" "maintner_rtr" {
         }
 
         container {
-          image = "gcr.io/${var.project_id}/maintner-rtr:latest"
+          image = "gcr.io/${data.terraform_remote_state.common.outputs.project_id}/maintner-rtr:${var.image_tag}"
           name  = "maintnerd-rtr"
           command = [
             "/maintner-rtr",
@@ -224,18 +224,18 @@ resource "kubernetes_deployment" "maintner_sprvsr" {
           }
         }
         container {
-          image = "gcr.io/${var.project_id}/maintnerd-sprvsr:latest"
+          image = "gcr.io/${data.terraform_remote_state.common.outputs.project_id}/maintnerd-sprvsr:${var.image_tag}"
           name  = "maintnerd-sprvsr"
           command = [
             "/maintner-sprvsr",
             "--listen=:80",
             "--verbose",
-            "--gcp-project=${var.project_id}",
+            "--gcp-project=${data.terraform_remote_state.common.outputs.project_id}",
             "--github-secret=${kubernetes_secret.github_tokens.metadata.0.name}",
             "--settings-bucket=${var.settings_bucket_name}",
             "--repos-file=${var.repos_file_name}",
             "--service-account-secret=SERVICE_ACCOUNT_SECRET_NAME",
-            "--maint-image-name=gcr.io/${var.project_id}/maintnerd:latest",
+            "--maint-image-name=gcr.io/${data.terraform_remote_state.common.outputs.project_id}/maintnerd:${var.image_tag}",
             "--mutation-bucket=PREFIX",
           ]
           port {
@@ -280,7 +280,7 @@ resource "kubernetes_cron_job" "sweeper" {
           spec {
             container {
               name  = "maintner-swpr"
-              image = "gcr.io/${var.project_id}/maintner-swpr:latest"
+              image = "gcr.io/${data.terraform_remote_state.common.outputs.project_id}/maintner-swpr:${var.image_tag}"
               args = [
                 "--rtr-address=${kubernetes_service.maintner_rtr_np.metadata.0.name}:5000"
               ]
