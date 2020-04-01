@@ -34,7 +34,7 @@ resource "kubernetes_deployment" "samplr_rtr" {
           args = [
             "--http_port", "8080",
             "--backend", "grpc://127.0.0.1:80",
-            "--service=samplr.endpoints.${var.project_id}.cloud.goog",
+            "--service=samplr.endpoints.${data.terraform_remote_state.common.outputs.project_id}.cloud.goog",
             "--version=${google_endpoints_service.samplr_grpc_service.config_id}",
             "--healthz=_healthz"
           ]
@@ -60,7 +60,7 @@ resource "kubernetes_deployment" "samplr_rtr" {
           }
         }
         container {
-          image = "gcr.io/${var.project_id}/samplr-rtr:${var.image_tag}"
+          image = "gcr.io/${data.terraform_remote_state.common.outputs.project_id}/samplr-rtr:${var.image_tag}"
           name  = "samplrd-rtr"
           command = [
             "/samplr-rtr",
@@ -186,16 +186,16 @@ resource "kubernetes_deployment" "samplr_sprvsr" {
         }
         container {
           name  = "samplrd-sprvsr"
-          image = "gcr.io/${var.project_id}/samplr-sprvsr:${var.image_tag}"
+          image = "gcr.io/${data.terraform_remote_state.common.outputs.project_id}/samplr-sprvsr:${var.image_tag}"
           command = [
             "/samplr-sprvsr",
             "--listen=:80",
             "--verbose",
-            "--gcp-project=${var.project_id}",
+            "--gcp-project=${data.terraform_remote_state.common.outputs.project_id}",
             "--settings-bucket=${data.terraform_remote_state.common.outputs.settings_bucket_name}",
             "--repos-file=${var.repos_file_name}",
             "--service-account-secret=SERVICE_ACCOUNT_SECRET_NAME",
-            "--samplr-image-name=gcr.io/${var.project_id}/samplrd:${var.image_tag}"
+            "--samplr-image-name=gcr.io/${data.terraform_remote_state.common.outputs.project_id}/samplrd:${var.image_tag}"
           ]
           liveness_probe {
             http_get {

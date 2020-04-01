@@ -12,12 +12,10 @@ output "client_key" {
   sensitive = true
 }
 
-
 output "cluster_ca_certificate" {
   value     = "${google_container_cluster.devrel_services.master_auth.0.cluster_ca_certificate}"
   sensitive = true
 }
-
 
 output "host" {
   value     = "${google_container_cluster.devrel_services.endpoint}"
@@ -28,3 +26,10 @@ output "settings_bucket_name" {
   value = "${google_storage_bucket.repos_list_bucket.name}"
 }
 
+output "project_id" {
+  value = "${var.project_id}"
+}
+
+output "region" {
+  value = "${var.region}"
+}

@@ -26,7 +26,7 @@ resource "google_storage_bucket_iam_binding" "editor" {
 }
 
 resource "google_project_iam_member" "error_reporting" {
-  project = var.project_id
+  project = data.terraform_remote_state.common.outputs.project_id
   role    = "roles/errorreporting.writer"
   member  = "serviceAccount:${google_service_account.samplr_service_account.email}"
 }

@@ -8,8 +8,8 @@ provider "kubernetes" {
 # Provider definitions
 
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  project = data.terraform_remote_state.common.outputs.project_id
+  region  = data.terraform_remote_state.common.outputs.region
   version = "~> 3.12.0"
   batching {
     enable_batching = false
@@ -17,8 +17,8 @@ provider "google" {
 }
 
 provider "google-beta" {
-  project = var.project_id
-  region  = var.region
+  project = data.terraform_remote_state.common.outputs.project_id
+  region  = data.terraform_remote_state.common.outputs.region
   version = "~> 3.12.0"
   batching {
     enable_batching = false
