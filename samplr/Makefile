@@ -56,28 +56,14 @@ test: ## Tests the go module
 	go test .
 
 .PHONY: deploy
-deploy: check-deploy check-project ## Builds and deploys to GKE using cloud build
-	gcloud builds submit \
-	--timeout=1h \
-    --config=cloudbuild.yaml \
-    --substitutions _ZONE=$(GCP_CLUSTER_ZONE),_CLUSTER=$(GCP_CLUSTER_NAME),_SERVICE_ACCOUNT_SECRET=$(SERVICE_ACCOUNT_SECRET_NAME),_BUCKET_NAME=$(GCS_BUCKET_NAME),_REPO_FILE_NAME=$(REPOS_FILE_NAME) \
-	../
-
-.PHONY: check-deploy
-check-deploy: printvars
-	 @echo -n "Are you sure? [yN] " && read ans && [ $$ans == y ]
-
-.PHONY: check-project
-check-project:
-	@echo "Active project is: $$(gcloud config list --format 'value(core.project)')"
-	@echo -n "Are you sure? [yN] " && read ans && [ $$ans == y ]
+deploy: ## Builds and deploys
+	./deploy.sh
 
 .PHONY: printvars
 printvars:
 	@$(foreach V,$(sort $(.VARIABLES)),\
 		$(if $(filter-out environment% default automatic,\
 		$(origin $V)),$(info $V=$($V) ($(value $V)))))
-
 
 .PHONY: help
 help: ## Prints help message
