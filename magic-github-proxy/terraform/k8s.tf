@@ -30,7 +30,7 @@ resource "kubernetes_deployment" "mghp" {
           name  = "esp"
           args = [
             "--http_port=8080", #http
-            "--service=mghp.endpoints.${var.project_id}.cloud.goog",
+            "--service=mghp.endpoints.${data.terraform_remote_state.common.outputs.project_id}.cloud.goog",
             "--backend=http://127.0.0.1:5000",
             "--healthz=_healthz"
           ]
@@ -47,14 +47,14 @@ resource "kubernetes_deployment" "mghp" {
         }
         container {
           name  = "magic-github-proxy"
-          image = "gcr.io/${var.project_id}/magic-github-proxy:latest"
+          image = "gcr.io/${data.terraform_remote_state.common.outputs.project_id}/magic-github-proxy:${var.image_tag}"
           command = [
             "python",
             "main.py",
             "--port",
             "5000",
             "--project-id",
-            "${var.project_id}",
+            "${data.terraform_remote_state.common.outputs.project_id}",
             "--kms-location",
             "${google_kms_key_ring.mghp_key_ring.location}",
             "--kms-key-ring",

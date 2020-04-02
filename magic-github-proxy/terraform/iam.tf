@@ -27,7 +27,7 @@ resource "google_project_iam_custom_role" "mghp_kms_access" {
 }
 
 resource "google_project_iam_member" "mghp_kms_iam" {
-  role   = "projects/${var.project_id}/roles/${google_project_iam_custom_role.mghp_kms_access.role_id}"
+  role   = "projects/${data.terraform_remote_state.common.outputs.project_id}/roles/${google_project_iam_custom_role.mghp_kms_access.role_id}"
   member = "serviceAccount:${google_service_account.mghp_service_account.email}"
   depends_on = [
     google_service_account.mghp_service_account,
