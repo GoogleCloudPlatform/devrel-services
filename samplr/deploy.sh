@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euxo pipefail
+
 echo Active project is $(gcloud config list --format 'value(core.project)')
 
 auto_approve=""
