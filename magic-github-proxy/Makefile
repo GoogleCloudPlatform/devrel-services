@@ -24,19 +24,6 @@
 # or passed through directly when invoking the relevent Make targets
 #
 
-# The (gcloud) test cluster that is being worked against
-GCP_CLUSTER_NAME ?= devrel-services
-GCP_CLUSTER_ZONE ?= us-central1-a
-# The KMS Settings
-KMS_LOCATION ?= global
-KMS_KEY_RING ?= magic-github-proxy
-KMS_KEY ?= enc-at-rest
-# The GCS Bucket Settings
-GCS_BUCKET_NAME ?= magic-github-proxy
-# Asymetric key files
-PRIVATE_KEY_FILE ?= private.pem.enc
-CERTIFICATE_FILE ?= public.x509.cer.enc
-
 #   _____                    _
 #  |_   _|_ _ _ __ __ _  ___| |_ ___
 #    | |/ _` | '__/ _` |/ _ \ __/ __|
@@ -53,20 +40,8 @@ build: ## Builds the docker image locally
 	docker build -t magic-github-proxy:dev .
 
 .PHONY: deploy
-deploy: check-project check-deploy ## Deploys the app to the cluster
-	gcloud builds submit \
-    --config=cloudbuild.yaml \
-    --substitutions _ZONE=$(GCP_CLUSTER_NAME),_CLUSTER=$(GCP_CLUSTER_NAME),_KMS_LOCATION=$(KMS_LOCATION),_KMS_KEY_RING=$(KMS_KEY_RING),_KMS_KEY=$(KMS_KEY),_BUCKET_NAME=$(GCS_BUCKET_NAME),_PRIVATE_FILE=$(PRIVATE_KEY_FILE),_CERTIFICATE_FILE=$(CERTIFICATE_FILE) \
-	.
-
-.PHONY: check-deploy
-check-deploy: printvars
-	 @echo -n "Are you sure? [yN] " && read ans && [ $$ans == y ]
-
-.PHONY: check-project
-check-project:
-	@echo "Active project is: $$(gcloud config list --format 'value(core.project)')"
-	@echo -n "Are you sure? [yN] " && read ans && [ $$ans == y ]
+deploy: ## Deploys the app to the cluster
+	./deploy.sh
 
 .PHONY: printvars
 printvars:
