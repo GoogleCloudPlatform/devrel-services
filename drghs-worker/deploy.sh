@@ -40,5 +40,6 @@ docker push gcr.io/$PROJECT_ID/maintnerd:latest
 
 (
     cd terraform 
+    terraform init
     terraform apply ${auto_approve} -var="image_tag=${UUID}"
 )
