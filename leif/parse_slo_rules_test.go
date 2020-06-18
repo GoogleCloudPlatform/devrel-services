@@ -598,29 +598,34 @@ func TestSLORuleCreation(t *testing.T) {
 	}
 }
 
-func TestAddPriority(t *testing.T) {
+func TestAddToGitHubLabels(t *testing.T) {
 	cases := []struct {
 		name     string
+		prepend  string
+		label    string
+		current  *sloRuleJSON
 		expected *sloRuleJSON
 	}{
 		{
-			name: "Creates a SLO with defaults",
+			name:    "Adds basic priority to labels",
+			prepend: "priority: ",
+			label:   "P2",
+			current: &sloRuleJSON{
+				AppliesToJSON:          AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
+			},
 			expected: &sloRuleJSON{
 				AppliesToJSON: AppliesToJSON{
-					Issues: true,
-					PRs:    false,
+					GitHubLabelsRaw: []string{"priority: P2"},
 				},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{
-					ResponseTime:     0,
-					ResolutionTime:   0,
-					RequiresAssignee: false,
-				},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
 			},
 		},
 	}
 	for _, c := range cases {
-		if got := newSLORuleJSON(); !reflect.DeepEqual(got, c.expected) {
-			t.Errorf("newSLORuleJSON: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, got, c.expected)
+		c.current.addToGitHubLabels(c.prepend, c.label)
+		if !reflect.DeepEqual(c.current, c.expected) {
+			t.Errorf("add to GH labels: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, c.current, c.expected)
 		}
 
 	}

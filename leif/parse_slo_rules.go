@@ -100,17 +100,9 @@ func newSLORuleJSON() *sloRuleJSON {
 	}
 }
 
-func (rule *sloRuleJSON) addPriorityToGitHubLabels() {
-	if len(rule.AppliesToJSON.Priority) > 0 {
-		priority := "priority: " + rule.AppliesToJSON.Priority
-		rule.AppliesToJSON.GitHubLabelsRaw = append(rule.AppliesToJSON.GitHubLabelsRaw, priority)
-	}
-}
-
-func (rule *sloRuleJSON) addIssueTypeToGitHubLabels() {
-	if len(rule.AppliesToJSON.IssueType) > 0 {
-		issueType := "type: " + rule.AppliesToJSON.IssueType
-		rule.AppliesToJSON.GitHubLabelsRaw = append(rule.AppliesToJSON.GitHubLabelsRaw, issueType)
+func (rule *sloRuleJSON) addToGitHubLabels(prepend string, property string) {
+	if len(property) > 0 {
+		rule.AppliesToJSON.GitHubLabelsRaw = append(rule.AppliesToJSON.GitHubLabelsRaw, prepend+property)
 	}
 }
 
@@ -164,8 +156,8 @@ func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
 		return nil, err
 	}
 
-	jsonRule.addPriorityToGitHubLabels()
-	jsonRule.addIssueTypeToGitHubLabels()
+	jsonRule.addToGitHubLabels("priority: ", jsonRule.AppliesToJSON.Priority)
+	jsonRule.addToGitHubLabels("type: ", jsonRule.AppliesToJSON.IssueType)
 	jsonRule.applyResponderDefault()
 
 	marshaled, err := json.Marshal(jsonRule)
