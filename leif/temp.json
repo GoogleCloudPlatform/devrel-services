@@ -1,0 +1,44 @@
+[
+    {
+        "appliesTo": {
+            "gitHubLabels": [
+                "priority: P0",
+                "bug",
+                "prs is true, issues empty"
+            ],
+            "prs": true
+        },
+        "complianceSettings": {
+            "responseTime": "10m1d",
+            "resolutionTime": 43200,
+            "requiresAssignee": true
+        }
+    },
+    {
+        "appliesTo": {
+            "gitHubLabels": [
+                "issues is false, prs empty"
+            ],
+            "excludedGitHubLabels": [
+                "this is an array",
+                "2 els"
+            ],
+            "issues": false,
+            "priority": "P3",
+            "issueType": "tipo"
+        }
+    },
+    {
+        "appliesTo": {
+            "excludedGitHubLabels": "this is a string not an array"
+        },
+        "complianceSettings": {
+            "responseTime": "10m",
+            "resolutionTime": "1.0s",
+            "requiresAssignee": true,
+            "responders": {
+                "owners": "linktoSomewhere"
+            }
+        }
+    }
+]
