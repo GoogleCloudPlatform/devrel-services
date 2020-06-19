@@ -359,10 +359,10 @@ func TestParsesSLORules(t *testing.T) {
 	for _, test := range tests {
 		got, err := unmarshalSLOs([]byte(test.jsonString))
 		if !reflect.DeepEqual(got, test.expected) {
-			t.Errorf("unmarshalSLOs: %v.\n\tWant Value: %v. \n\tGot Value: %v. \n\tWant Err: %v \n\tGot Err: %v", test.name, test.expected, got, test.wanterr, err)
+			t.Errorf("unmarshalSLOs: %v did not pass.\n\tWant: %v\n\tGot Value: %v", test.name, test.expected, got)
 		}
 		if (test.wanterr && err == nil) || (!test.wanterr && err != nil) {
-			t.Errorf("unmarshalSLOs: %v.\n\tWant Value: %v. \n\tGot Value: %v. \n\tWant Err: %v \n\tGot Err: %v", test.name, test.expected, got, test.wanterr, err)
+			t.Errorf("unmarshalSLOs: %v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wanterr, err)
 		}
 	}
 }
@@ -423,7 +423,7 @@ func TestParseDurationWithDays(t *testing.T) {
 			t.Errorf("Test %v did not pass. Got: %v, Want: %v", c.name, got, c.want)
 		}
 		if (gotErr == nil && c.wantErr) || (gotErr != nil && !c.wantErr) {
-			t.Errorf("Test %v did not pass GotErr: %v, WantErr: %v", c.name, gotErr, c.wantErr)
+			t.Errorf("Test %v did not pass. GotErr: %v, WantErr: %v", c.name, gotErr, c.wantErr)
 		}
 	}
 }
@@ -476,10 +476,10 @@ func TestStringOrArrayUnmarshalling(t *testing.T) {
 		var got stringOrArray
 		gotErr := json.Unmarshal([]byte(c.jsonInput), &got)
 		if !reflect.DeepEqual(got, c.expected) || (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
-			t.Errorf("stringOrArrayUmarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, got, c.expected, gotErr, c.wantErr)
+			t.Errorf("stringOrArrayUmarshal: %v did not pass.\n\tGot:\t%v\n\tWant:\t%v", c.name, got, c.expected)
 		}
 		if (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
-			t.Errorf("stringOrArrayUmarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, got, c.expected, gotErr, c.wantErr)
+			t.Errorf("stringOrArrayUmarshal: %v did not pass.\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, gotErr, c.wantErr)
 		}
 	}
 }
@@ -508,10 +508,10 @@ func TestDurationMarshalling(t *testing.T) {
 		got, gotErr := json.Marshal(c.dur)
 
 		if !reflect.DeepEqual(got, []byte(c.expected)) {
-			t.Errorf("durationMarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, string(got), c.expected, gotErr, c.wantErr)
+			t.Errorf("durationMarshal: %v did not pass.\n\tGot:\t%v\n\tWant:\t%v", c.name, string(got), c.expected)
 		}
 		if (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
-			t.Errorf("durationMarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, string(got), c.expected, gotErr, c.wantErr)
+			t.Errorf("durationMarshal: %v did not pass.\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, gotErr, c.wantErr)
 		}
 
 	}
@@ -572,10 +572,10 @@ func TestDurationUnmarshalling(t *testing.T) {
 		gotErr := json.Unmarshal([]byte(c.jsonInput), &got)
 
 		if *got != c.expected {
-			t.Errorf("duration unmarshalling: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, *got, c.expected, gotErr, c.wantErr)
+			t.Errorf("duration unmarshalling: %v did not pass.\n\tGot:\t%v\n\tWant:\t%v", c.name, *got, c.expected)
 		}
 		if (c.wantErr && gotErr == nil) || (!c.wantErr && gotErr != nil) {
-			t.Errorf("duration unmarshalling: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, *got, c.expected, gotErr, c.wantErr)
+			t.Errorf("duration unmarshalling: %v did not pass.\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, gotErr, c.wantErr)
 		}
 	}
 }
