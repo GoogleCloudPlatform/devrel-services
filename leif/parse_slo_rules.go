@@ -68,7 +68,7 @@ func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
 	str, isString := tempInterface.(string)
 
 	if isString {
-		d, err := ParseDurationWithDays(str)
+		d, err := parseDurationWithDays(str)
 		*stringOrInt = duration(d)
 		return err
 	}
@@ -82,9 +82,6 @@ func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
 
 	return errors.New("Invalid duration format")
 }
-
-type priority string
-type issueType string
 
 type sloRuleJSON struct {
 	AppliesToJSON          AppliesToJSON          `json:"appliesTo"`
@@ -112,40 +109,6 @@ func (rule *sloRuleJSON) applyResponderDefault() { //if not defined
 		rule.ComplianceSettingsJSON.RespondersJSON.Users == nil {
 		rule.ComplianceSettingsJSON.RespondersJSON.Contributors = "WRITE"
 	}
-}
-
-type AppliesToJSON struct {
-	GitHubLabelsRaw         stringOrArray `json:"gitHubLabels"`
-	ExcludedGitHubLabelsRaw stringOrArray `json:"excludedGitHubLabels"`
-	Priority                string        `json:"priority"`
-	IssueType               string        `json:"issueType"`
-	Issues                  bool          `json:"issues"`
-	PRs                     bool          `json:"prs"`
-}
-
-type ComplianceSettingsJSON struct {
-	ResponseTime     duration       `json:"responseTime"`
-	ResolutionTime   duration       `json:"resolutionTime"`
-	RequiresAssignee bool           `json:"requiresAssignee"`
-	RespondersJSON   RespondersJSON `json:"responders"`
-}
-
-type RespondersJSON struct {
-	OwnersRaw    stringOrArray `json:"owners"`
-	Contributors string        `json:"contributors"`
-	Users        []string      `json:"users"`
-}
-
-func ParseDurationWithDays(duration string) (time.Duration, error) {
-	if strings.Contains(duration, ".") {
-		return 0, errors.New("Duration should not contain fractions")
-	}
-	str := dayReg.ReplaceAllStringFunc(duration, func(s string) string {
-		days, _ := strconv.Atoi(s[:len(s)-1])
-		s = strconv.Itoa(days*24) + "h"
-		return s
-	})
-	return time.ParseDuration(str)
 }
 
 func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
@@ -195,7 +158,36 @@ func unmarshalSLOs(data []byte) ([]*SLORule, error) {
 	return sloRules, err
 }
 
-// func (rule *SLORule) String() string {
-// 	str := string(*rule)
-// 	return str
-// }
+type AppliesToJSON struct {
+	GitHubLabelsRaw         stringOrArray `json:"gitHubLabels"`
+	ExcludedGitHubLabelsRaw stringOrArray `json:"excludedGitHubLabels"`
+	Priority                string        `json:"priority"`
+	IssueType               string        `json:"issueType"`
+	Issues                  bool          `json:"issues"`
+	PRs                     bool          `json:"prs"`
+}
+
+type ComplianceSettingsJSON struct {
+	ResponseTime     duration       `json:"responseTime"`
+	ResolutionTime   duration       `json:"resolutionTime"`
+	RequiresAssignee bool           `json:"requiresAssignee"`
+	RespondersJSON   RespondersJSON `json:"responders"`
+}
+
+type RespondersJSON struct {
+	OwnersRaw    stringOrArray `json:"owners"`
+	Contributors string        `json:"contributors"`
+	Users        []string      `json:"users"`
+}
+
+func parseDurationWithDays(duration string) (time.Duration, error) {
+	if strings.Contains(duration, ".") {
+		return 0, errors.New("Duration should not contain fractions")
+	}
+	str := dayReg.ReplaceAllStringFunc(duration, func(s string) string {
+		days, _ := strconv.Atoi(s[:len(s)-1])
+		s = strconv.Itoa(days*24) + "h"
+		return s
+	})
+	return time.ParseDuration(str)
+}

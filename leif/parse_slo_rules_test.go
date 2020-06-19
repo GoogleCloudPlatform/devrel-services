@@ -29,346 +29,343 @@ var oneDay, _ = time.ParseDuration("24h")
 var syntaxError *json.SyntaxError
 var unmarshalTypeError *json.UnmarshalTypeError
 
-// func TestParsesSLORules(t *testing.T) {
-// 	tests := []struct {
-// 		name       string
-// 		jsonString string
-// 		expected   []*SLORule
-// 		wanterr    bool
-// 	}{
-// 		{
-// 			name:       "Empty array returns no rules",
-// 			jsonString: `[]`,
-// 			expected:   nil,
-// 			wanterr:    false,
-// 		},
-// 		{
-// 			name:       "Empty json returns no rules",
-// 			jsonString: ``,
-// 			expected:   nil,
-// 			wanterr:    false,
-// 		},
-// 		{
-// 			name: "Minimum default rule returns a rule with defaults applied",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&defaultSLO},
-// 			wanterr:  false,
-// 		},
-// 		{
-// 			name: "More than one rule is parsed correctly",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				},
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&defaultSLO, &defaultSLO},
-// 			wanterr:  false,
-// 		},
-// 		{
-// 			name: "Basic time strings are parsed correctly",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": "1h",
-// 						"resolutionTime": "1s"
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					Issues: true,
-// 					PRs:    false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(1 * 60 * 60 * oneSec)),
-// 					ResolutionTime: duration(time.Duration(oneSec)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Time strings with multiple values are parsed correctly",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": "1h1m1s",
-// 						"resolutionTime": "1s1h1m"
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					Issues: true,
-// 					PRs:    false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(oneHour + oneMin + oneSec)),
-// 					ResolutionTime: duration(time.Duration(oneHour + oneMin + oneSec)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Time strings with day values are parsed correctly",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": "1d1h1m1s",
-// 						"resolutionTime": "30d"
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					Issues: true,
-// 					PRs:    false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration((24 * oneHour) + oneHour + oneMin + oneSec)),
-// 					ResolutionTime: duration(time.Duration(30 * 24 * oneHour)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Time defined as a number is parsed correctly",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 43200
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					Issues: true,
-// 					PRs:    false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(0)),
-// 					ResolutionTime: duration(time.Duration(43200 * oneSec)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Incorrect time string fails with error",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": "1w",
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: nil,
-// 			wanterr:  true,
-// 		},
-// 		{
-// 			name: "Priority gets converted to a GitHub label",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {
-// 						"priority": "P1"
-// 					},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					GitHubLabels: []string{"priority: P1"},
-// 					Issues:       true,
-// 					PRs:          false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(0)),
-// 					ResolutionTime: duration(time.Duration(0)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Issue type gets converted to a GitHub label",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {
-// 						"issueType": "bug"
-// 					},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					GitHubLabels: []string{"type: bug"},
-// 					Issues:       true,
-// 					PRs:          false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(0)),
-// 					ResolutionTime: duration(time.Duration(0)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Contributors is set to none if another field is defined in Responders",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0,
-// 						"responders": {
-// 							"users": ["@jeff"]
-// 						}
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					Issues: true,
-// 					PRs:    false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(0)),
-// 					ResolutionTime: duration(time.Duration(0)),
-// 					Responders:     Responders{Users: []string{"@jeff"}},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Can set GitHubLabels as a string",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {
-// 						"gitHubLabels": "a label"
-// 					},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					GitHubLabels: []string{"a label"},
-// 					Issues:       true,
-// 					PRs:          false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(0)),
-// 					ResolutionTime: duration(time.Duration(0)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		{
-// 			name: "Can set GitHubLabels as an array",
-// 			jsonString: `[
-// 				{
-// 					"appliesTo": {
-// 						"gitHubLabels": ["label 1", "label 2"]
-// 					},
-// 					"complianceSettings": {
-// 						"responseTime": 0,
-// 						"resolutionTime": 0
-// 					}
-// 				}
-// 		 	]`,
-// 			expected: []*SLORule{&SLORule{
-// 				AppliesTo: AppliesTo{
-// 					GitHubLabels: []string{"label 1", "label 2"},
-// 					Issues:       true,
-// 					PRs:          false,
-// 				},
-// 				ComplianceSettings: ComplianceSettings{
-// 					ResponseTime:   duration(time.Duration(0)),
-// 					ResolutionTime: duration(time.Duration(0)),
-// 					Responders:     Responders{Contributors: "WRITE"},
-// 				},
-// 			}},
-// 			wanterr: false,
-// 		},
-// 		// {
-// 		// 	name: "No responders can be specified",
-// 		// 	jsonString: `[
-// 		// 		{
-// 		// 			"appliesTo": {},
-// 		// 			"complianceSettings": {
-// 		// 				"responseTime": 0,
-// 		// 				"resolutionTime": 0,
-// 		// 				"responders": {
-// 		// 					"users": []
-// 		// 				}
-// 		// 			}
-// 		// 		}
-// 		//  	]`,
-// 		// 	expected: []*SLORule{&SLORule{
-// 		// 		AppliesTo: AppliesTo{
-// 		// 			Issues: true,
-// 		// 			PRs:    false,
-// 		// 		},
-// 		// 		ComplianceSettings: ComplianceSettings{
-// 		// 			ResponseTime:   duration(time.Duration(0)),
-// 		// 			ResolutionTime: duration(time.Duration(0)),
-// 		// 			// Responders:     Responders{Users: []string},
-// 		// 		},
-// 		// 	}},
-// 		// 	wanterr: false,
-// 		// },
-// 	}
-// 	for _, test := range tests {
-// 		got, err := unmarshalSLOs([]byte(test.jsonString))
-// 		if !reflect.DeepEqual(got, test.expected) || (test.wanterr && err == nil) || (!test.wanterr && err != nil) {
-// 			out, _ := json.Marshal(got)
-// 			in, _ := json.Marshal(test.expected)
-// 			t.Errorf(string(in))
-// 			t.Errorf(string(out))
-// 			t.Errorf("meow")
-
-// 			t.Errorf("unmarshalSLOs: %v.\n\tWant Value: %v. \n\tGot Value: %v. \n\tWant Err: %v \n\tGot Err: %v", test.name, test.expected, got, test.wanterr, err)
-// 		}
-// 	}
-// }
+func TestParsesSLORules(t *testing.T) {
+	tests := []struct {
+		name       string
+		jsonString string
+		expected   []*SLORule
+		wanterr    bool
+	}{
+		{
+			name:       "Empty array returns no rules",
+			jsonString: `[]`,
+			expected:   nil,
+			wanterr:    false,
+		},
+		{
+			name:       "Empty json returns no rules",
+			jsonString: ``,
+			expected:   nil,
+			wanterr:    false,
+		},
+		{
+			name: "Minimum default rule returns a rule with defaults applied",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&defaultSLO},
+			wanterr:  false,
+		},
+		{
+			name: "More than one rule is parsed correctly",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				},
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&defaultSLO, &defaultSLO},
+			wanterr:  false,
+		},
+		{
+			name: "Basic time strings are parsed correctly",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": "1h",
+						"resolutionTime": "1s"
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(1 * 60 * 60 * oneSec)),
+					ResolutionTime: duration(time.Duration(oneSec)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Time strings with multiple values are parsed correctly",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": "1h1m1s",
+						"resolutionTime": "1s1h1m"
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(oneHour + oneMin + oneSec)),
+					ResolutionTime: duration(time.Duration(oneHour + oneMin + oneSec)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Time strings with day values are parsed correctly",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": "1d1h1m1s",
+						"resolutionTime": "30d"
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration((24 * oneHour) + oneHour + oneMin + oneSec)),
+					ResolutionTime: duration(time.Duration(30 * 24 * oneHour)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Time defined as a number is parsed correctly",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 43200
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(43200 * oneSec)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Incorrect time string fails with error",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": "1w",
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: nil,
+			wanterr:  true,
+		},
+		{
+			name: "Priority gets converted to a GitHub label",
+			jsonString: `[
+				{
+					"appliesTo": {
+						"priority": "P1"
+					},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					GitHubLabels: []string{"priority: P1"},
+					Issues:       true,
+					PRs:          false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(0)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Issue type gets converted to a GitHub label",
+			jsonString: `[
+				{
+					"appliesTo": {
+						"issueType": "bug"
+					},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					GitHubLabels: []string{"type: bug"},
+					Issues:       true,
+					PRs:          false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(0)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Contributors is set to none if another field is defined in Responders",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0,
+						"responders": {
+							"users": ["@jeff"]
+						}
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(0)),
+					Responders:     Responders{Users: []string{"@jeff"}},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Can set GitHubLabels as a string",
+			jsonString: `[
+				{
+					"appliesTo": {
+						"gitHubLabels": "a label"
+					},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					GitHubLabels: []string{"a label"},
+					Issues:       true,
+					PRs:          false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(0)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		{
+			name: "Can set GitHubLabels as an array",
+			jsonString: `[
+				{
+					"appliesTo": {
+						"gitHubLabels": ["label 1", "label 2"]
+					},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					GitHubLabels: []string{"label 1", "label 2"},
+					Issues:       true,
+					PRs:          false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(0)),
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wanterr: false,
+		},
+		// {
+		// 	name: "No responders can be specified",
+		// 	jsonString: `[
+		// 		{
+		// 			"appliesTo": {},
+		// 			"complianceSettings": {
+		// 				"responseTime": 0,
+		// 				"resolutionTime": 0,
+		// 				"responders": {
+		// 					"users": []
+		// 				}
+		// 			}
+		// 		}
+		//  	]`,
+		// 	expected: []*SLORule{&SLORule{
+		// 		AppliesTo: AppliesTo{
+		// 			Issues: true,
+		// 			PRs:    false,
+		// 		},
+		// 		ComplianceSettings: ComplianceSettings{
+		// 			ResponseTime:   duration(time.Duration(0)),
+		// 			ResolutionTime: duration(time.Duration(0)),
+		// 			// Responders:     Responders{Users: []string},
+		// 		},
+		// 	}},
+		// 	wanterr: false,
+		// },
+	}
+	for _, test := range tests {
+		got, err := unmarshalSLOs([]byte(test.jsonString))
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Errorf("unmarshalSLOs: %v.\n\tWant Value: %v. \n\tGot Value: %v. \n\tWant Err: %v \n\tGot Err: %v", test.name, test.expected, got, test.wanterr, err)
+		}
+		if (test.wanterr && err == nil) || (!test.wanterr && err != nil) {
+			t.Errorf("unmarshalSLOs: %v.\n\tWant Value: %v. \n\tGot Value: %v. \n\tWant Err: %v \n\tGot Err: %v", test.name, test.expected, got, test.wanterr, err)
+		}
+	}
+}
 
 func TestParseDurationWithDays(t *testing.T) {
 	cases := []struct {
@@ -421,7 +418,7 @@ func TestParseDurationWithDays(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		got, gotErr := ParseDurationWithDays(c.duration)
+		got, gotErr := parseDurationWithDays(c.duration)
 		if got != c.want {
 			t.Errorf("Test %v did not pass. Got: %v, Want: %v", c.name, got, c.want)
 		}
@@ -481,7 +478,9 @@ func TestStringOrArrayUnmarshalling(t *testing.T) {
 		if !reflect.DeepEqual(got, c.expected) || (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
 			t.Errorf("stringOrArrayUmarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, got, c.expected, gotErr, c.wantErr)
 		}
-
+		if (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
+			t.Errorf("stringOrArrayUmarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, got, c.expected, gotErr, c.wantErr)
+		}
 	}
 }
 
@@ -508,7 +507,10 @@ func TestDurationMarshalling(t *testing.T) {
 	for _, c := range cases {
 		got, gotErr := json.Marshal(c.dur)
 
-		if !reflect.DeepEqual(got, []byte(c.expected)) || (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
+		if !reflect.DeepEqual(got, []byte(c.expected)) {
+			t.Errorf("durationMarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, string(got), c.expected, gotErr, c.wantErr)
+		}
+		if (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
 			t.Errorf("durationMarshal: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, string(got), c.expected, gotErr, c.wantErr)
 		}
 
@@ -541,6 +543,12 @@ func TestDurationUnmarshalling(t *testing.T) {
 			wantErr:   false,
 		},
 		{
+			name:      "Unmarshals days correctly",
+			jsonInput: `"1d"`,
+			expected:  duration(oneDay),
+			wantErr:   false,
+		},
+		{
 			name:      "Incorrect time format fails",
 			jsonInput: `"1w"`,
 			expected:  0,
@@ -563,10 +571,12 @@ func TestDurationUnmarshalling(t *testing.T) {
 		var got *duration
 		gotErr := json.Unmarshal([]byte(c.jsonInput), &got)
 
-		if *got != c.expected || (c.wantErr && gotErr == nil) || (!c.wantErr && gotErr != nil) {
+		if *got != c.expected {
 			t.Errorf("duration unmarshalling: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, *got, c.expected, gotErr, c.wantErr)
 		}
-
+		if (c.wantErr && gotErr == nil) || (!c.wantErr && gotErr != nil) {
+			t.Errorf("duration unmarshalling: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v\n\tGot Err:\t%v\n\tWant Err:\t%v", c.name, *got, c.expected, gotErr, c.wantErr)
+		}
 	}
 }
 
@@ -621,12 +631,69 @@ func TestAddToGitHubLabels(t *testing.T) {
 				ComplianceSettingsJSON: ComplianceSettingsJSON{},
 			},
 		},
+		{
+			name:    "Adds type to labels",
+			prepend: "type: ",
+			label:   "bug",
+			current: &sloRuleJSON{
+				AppliesToJSON:          AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
+			},
+			expected: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{
+					GitHubLabelsRaw: []string{"type: bug"},
+				},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
+			},
+		},
+		{
+			name:    "Empty label is not added",
+			prepend: "type: ",
+			label:   "",
+			current: &sloRuleJSON{
+				AppliesToJSON:          AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
+			},
+			expected: &sloRuleJSON{
+				AppliesToJSON:          AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
+			},
+		},
 	}
 	for _, c := range cases {
 		c.current.addToGitHubLabels(c.prepend, c.label)
 		if !reflect.DeepEqual(c.current, c.expected) {
 			t.Errorf("add to GH labels: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, c.current, c.expected)
 		}
+
+	}
+}
+
+func TestSetResponderDefault(t *testing.T) {
+	cases := []struct {
+		name     string
+		current  *sloRuleJSON
+		expected *sloRuleJSON
+	}{
+		{
+			name: "Sets default correctly on empty rule",
+			current: &sloRuleJSON{
+				AppliesToJSON:          AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{},
+			},
+			expected: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{Contributors: "WRITE"},
+				},
+			},
+		},
+	}
+	for _, c := range cases {
+		c.current.applyResponderDefault()
+		// if !reflect.DeepEqual(c.current, c.expected) {
+		// 	t.Errorf("add to GH labels: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, c.current, c.expected)
+		// }
 
 	}
 }
