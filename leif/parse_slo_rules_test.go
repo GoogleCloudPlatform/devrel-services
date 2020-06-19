@@ -328,38 +328,38 @@ func TestParsesSLORules(t *testing.T) {
 			}},
 			wanterr: false,
 		},
-		// {
-		// 	name: "No responders can be specified",
-		// 	jsonString: `[
-		// 		{
-		// 			"appliesTo": {},
-		// 			"complianceSettings": {
-		// 				"responseTime": 0,
-		// 				"resolutionTime": 0,
-		// 				"responders": {
-		// 					"users": []
-		// 				}
-		// 			}
-		// 		}
-		//  	]`,
-		// 	expected: []*SLORule{&SLORule{
-		// 		AppliesTo: AppliesTo{
-		// 			Issues: true,
-		// 			PRs:    false,
-		// 		},
-		// 		ComplianceSettings: ComplianceSettings{
-		// 			ResponseTime:   duration(time.Duration(0)),
-		// 			ResolutionTime: duration(time.Duration(0)),
-		// 			// Responders:     Responders{Users: []string},
-		// 		},
-		// 	}},
-		// 	wanterr: false,
-		// },
+		{
+			name: "No responders can be specified",
+			jsonString: `[
+				{
+					"appliesTo": {},
+					"complianceSettings": {
+						"responseTime": 0,
+						"resolutionTime": 0,
+						"responders": {
+							"users": []
+						}
+					}
+				}
+		 	]`,
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   duration(time.Duration(0)),
+					ResolutionTime: duration(time.Duration(0)),
+					Responders:     Responders{Users: []string{}},
+				},
+			}},
+			wanterr: false,
+		},
 	}
 	for _, test := range tests {
 		got, err := unmarshalSLOs([]byte(test.jsonString))
 		if !reflect.DeepEqual(got, test.expected) {
-			t.Errorf("unmarshalSLOs: %v did not pass.\n\tWant: %v\n\tGot Value: %v", test.name, test.expected, got)
+			t.Errorf("unmarshalSLOs: %v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
 		if (test.wanterr && err == nil) || (!test.wanterr && err != nil) {
 			t.Errorf("unmarshalSLOs: %v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wanterr, err)
@@ -544,8 +544,8 @@ func TestDurationUnmarshalling(t *testing.T) {
 		},
 		{
 			name:      "Unmarshals days correctly",
-			jsonInput: `"1d"`,
-			expected:  duration(oneDay),
+			jsonInput: `"2d"`,
+			expected:  duration(2 * oneDay),
 			wantErr:   false,
 		},
 		{
@@ -688,12 +688,57 @@ func TestSetResponderDefault(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Does nothing on a rule with contributors defined",
+			current: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{Contributors: "OWNER"},
+				},
+			},
+			expected: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{Contributors: "OWNER"},
+				},
+			},
+		},
+		{
+			name: "Does nothing on a rule with users defined",
+			current: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{Users: []string{}},
+				},
+			},
+			expected: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{Users: []string{}},
+				},
+			},
+		},
+		{
+			name: "Does nothing on a rule with owners defined",
+			current: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{OwnersRaw: []string{}},
+				},
+			},
+			expected: &sloRuleJSON{
+				AppliesToJSON: AppliesToJSON{},
+				ComplianceSettingsJSON: ComplianceSettingsJSON{
+					RespondersJSON: RespondersJSON{OwnersRaw: []string{}},
+				},
+			},
+		},
 	}
 	for _, c := range cases {
 		c.current.applyResponderDefault()
-		// if !reflect.DeepEqual(c.current, c.expected) {
-		// 	t.Errorf("add to GH labels: %v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, c.current, c.expected)
-		// }
+		if !reflect.DeepEqual(c.current, c.expected) {
+			t.Errorf("set responders default: %v did not pass. \n\tGot:\t%v\n\tWant:\t%v", c.name, c.current, c.expected)
+		}
 
 	}
 }
