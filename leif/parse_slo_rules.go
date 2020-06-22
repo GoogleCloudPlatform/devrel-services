@@ -34,7 +34,6 @@ func (soa *stringOrArray) UnmarshalJSON(data []byte) error {
 
 	err := json.Unmarshal(data, &tempInterface)
 	if err != nil {
-		//this never returns an error?
 		return err
 	}
 
@@ -53,10 +52,14 @@ func (soa *stringOrArray) UnmarshalJSON(data []byte) error {
 
 type duration time.Duration
 
+// A duration is marshalled into the time.Duration int64 representing nanoseconds format
 func (d duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Duration(d).String())
+	return json.Marshal(time.Duration(d))
 }
 
+// Unmarshalling a duration converts it from a string in the time.Duration format (plus days) or an int representing seconds
+// It is unmarshalled into the time.Duration representation (an int64 representing nanoseconds)
+// Unmarshalling "2d" and then remarshalling it would return 172800000000000
 func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
 	var tempInterface interface{}
 
@@ -83,12 +86,15 @@ func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
 	return errors.New("Invalid duration format")
 }
 
+// sloRuleJSON is the intermediary struct between the JSON representation of the SLO representation and the structured leif representation
+// The JSON representation of an SLO according to the schema can be marshalled into this struct
+// This struct can be marshalled into a JSON representation that corresponds to leif's SLORule struct
 type sloRuleJSON struct {
 	AppliesToJSON          AppliesToJSON          `json:"appliesTo"`
 	ComplianceSettingsJSON ComplianceSettingsJSON `json:"complianceSettings"`
 }
 
-// returns a new SLORuleJSON with the defaults applied
+// Returns a new SLORuleJSON with the defaults applied,
 // except for the responders default which requires knowing if it was partially assigned
 func newSLORuleJSON() *sloRuleJSON {
 	return &sloRuleJSON{
@@ -103,7 +109,9 @@ func (rule *sloRuleJSON) addToGitHubLabels(prepend string, property string) {
 	}
 }
 
-func (rule *sloRuleJSON) applyResponderDefault() { //if not defined
+// Applies the default value to the Responders field in the ComplianceSettings
+// Only applies it if none of the values in the Responders fiel have been initialized
+func (rule *sloRuleJSON) applyResponderDefault() {
 	if rule.ComplianceSettingsJSON.RespondersJSON.OwnersRaw == nil &&
 		len(rule.ComplianceSettingsJSON.RespondersJSON.Contributors) < 1 &&
 		rule.ComplianceSettingsJSON.RespondersJSON.Users == nil {
@@ -112,9 +120,9 @@ func (rule *sloRuleJSON) applyResponderDefault() { //if not defined
 }
 
 func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
-	jsonRule := newSLORuleJSON() //apply defaults
+	jsonRule := newSLORuleJSON()
 
-	err := json.Unmarshal(*rawRule, &jsonRule) //convert possible strings to arrays
+	err := json.Unmarshal(*rawRule, &jsonRule)
 	if err != nil {
 		return nil, err
 	}

@@ -14,11 +14,15 @@
 
 package leif
 
+import "time"
+
+// SLORule represents a service level objective (SLO) rule
 type SLORule struct {
 	AppliesTo          AppliesTo          `json:"appliesTo"`
 	ComplianceSettings ComplianceSettings `json:"complianceSettings"`
 }
 
+// AppliesTo stores structured data on which issues and/or pull requests a SLO applies to
 type AppliesTo struct {
 	GitHubLabels         []string `json:"gitHubLabels"`
 	ExcludedGitHubLabels []string `json:"excludedGitHubLabels"`
@@ -26,13 +30,15 @@ type AppliesTo struct {
 	PRs                  bool     `json:"prs"`
 }
 
+// ComplianceSetting stores data on the requirements for an issue or pull request to be considered compliant with the SLO
 type ComplianceSettings struct {
-	ResponseTime     duration   `json:"responseTime"`
-	ResolutionTime   duration   `json:"resolutionTime"`
-	RequiresAssignee bool       `json:"requiresAssignee"`
-	Responders       Responders `json:"responders"`
+	ResponseTime     time.Duration `json:"responseTime"`
+	ResolutionTime   time.Duration `json:"resolutionTime"`
+	RequiresAssignee bool          `json:"requiresAssignee"`
+	Responders       Responders    `json:"responders"`
 }
 
+// Responders stores structured data on the responders to the issue or pull request the SLO applies to
 type Responders struct {
 	Owners       []string `json:"owners"`
 	Contributors string   `json:"contributors"`
