@@ -23,9 +23,7 @@ import (
 
 var defaultSLO = SLORule{AppliesTo: AppliesTo{Issues: true, PRs: false}, ComplianceSettings: ComplianceSettings{RequiresAssignee: false, Responders: Responders{Contributors: "WRITE"}}}
 
-var oneMin, _ = time.ParseDuration("1m")
-var oneHour, _ = time.ParseDuration("1h")
-var oneDay, _ = time.ParseDuration("24h")
+var oneDay = 24 * time.Hour
 
 var syntaxError *json.SyntaxError
 var unmarshalTypeError *json.UnmarshalTypeError
@@ -136,8 +134,8 @@ func TestParseSLORule(t *testing.T) {
 					PRs:    false,
 				},
 				ComplianceSettings: ComplianceSettings{
-					ResponseTime:   (time.Duration(1 * 60 * 60 * oneSec)),
-					ResolutionTime: (time.Duration(oneSec)),
+					ResponseTime:   time.Hour,
+					ResolutionTime: time.Second,
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
@@ -158,8 +156,8 @@ func TestParseSLORule(t *testing.T) {
 					PRs:    false,
 				},
 				ComplianceSettings: ComplianceSettings{
-					ResponseTime:   (time.Duration(oneHour + oneMin + oneSec)),
-					ResolutionTime: (time.Duration(oneSec + oneHour + oneDay)),
+					ResponseTime:   (time.Duration(time.Hour + time.Minute + time.Second)),
+					ResolutionTime: (time.Duration(time.Second + time.Hour + oneDay)),
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
@@ -180,8 +178,8 @@ func TestParseSLORule(t *testing.T) {
 					PRs:    false,
 				},
 				ComplianceSettings: ComplianceSettings{
-					ResponseTime:   (time.Duration((24 * oneHour) + oneHour + oneMin + oneSec)),
-					ResolutionTime: (time.Duration(30 * 24 * oneHour)),
+					ResponseTime:   (time.Duration((24 * time.Hour) + time.Hour + time.Minute + time.Second)),
+					ResolutionTime: (time.Duration(30 * 24 * time.Hour)),
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
@@ -203,7 +201,7 @@ func TestParseSLORule(t *testing.T) {
 				},
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
-					ResolutionTime: time.Duration(43200 * oneSec),
+					ResolutionTime: time.Duration(43200 * time.Second),
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
@@ -394,13 +392,13 @@ func TestParseDurationWithDays(t *testing.T) {
 		{
 			name:     "Standard hours passes",
 			duration: "1h",
-			want:     time.Duration(oneHour),
+			want:     time.Hour,
 			wantErr:  false,
 		},
 		{
 			name:     "Can parse a day",
 			duration: "1d",
-			want:     time.Duration(oneDay),
+			want:     oneDay,
 			wantErr:  false,
 		},
 		{
@@ -418,13 +416,13 @@ func TestParseDurationWithDays(t *testing.T) {
 		{
 			name:     "Can parse hours and days",
 			duration: "1d1h",
-			want:     time.Duration(oneDay + oneHour),
+			want:     time.Duration(oneDay + time.Hour),
 			wantErr:  false,
 		},
 		{
 			name:     "Days may be at any position in the string",
 			duration: "1s10d",
-			want:     time.Duration(10*oneDay + oneSec),
+			want:     time.Duration(10*oneDay + time.Second),
 			wantErr:  false,
 		},
 		{
@@ -528,7 +526,7 @@ func TestDurationMarshalling(t *testing.T) {
 		},
 		{
 			name:     "Marshal duration as time.duration",
-			dur:      duration(oneSec),
+			dur:      duration(time.Second),
 			expected: `1000000000`,
 			wantErr:  nil,
 		},
@@ -562,7 +560,7 @@ func TestDurationUnmarshalling(t *testing.T) {
 		{
 			name:      "Unmarshal int as seconds",
 			jsonInput: `1`,
-			expected:  duration(oneSec),
+			expected:  duration(time.Second),
 			wantErr:   false,
 		},
 		{
