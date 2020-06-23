@@ -531,9 +531,21 @@ func TestDurationMarshalling(t *testing.T) {
 			wantErr:  nil,
 		},
 		{
+			name:     "Can marshal a day correctly",
+			dur:      duration(oneDay),
+			expected: `86400000000000`,
+			wantErr:  nil,
+		},
+		{
 			name:     "Can marshal several days correctly",
 			dur:      duration(2 * oneDay),
 			expected: `172800000000000`,
+			wantErr:  nil,
+		},
+		{
+			name:     "Can marshal days with seconds correctly",
+			dur:      duration(2*oneDay + time.Second),
+			expected: `172801000000000`,
 			wantErr:  nil,
 		},
 	}
@@ -576,14 +588,38 @@ func TestDurationUnmarshalling(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "Unmarshals days correctly",
+			name:      "Unmarshals 1 day correctly",
+			jsonInput: `"1d"`,
+			expected:  duration(oneDay),
+			wantErr:   false,
+		},
+		{
+			name:      "Unmarshals several days correctly",
 			jsonInput: `"2d"`,
 			expected:  duration(2 * oneDay),
 			wantErr:   false,
 		},
 		{
+			name:      "Unmarshals days, hours and minutes correctly",
+			jsonInput: `"1d1h1m"`,
+			expected:  duration(oneDay + time.Hour + time.Minute),
+			wantErr:   false,
+		},
+		{
+			name:      "Unmarshals multi-digit days correctly",
+			jsonInput: `"10d1m"`,
+			expected:  duration(oneDay*10 + time.Minute),
+			wantErr:   false,
+		},
+		{
 			name:      "Incorrect time format fails",
 			jsonInput: `"1w"`,
+			expected:  0,
+			wantErr:   true,
+		},
+		{
+			name:      "Partially incorrect time format fails",
+			jsonInput: `"1d1e"`,
 			expected:  0,
 			wantErr:   true,
 		},
