@@ -23,7 +23,6 @@ import (
 	"time"
 )
 
-var oneSec, _ = time.ParseDuration("1s")
 var dayReg = regexp.MustCompile(`[0-9]+d`)
 
 type stringOrArray []string
@@ -79,7 +78,7 @@ func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
 	value, isNumber := tempInterface.(float64)
 
 	if isNumber {
-		*stringOrInt = duration(time.Duration(int64(value) * int64(oneSec.Nanoseconds())))
+		*stringOrInt = duration(time.Duration(int64(value) * int64(time.Second.Nanoseconds())))
 		return err
 	}
 
@@ -127,8 +126,12 @@ func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
 		return nil, err
 	}
 
-	jsonRule.addToGitHubLabels("priority: ", jsonRule.AppliesToJSON.Priority)
-	jsonRule.addToGitHubLabels("type: ", jsonRule.AppliesToJSON.IssueType)
+	if len(jsonRule.AppliesToJSON.Priority) > 0 {
+		jsonRule.addToGitHubLabels("priority: ", jsonRule.AppliesToJSON.Priority)
+	}
+	if len(jsonRule.AppliesToJSON.IssueType) > 0 {
+		jsonRule.addToGitHubLabels("type: ", jsonRule.AppliesToJSON.IssueType)
+	}
 	jsonRule.applyResponderDefault()
 
 	marshaled, err := json.Marshal(jsonRule)

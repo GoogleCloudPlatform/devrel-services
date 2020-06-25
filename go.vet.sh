@@ -2,7 +2,7 @@
 
 set -e
 
-dirs=( "devrelservices-admin" "drghs-worker" "repos" "rtr" "samplr" "sprvsr" )
+dirs=( "devrelservices-admin" "drghs-worker" "leif" "repos" "rtr" "samplr" "sprvsr" )
 
 for d in "${dirs[@]}"; do
     echo "Go vet-ing ./$d/..."
