@@ -3,7 +3,7 @@
 set -e
 echo "" > unit_test_coverage.txt
 
-dirs=( "drghs-worker" "samplr" "sprvsr" )
+dirs=( "drghs-worker" "leif" "samplr" "sprvsr" )
 
 for d in "${dirs[@]}"; do
     echo "Testing ./$d/..."
