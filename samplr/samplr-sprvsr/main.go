@@ -277,7 +277,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 									apiv1.ResourceMemory: resource.MustParse("160M"),
 								},
 								Limits: apiv1.ResourceList{
-									apiv1.ResourceMemory: resource.MustParse("1.5G"),
+									apiv1.ResourceMemory: resource.MustParse("2.5G"),
 								},
 							},
 						},
