@@ -1,98 +1,82 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package leif
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	goGH "github.com/google/go-github/v32/github"
 )
 
-const SLOConfigPath = "issue_slo_rules.json"
+const sloConfigFileName = "issue_slo_rules.json"
 
+type notAFileError struct {
+	path string
+	org  string
+	repo string
+}
+
+func (e *notAFileError) Error() string {
+	return fmt.Sprintf("The path %v in %v/%v does not correspond to a file", e.path, e.org, e.repo)
+}
+
+type noContentError string
+
+func (e *noContentError) Error() string {
+	return string(*e)
+}
+
+// githubRepoService is an interface defining the needed behaviour of the GitHub client
+// This way, the default client may be replaced for testing
+type gitHubRepoService interface {
+	GetContents(ctx context.Context, owner, repo, path string, opts *goGH.RepositoryContentGetOptions) (fileContent *goGH.RepositoryContent, directoryContent []*goGH.RepositoryContent, resp *goGH.Response, err error)
+}
+
+// githubClient is a a wrapper around the GitHub client's RepositoriesService
+type gitHubClient struct {
+	Repositories gitHubRepoService
+}
+
+// NewGithubClient creates a wrapper around the GitHub client's RepositoriesService
+// The RepositoriesService can be replaced for unit testing
+func NewGitHubClient(httpClient *http.Client, repoMock gitHubRepoService) gitHubClient {
+	if repoMock != nil {
+		return gitHubClient{
+			Repositories: repoMock,
+		}
+	}
+	client := goGH.NewClient(httpClient)
+
+	return gitHubClient{
+		Repositories: client.Repositories,
+	}
+}
+
+// Repository represents a GitHub repository and stores its SLO rules
 type Repository struct {
-	SLOfile  *goGH.RepositoryContent
-	SLORules []*SLORule
+	name           string
+	SLOFileContent string
+	SLORules       []*SLORule
 }
 
-func (repo *Repository) FindRepository(ctx context.Context, reponame string) error {
-
-	// ts := oauth2.StaticTokenSource(
-	// 	&oauth2.Token{AccessToken: "acctok"},
-	// )
-	// tc := oauth2.NewClient(ctx, ts)
-	client := goGH.NewClient(nil)
-
-	// org, _, _ := client.Organizations.Get(ctx, "google")
-
-	// url := org.GetReposURL()
-	// client.Repositories.Get
-
-	// meh, r, err := client.Repositories.ListByOrg(ctx, "google", nil)
-
-	// fmt.Println(meh)
-	// fmt.Println(r)
-	// fmt.Println(err)
-
-	// var e *goGH.RateLimitError
-	// file, _, resp, err := client.Repositories.GetContents(ctx, "BrennaEpp", "quasar", ".github/CDE_OF_CONDUCT.md", nil)
-
-	// if errors.As(err, &e) {
-	// 	fmt.Println("error")
-	// }
-	// if file == nil {
-	// 	//look at org
-	// 	//issue_slo_rules.json
-	// 	file, dirCont, resp, err = client.Repositories.GetContents(ctx, "Google", ".github", "CONTRIBUTING.md", nil)
-	// 	if file == nil {
-	// 		fmt.Println(err)
-	// 		return nil
-	// 	}
-
-	// }
-	// fmt.Println(repCont)
-	// org, _, err := client.Organizations.Get(ctx, "Google")
-
-	// repos, _, error := client.Repositories.ListByOrg(ctx, "GoogleCloudPlatform", nil)
-	// fmt.Println(error)
-	// for i, repo := range repos {
-	// 	fmt.Print(i)
-	// 	fmt.Println(repo.GetName())
-	// }
-
-	fmt.Println("meow")
-
-	// fmt.Println(resp)
-	// fmt.Println(err)
-	// fmt.Println(reflect.TypeOf(err))
-	// fmt.Println(file)
-	// fmt.Println(repCont.Encoding)
-	// fmt.Println(file.GetContent())
-
-	// a, err := file.GetContent()
-	// fmt.Println(reflect.TypeOf(a))
-	// fmt.Println(err)
-
-	rep := Repository{}
-	err := rep.findSLODoc(ctx, "google", "blockly", client)
-	fmt.Println(err)
-	err = rep.parseSLOs()
-	fmt.Println(err)
-
-	return nil
-}
-
-func (repo *Repository) parseSLOs() error {
-	if repo.SLOfile == nil {
-		return errors.New("Repository has no SLO rules config")
-	}
-
-	file, err := repo.SLOfile.GetContent()
-	if err != nil {
-		return err
-	}
-
-	slos, err := unmarshalSLOs([]byte(file))
+// ParseSLOs transforms the string format of the SLO config file into structured SLO rules
+func (repo *Repository) ParseSLOs() error {
+	slos, err := unmarshalSLOs([]byte(repo.SLOFileContent))
 	if err != nil {
 		return err
 	}
@@ -102,20 +86,42 @@ func (repo *Repository) parseSLOs() error {
 	return nil
 }
 
-func (repo *Repository) findSLODoc(ctx context.Context, orgName string, repoName string, ghClient *goGH.Client) error {
+func (repo *Repository) findSLODoc(ctx context.Context, orgName string, repoName string, ghClient *gitHubClient) (lastPathLookedAt string, e error) {
 	var ghErrorResponse *goGH.ErrorResponse
 
-	content, _, _, err := ghClient.Repositories.GetContents(ctx, orgName, repoName, ".github/"+SLOConfigPath, nil)
+	path := ".github/" + sloConfigFileName
+
+	file, err := fetchFile(ctx, orgName, repoName, path, ghClient)
 
 	if errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404 {
 		// SLO config not found, look for file in org:
-		content, _, _, err = ghClient.Repositories.GetContents(ctx, orgName, ".github", SLOConfigPath, nil)
+		repoName = ".github"
+		path = sloConfigFileName
+		file, err = fetchFile(ctx, orgName, repoName, path, ghClient)
 	}
 	if err != nil {
-		return err
+		return fmt.Sprintf("%v/%v/%v", orgName, repoName, path), err
 	}
 
-	repo.SLOfile = content
+	repo.SLOFileContent = file
 
-	return nil
+	return fmt.Sprintf("%v/%v/%v", orgName, repoName, path), nil
+}
+
+func fetchFile(ctx context.Context, orgName string, repoName string, filePath string, ghClient *gitHubClient) (string, error) {
+	content, _, _, err := ghClient.Repositories.GetContents(ctx, orgName, repoName, filePath, nil)
+	if err != nil {
+		return "", err
+	}
+	if content == nil {
+		error := noContentError("The response has no content")
+		return "", &error
+	}
+	if content.GetType() != "file" {
+		return "", &notAFileError{path: filePath, org: orgName, repo: repoName}
+	}
+
+	file, err := content.GetContent()
+
+	return file, err
 }
