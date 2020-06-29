@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	goGH "github.com/google/go-github/v32/github"
+	"github.com/google/go-github/github"
 )
 
 var file = "file"
@@ -30,19 +30,19 @@ var fileName = sloConfigFileName
 var jsonString = `{"some sort of json"}`
 
 var notAFileErr *notAFileError
-var ghErrorResponse *goGH.ErrorResponse
+var ghErrorResponse *github.ErrorResponse
 var noContentErr *noContentError
 
 type MockGithubRepositoryService struct {
-	Content    *goGH.RepositoryContent
-	DirContent []*goGH.RepositoryContent
-	Response   *goGH.Response
+	Content    *github.RepositoryContent
+	DirContent []*github.RepositoryContent
+	Response   *github.Response
 	Error      error
 	Org        string
 	Repo       string
 }
 
-func (mgc *MockGithubRepositoryService) GetContents(ctx context.Context, org, repo, path string, opts *goGH.RepositoryContentGetOptions) (*goGH.RepositoryContent, []*goGH.RepositoryContent, *goGH.Response, error) {
+func (mgc *MockGithubRepositoryService) GetContents(ctx context.Context, org, repo, path string, opts *github.RepositoryContentGetOptions) (*github.RepositoryContent, []*github.RepositoryContent, *github.Response, error) {
 	if org != mgc.Org {
 		return nil, nil, nil, errors.New("org did not equal expected org: was: " + org)
 	}
@@ -59,7 +59,7 @@ func TestFetchFile(t *testing.T) {
 		orgName     string
 		repoName    string
 		filePath    string
-		mockContent *goGH.RepositoryContent
+		mockContent *github.RepositoryContent
 		mockError   error
 		expected    string
 		wantErr     error
@@ -69,7 +69,7 @@ func TestFetchFile(t *testing.T) {
 			orgName:  "Google",
 			repoName: "MyRepo",
 			filePath: "file.json",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:     &file,
 				Encoding: &base64,
 				Name:     &fileName,
@@ -84,7 +84,7 @@ func TestFetchFile(t *testing.T) {
 			orgName:  "Google",
 			repoName: "MyRepo",
 			filePath: "file.json",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:    &file,
 				Name:    &fileName,
 				Content: &jsonString,
@@ -98,7 +98,7 @@ func TestFetchFile(t *testing.T) {
 			orgName:  "Google",
 			repoName: "MyRepo",
 			filePath: "directory",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:     new(string),
 				Encoding: &base64,
 				Name:     &fileName,
@@ -123,13 +123,13 @@ func TestFetchFile(t *testing.T) {
 			orgName:  "Google",
 			repoName: "MyRepo",
 			filePath: "dna",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:     &file,
 				Encoding: &base64,
 				Name:     &fileName,
 				Content:  new(string),
 			},
-			mockError: &goGH.ErrorResponse{Response: &http.Response{StatusCode: 404}},
+			mockError: &github.ErrorResponse{Response: &http.Response{StatusCode: 404}},
 			expected:  "",
 			wantErr:   ghErrorResponse,
 		},
@@ -160,7 +160,7 @@ func TestFindSLODoc(t *testing.T) {
 		name         string
 		orgName      string
 		repoName     string
-		mockContent  *goGH.RepositoryContent
+		mockContent  *github.RepositoryContent
 		mockError    error
 		currentRepo  *Repository
 		expectedRepo *Repository
@@ -171,7 +171,7 @@ func TestFindSLODoc(t *testing.T) {
 			name:     "Find file",
 			orgName:  "Google",
 			repoName: "MyRepo",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:     &file,
 				Encoding: &base64,
 				Name:     &fileName,
@@ -189,7 +189,7 @@ func TestFindSLODoc(t *testing.T) {
 			name:     "Find file with content",
 			orgName:  "Google",
 			repoName: "MyRepo",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:    &file,
 				Name:    &fileName,
 				Content: &jsonString,
@@ -206,12 +206,12 @@ func TestFindSLODoc(t *testing.T) {
 			name:     "File not found fails after looking at org level",
 			orgName:  "Google",
 			repoName: "MyRepo",
-			mockContent: &goGH.RepositoryContent{
+			mockContent: &github.RepositoryContent{
 				Type:    &file,
 				Name:    &fileName,
 				Content: &jsonString,
 			},
-			mockError:    &goGH.ErrorResponse{Response: &http.Response{StatusCode: 404}},
+			mockError:    &github.ErrorResponse{Response: &http.Response{StatusCode: 404}},
 			currentRepo:  &Repository{},
 			expectedRepo: &Repository{},
 			expectedPath: "Google/.github/" + sloConfigFileName,

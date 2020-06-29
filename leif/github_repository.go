@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	goGH "github.com/google/go-github/v32/github"
+	"github.com/google/go-github/github"
 )
 
 const sloConfigFileName = "issue_slo_rules.json"
@@ -44,7 +44,7 @@ func (e *noContentError) Error() string {
 // githubRepoService is an interface defining the needed behaviour of the GitHub client
 // This way, the default client may be replaced for testing
 type gitHubRepoService interface {
-	GetContents(ctx context.Context, owner, repo, path string, opts *goGH.RepositoryContentGetOptions) (fileContent *goGH.RepositoryContent, directoryContent []*goGH.RepositoryContent, resp *goGH.Response, err error)
+	GetContents(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentGetOptions) (fileContent *github.RepositoryContent, directoryContent []*github.RepositoryContent, resp *github.Response, err error)
 }
 
 // githubClient is a a wrapper around the GitHub client's RepositoriesService
@@ -60,7 +60,7 @@ func NewGitHubClient(httpClient *http.Client, repoMock gitHubRepoService) gitHub
 			Repositories: repoMock,
 		}
 	}
-	client := goGH.NewClient(httpClient)
+	client := github.NewClient(httpClient)
 
 	return gitHubClient{
 		Repositories: client.Repositories,
@@ -87,7 +87,7 @@ func (repo *Repository) ParseSLOs() error {
 }
 
 func (repo *Repository) findSLODoc(ctx context.Context, orgName string, repoName string, ghClient *gitHubClient) (lastPathLookedAt string, e error) {
-	var ghErrorResponse *goGH.ErrorResponse
+	var ghErrorResponse *github.ErrorResponse
 
 	path := ".github/" + sloConfigFileName
 
