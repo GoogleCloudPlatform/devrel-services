@@ -18,6 +18,12 @@ import (
 	"time"
 )
 
+type Owner struct {
+	name     string
+	Repos    []*Repository
+	SLORules []*SLORule
+}
+
 // SLORule represents a service level objective (SLO) rule
 type SLORule struct {
 	AppliesTo          AppliesTo          `json:"appliesTo"`

@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/github"
 )
@@ -34,18 +35,17 @@ type MockGithubRepositoryService struct {
 	DirContent []*github.RepositoryContent
 	Response   *github.Response
 	Error      error
-	Org        string
+	Owner      string
 	Repo       string
 }
 
-func (mgc *MockGithubRepositoryService) GetContents(ctx context.Context, org, repo, path string, opts *github.RepositoryContentGetOptions) (*github.RepositoryContent, []*github.RepositoryContent, *github.Response, error) {
-	if org != mgc.Org {
-		return nil, nil, nil, errors.New("org did not equal expected org: was: " + org)
+func (mgc *MockGithubRepositoryService) GetContents(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentGetOptions) (*github.RepositoryContent, []*github.RepositoryContent, *github.Response, error) {
+	if owner != mgc.Owner {
+		return nil, nil, nil, errors.New("owner did not equal expected owner: was: " + owner)
 	}
 	if repo != mgc.Repo && repo != ".github" {
 		return nil, nil, nil, errors.New("repo did not equal expected repo: was: " + repo)
 	}
-
 	return mgc.Content, mgc.DirContent, mgc.Response, mgc.Error
 }
 
@@ -125,18 +125,24 @@ func TestFetchFile(t *testing.T) {
 				Name:     &fileName,
 				Content:  new(string),
 			},
-			mockError: &github.ErrorResponse{Response: &http.Response{StatusCode: 404}},
-			expected:  "",
-			wantErr:   GoGitHubErr,
+			mockError: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: 404,
+					Status:     "404 Not Found",
+					Request:    &http.Request{},
+				},
+				Message: "GH error"},
+			expected: "",
+			wantErr:  GoGitHubErr,
 		},
 	}
 	for _, test := range tests {
 		mock := new(MockGithubRepositoryService)
-
-		mock.Org = test.orgName
+		mock.Owner = test.orgName
 		mock.Repo = test.repoName
 		mock.Content = test.mockContent
 		mock.Error = test.mockError
+
 		client := NewGitHubClient(nil, mock)
 
 		ctx := context.Background()
@@ -152,203 +158,100 @@ func TestFetchFile(t *testing.T) {
 	}
 }
 
-// func TestFindSLODoc(t *testing.T) {
-// 	tests := []struct {
-// 		name         string
-// 		orgName      string
-// 		repoName     string
-// 		mockContent  *github.RepositoryContent
-// 		mockError    error
-// 		currentRepo  *Repository
-// 		expectedRepo *Repository
-// 		expectedPath string
-// 		wantErr      error
-// 	}{
-// 		{
-// 			name:     "Find file",
-// 			orgName:  "Google",
-// 			repoName: "MyRepo",
-// 			mockContent: &github.RepositoryContent{
-// 				Type:     &file,
-// 				Encoding: &base64,
-// 				Name:     &fileName,
-// 				Content:  new(string),
-// 			},
-// 			mockError:   nil,
-// 			currentRepo: &Repository{},
-// 			expectedRepo: &Repository{
-// 				SLOFileContent: "",
-// 			},
-// 			expectedPath: "Google/MyRepo/.github/" + sloConfigFileName,
-// 			wantErr:      nil,
-// 		},
-// 		{
-// 			name:     "Find file with content",
-// 			orgName:  "Google",
-// 			repoName: "MyRepo",
-// 			mockContent: &github.RepositoryContent{
-// 				Type:    &file,
-// 				Name:    &fileName,
-// 				Content: &jsonString,
-// 			},
-// 			mockError:   nil,
-// 			currentRepo: &Repository{},
-// 			expectedRepo: &Repository{
-// 				SLOFileContent: jsonString,
-// 			},
-// 			expectedPath: "Google/MyRepo/.github/" + sloConfigFileName,
-// 			wantErr:      nil,
-// 		},
-// 		{
-// 			name:     "File not found fails after looking at org level",
-// 			orgName:  "Google",
-// 			repoName: "MyRepo",
-// 			mockContent: &github.RepositoryContent{
-// 				Type:    &file,
-// 				Name:    &fileName,
-// 				Content: &jsonString,
-// 			},
-// 			mockError:    &github.ErrorResponse{Response: &http.Response{StatusCode: 404}},
-// 			currentRepo:  &Repository{},
-// 			expectedRepo: &Repository{},
-// 			expectedPath: "Google/.github/" + sloConfigFileName,
-// 			wantErr:      GoGitHubErr,
-// 		},
-// 	}
+func TestFindSLODoc(t *testing.T) {
+	tests := []struct {
+		name        string
+		owner       Owner
+		repoName    string
+		mockContent *github.RepositoryContent
+		mockError   error
+		expected    []*SLORule
+		wantErr     bool
+	}{
+		// {
+		// 	name:     "Find empty file returns empty rules",
+		// 	owner:    Owner{name: "Google"},
+		// 	repoName: "MyRepo",
+		// 	mockContent: &github.RepositoryContent{
+		// 		Type:     &file,
+		// 		Encoding: &base64,
+		// 		Name:     &fileName,
+		// 		Content:  new(string),
+		// 	},
+		// 	mockError: nil,
+		// 	expected:  nil,
+		// 	wantErr:   false,
+		// },
+		{
+			name:     "Find file with malformed content fails",
+			owner:    Owner{name: "Google"},
+			repoName: "MyRepo",
+			mockContent: &github.RepositoryContent{
+				Type:    &file,
+				Name:    &fileName,
+				Content: &jsonString,
+			},
+			mockError: nil,
+			expected:  nil,
+			wantErr:   true,
+		},
+		{
+			name: "File not found takes owner rules",
+			owner: Owner{
+				name: "Google",
+				SLORules: []*SLORule{&SLORule{
+					AppliesTo: AppliesTo{
+						Issues: true,
+						PRs:    false,
+					},
+					ComplianceSettings: ComplianceSettings{
+						ResponseTime:   time.Hour,
+						ResolutionTime: time.Second,
+						Responders:     Responders{Contributors: "WRITE"},
+					},
+				}},
+			},
+			repoName:    "MyRepo",
+			mockContent: nil,
+			mockError: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: 404,
+					Status:     "404 Not Found",
+					Request:    &http.Request{},
+				},
+				Message: "GH error"},
+			expected: []*SLORule{&SLORule{
+				AppliesTo: AppliesTo{
+					Issues: true,
+					PRs:    false,
+				},
+				ComplianceSettings: ComplianceSettings{
+					ResponseTime:   time.Hour,
+					ResolutionTime: time.Second,
+					Responders:     Responders{Contributors: "WRITE"},
+				},
+			}},
+			wantErr: false,
+		},
+	}
 
-// 	for _, test := range tests {
-// 		mock := new(MockGithubRepositoryService)
+	for _, test := range tests {
+		mock := new(MockGithubRepositoryService)
 
-// 		mock.Org = test.orgName
-// 		mock.Repo = test.repoName
-// 		mock.Content = test.mockContent
-// 		mock.Error = test.mockError
-// 		client := NewGitHubClient(nil, mock)
+		mock.Owner = test.owner.name
+		mock.Repo = test.repoName
+		mock.Content = test.mockContent
+		mock.Error = test.mockError
+		client := NewGitHubClient(nil, mock)
 
-// 		got := test.currentRepo
-// 		ctx := context.Background()
-// 		gotPath, gotErr := got.findSLODoc(ctx, test.orgName, test.repoName, &client)
+		got, gotErr := findSLODoc(context.Background(), test.owner, test.repoName, &client)
 
-// 		if !reflect.DeepEqual(got, test.expectedRepo) {
-// 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expectedRepo, got)
-// 		}
-// 		if !reflect.DeepEqual(gotPath, test.expectedPath) {
-// 			t.Errorf("%v did not pass.\n\tWant path:\t%v\n\tGot path:\t%v", test.name, test.expectedPath, gotPath)
-// 		}
-// 		if errors.Is(gotErr, test.wantErr) {
-// 			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
-// 		}
-// 	}
-// }
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
+		}
 
-// func TestParseSLOs(t *testing.T) {
-// 	tests := []struct {
-// 		name         string
-// 		currentRepo  *Repository
-// 		expectedRepo *Repository
-// 		wantErr      error
-// 	}{
-// 		{
-// 			name: "Parses empty file",
-// 			currentRepo: &Repository{
-// 				SLOFileContent: "",
-// 			},
-// 			expectedRepo: &Repository{
-// 				SLOFileContent: "",
-// 			},
-// 			wantErr: nil,
-// 		},
-// 		{
-// 			name: "Malformed json returns error",
-// 			currentRepo: &Repository{
-// 				SLOFileContent: jsonString,
-// 			},
-// 			expectedRepo: &Repository{
-// 				SLOFileContent: jsonString,
-// 			},
-// 			wantErr: syntaxError,
-// 		},
-// 		{
-// 			name: "json with one rule is parsed",
-// 			currentRepo: &Repository{
-// 				SLOFileContent: `[
-// 					{
-// 						"appliesTo": {},
-// 						"complianceSettings": {
-// 							"responseTime": 0,
-// 							"resolutionTime": 0
-// 						}
-// 					}
-// 				]`,
-// 			},
-// 			expectedRepo: &Repository{
-// 				SLOFileContent: `[
-// 					{
-// 						"appliesTo": {},
-// 						"complianceSettings": {
-// 							"responseTime": 0,
-// 							"resolutionTime": 0
-// 						}
-// 					}
-// 				]`,
-// 				SLORules: []*SLORule{&defaultSLO},
-// 			},
-// 			wantErr: nil,
-// 		},
-// 		{
-// 			name: "json with several rules is parsed",
-// 			currentRepo: &Repository{
-// 				SLOFileContent: `[
-// 					{
-// 						"appliesTo": {},
-// 						"complianceSettings": {
-// 							"responseTime": 0,
-// 							"resolutionTime": 0
-// 						}
-// 					},
-// 					{
-// 						"appliesTo": {},
-// 						"complianceSettings": {
-// 							"responseTime": 0,
-// 							"resolutionTime": 0
-// 						}
-// 					}
-// 				 ]`,
-// 			},
-// 			expectedRepo: &Repository{
-// 				SLOFileContent: `[
-// 					{
-// 						"appliesTo": {},
-// 						"complianceSettings": {
-// 							"responseTime": 0,
-// 							"resolutionTime": 0
-// 						}
-// 					},
-// 					{
-// 						"appliesTo": {},
-// 						"complianceSettings": {
-// 							"responseTime": 0,
-// 							"resolutionTime": 0
-// 						}
-// 					}
-// 				 ]`,
-// 				SLORules: []*SLORule{&defaultSLO, &defaultSLO},
-// 			},
-// 			wantErr: nil,
-// 		},
-// 	}
-
-// 	for _, test := range tests {
-
-// 		got := test.currentRepo
-
-// 		gotErr := got.ParseSLOs()
-
-// 		if !reflect.DeepEqual(got, test.expectedRepo) {
-// 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expectedRepo, got)
-// 		}
-// 		if (test.wantErr == nil && gotErr != nil) || (test.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(test.wantErr)) {
-// 			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, reflect.TypeOf(test.wantErr), reflect.TypeOf(gotErr))
-// 		}
-// 	}
-// }
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}

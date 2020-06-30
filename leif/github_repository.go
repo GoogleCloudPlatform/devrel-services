@@ -29,15 +29,25 @@ var ErrNoContent = errors.New("no content found")
 var ErrNotAFile = errors.New("not a file")
 var GoGitHubErr = errors.New("an error came from go github")
 
+type errg github.ErrorResponse
+
+func (e *errg) Error() string {
+	return e.Message
+}
+
+func (e *errg) Unwrap() error {
+	return GoGitHubErr
+}
+
 type noContentError struct {
-	path string
-	org  string
-	repo string
-	err  error
+	path  string
+	owner string
+	repo  string
+	err   error
 }
 
 func (e *noContentError) Error() string {
-	return fmt.Sprintf("The path %v in %v/%v did not return any content", e.path, e.org, e.repo)
+	return fmt.Sprintf("The path %v in %v/%v did not return any content", e.path, e.owner, e.repo)
 }
 
 func (e *noContentError) Unwrap() error {
@@ -45,18 +55,18 @@ func (e *noContentError) Unwrap() error {
 }
 
 type notAFileError struct {
-	path string
-	org  string
-	repo string
-	Err  error
+	path  string
+	owner string
+	repo  string
+	err   error
 }
 
 func (e *notAFileError) Error() string {
-	return fmt.Sprintf("The path %v in %v/%v does not correspond to a file", e.path, e.org, e.repo)
+	return fmt.Sprintf("The path %v in %v/%v does not correspond to a file", e.path, e.owner, e.repo)
 }
 
 func (e *notAFileError) Unwrap() error {
-	return e.Err
+	return e.err
 }
 
 // githubRepoService is an interface defining the needed behaviour of the GitHub client
@@ -87,59 +97,44 @@ func NewGitHubClient(httpClient *http.Client, repoMock gitHubRepoService) gitHub
 
 // Repository represents a GitHub repository and stores its SLO rules
 type Repository struct {
-	name           string
-	SLOFileContent string
-	SLORules       []*SLORule
+	name     string
+	SLORules []*SLORule
 }
 
-// ParseSLOs transforms the string format of the SLO config file into structured SLO rules
-func (repo *Repository) ParseSLOs() error {
-	slos, err := unmarshalSLOs([]byte(repo.SLOFileContent))
-	if err != nil {
-		return err
-	}
-
-	repo.SLORules = slos
-
-	return nil
-}
-
-func (repo *Repository) findSLODoc(ctx context.Context, orgName string, repoName string, ghClient *gitHubClient) (lastPathLookedAt string, e error) {
-	var ghErrorResponse *github.ErrorResponse
+func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *gitHubClient) ([]*SLORule, error) {
+	var ghErrorResponse *errg
 
 	path := ".github/" + sloConfigFileName
 
-	file, err := fetchFile(ctx, orgName, repoName, path, ghClient)
+	file, err := fetchFile(ctx, owner.name, repoName, path, ghClient)
 
 	if errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404 {
-		// SLO config not found, look for file in org:
-		repoName = ".github"
-		path = sloConfigFileName
-		file, err = fetchFile(ctx, orgName, repoName, path, ghClient)
+		// SLO config not found, get SLO rules from owner:
+		return owner.SLORules, nil
 	}
 	if err != nil {
-		return fmt.Sprintf("%v/%v/%v", orgName, repoName, path), err
+		return nil, fmt.Errorf("error finding SLO config: %w", err)
 	}
 
-	repo.SLOFileContent = file
-
-	return fmt.Sprintf("%v/%v/%v", orgName, repoName, path), nil
+	return unmarshalSLOs([]byte(file))
 }
 
-func fetchFile(ctx context.Context, orgName string, repoName string, filePath string, ghClient *gitHubClient) (string, error) {
-
-	content, _, _, err := ghClient.Repositories.GetContents(ctx, orgName, repoName, filePath, nil)
+func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *gitHubClient) (string, error) {
+	content, _, _, err := ghClient.Repositories.GetContents(ctx, ownerName, repoName, filePath, nil)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", GoGitHubErr, err)
+		var ghErrorResponse *github.ErrorResponse
+
+		if errors.As(err, &ghErrorResponse) {
+			e := errg(*ghErrorResponse)
+			return "", &e
+		}
+		return "", err
 	}
 	if content == nil {
-		error := noContentError{path: filePath, org: orgName, repo: repoName, err: ErrNoContent}
-		return "", &error
+		return "", &noContentError{path: filePath, owner: ownerName, repo: repoName, err: ErrNoContent}
 	}
 	if content.GetType() != "file" {
-		error := notAFileError{path: filePath, org: orgName, repo: repoName, Err: ErrNotAFile}
-
-		return "", &error
+		return "", &notAFileError{path: filePath, owner: ownerName, repo: repoName, err: ErrNotAFile}
 	}
 
 	return content.GetContent()
