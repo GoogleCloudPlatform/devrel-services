@@ -25,20 +25,38 @@ import (
 
 const sloConfigFileName = "issue_slo_rules.json"
 
+var ErrNoContent = errors.New("no content found")
+var ErrNotAFile = errors.New("not a file")
+var GoGitHubErr = errors.New("an error came from go github")
+
+type noContentError struct {
+	path string
+	org  string
+	repo string
+	err  error
+}
+
+func (e *noContentError) Error() string {
+	return fmt.Sprintf("The path %v in %v/%v did not return any content", e.path, e.org, e.repo)
+}
+
+func (e *noContentError) Unwrap() error {
+	return e.err
+}
+
 type notAFileError struct {
 	path string
 	org  string
 	repo string
+	Err  error
 }
 
 func (e *notAFileError) Error() string {
 	return fmt.Sprintf("The path %v in %v/%v does not correspond to a file", e.path, e.org, e.repo)
 }
 
-type noContentError string
-
-func (e *noContentError) Error() string {
-	return string(*e)
+func (e *notAFileError) Unwrap() error {
+	return e.Err
 }
 
 // githubRepoService is an interface defining the needed behaviour of the GitHub client
@@ -109,19 +127,20 @@ func (repo *Repository) findSLODoc(ctx context.Context, orgName string, repoName
 }
 
 func fetchFile(ctx context.Context, orgName string, repoName string, filePath string, ghClient *gitHubClient) (string, error) {
+
 	content, _, _, err := ghClient.Repositories.GetContents(ctx, orgName, repoName, filePath, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %v", GoGitHubErr, err)
 	}
 	if content == nil {
-		error := noContentError("The response has no content")
+		error := noContentError{path: filePath, org: orgName, repo: repoName, err: ErrNoContent}
 		return "", &error
 	}
 	if content.GetType() != "file" {
-		return "", &notAFileError{path: filePath, org: orgName, repo: repoName}
+		error := notAFileError{path: filePath, org: orgName, repo: repoName, Err: ErrNotAFile}
+
+		return "", &error
 	}
 
-	file, err := content.GetContent()
-
-	return file, err
+	return content.GetContent()
 }
