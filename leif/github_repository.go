@@ -19,10 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/google/go-github/github"
 )
 
+const gitHubDir = ".github"
 const sloConfigFileName = "issue_slo_rules.json"
 
 var ErrGoGitHub = errors.New("an error came from go github")
@@ -104,9 +106,9 @@ type Repository struct {
 func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *gitHubClient) ([]*SLORule, error) {
 	var ghErrorResponse *goGitHubErr
 
-	path := ".github/" + sloConfigFileName
+	p := path.Join(gitHubDir, sloConfigFileName)
 
-	file, err := fetchFile(ctx, owner.name, repoName, path, ghClient)
+	file, err := fetchFile(ctx, owner.name, repoName, p, ghClient)
 
 	if errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404 {
 		// SLO config not found, get SLO rules from owner:

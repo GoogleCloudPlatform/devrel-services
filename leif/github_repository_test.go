@@ -17,6 +17,7 @@ package leif
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -28,7 +29,32 @@ import (
 var file = "file"
 var base64 = "base64"
 var fileName = sloConfigFileName
-var jsonString = `{"some sort of json"}`
+var malformedSLORules = `{"some sort of json"}`
+
+var sloRulesSample = `[{
+	"appliesTo": {
+		"gitHubLabels": ["priority: P0", "bug"]
+	},
+	"complianceSettings": {
+		"responseTime": 0,
+		"resolutionTime": 0,
+		"requiresAssignee": true
+	}
+}]`
+
+var sloRulesSampleParsed = []*SLORule{&SLORule{
+	AppliesTo: AppliesTo{
+		GitHubLabels: []string{"priority: P0", "bug"},
+		Issues:       true,
+		PRs:          false,
+	},
+	ComplianceSettings: ComplianceSettings{
+		ResponseTime:     0,
+		ResolutionTime:   0,
+		Responders:       Responders{Contributors: "WRITE"},
+		RequiresAssignee: true,
+	},
+}}
 
 type MockGithubRepositoryService struct {
 	Content    *github.RepositoryContent
@@ -83,10 +109,10 @@ func TestFetchFile(t *testing.T) {
 			mockContent: &github.RepositoryContent{
 				Type:    &file,
 				Name:    &fileName,
-				Content: &jsonString,
+				Content: &malformedSLORules,
 			},
 			mockError: nil,
-			expected:  jsonString,
+			expected:  malformedSLORules,
 			wantErr:   nil,
 		},
 		{
@@ -168,20 +194,33 @@ func TestFindSLODoc(t *testing.T) {
 		expected    []*SLORule
 		wantErr     bool
 	}{
-		// {
-		// 	name:     "Find empty file returns empty rules",
-		// 	owner:    Owner{name: "Google"},
-		// 	repoName: "MyRepo",
-		// 	mockContent: &github.RepositoryContent{
-		// 		Type:     &file,
-		// 		Encoding: &base64,
-		// 		Name:     &fileName,
-		// 		Content:  new(string),
-		// 	},
-		// 	mockError: nil,
-		// 	expected:  nil,
-		// 	wantErr:   false,
-		// },
+		{
+			name:     "Find empty file returns empty rules",
+			owner:    Owner{name: "Google"},
+			repoName: "MyRepo",
+			mockContent: &github.RepositoryContent{
+				Type:     &file,
+				Encoding: &base64,
+				Name:     &fileName,
+				Content:  new(string),
+			},
+			mockError: nil,
+			expected:  nil,
+			wantErr:   false,
+		},
+		{
+			name:     "File with SLO rules returns them",
+			owner:    Owner{name: "MyOrg"},
+			repoName: "MyRepo",
+			mockContent: &github.RepositoryContent{
+				Type:    &file,
+				Name:    &fileName,
+				Content: &sloRulesSample,
+			},
+			mockError: nil,
+			expected:  sloRulesSampleParsed,
+			wantErr:   false,
+		},
 		{
 			name:     "Find file with malformed content fails",
 			owner:    Owner{name: "Google"},
@@ -189,11 +228,37 @@ func TestFindSLODoc(t *testing.T) {
 			mockContent: &github.RepositoryContent{
 				Type:    &file,
 				Name:    &fileName,
-				Content: &jsonString,
+				Content: &malformedSLORules,
 			},
 			mockError: nil,
 			expected:  nil,
 			wantErr:   true,
+		},
+		{
+			name: "Empty but found file does not take owner rules",
+			owner: Owner{
+				name: "Google",
+				SLORules: []*SLORule{&SLORule{
+					AppliesTo: AppliesTo{
+						Issues: true,
+						PRs:    false,
+					},
+					ComplianceSettings: ComplianceSettings{
+						ResponseTime:   time.Hour,
+						ResolutionTime: time.Second,
+						Responders:     Responders{Contributors: "WRITE"},
+					},
+				}},
+			},
+			repoName: "MyRepo",
+			mockContent: &github.RepositoryContent{
+				Type:    &file,
+				Name:    &fileName,
+				Content: new(string),
+			},
+			mockError: nil,
+			expected:  nil,
+			wantErr:   false,
 		},
 		{
 			name: "File not found takes owner rules",
@@ -219,7 +284,8 @@ func TestFindSLODoc(t *testing.T) {
 					Status:     "404 Not Found",
 					Request:    &http.Request{},
 				},
-				Message: "GH error"},
+				Message: "Not Found",
+			},
 			expected: []*SLORule{&SLORule{
 				AppliesTo: AppliesTo{
 					Issues: true,
@@ -232,6 +298,78 @@ func TestFindSLODoc(t *testing.T) {
 				},
 			}},
 			wantErr: false,
+		},
+
+		{
+			name:        "File not found passes even if owner has no rules",
+			owner:       Owner{name: "Google"},
+			repoName:    "MyRepo",
+			mockContent: nil,
+			mockError: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: 404,
+					Status:     "404 Not Found",
+					Request:    &http.Request{},
+				},
+				Message: "Not Found",
+			},
+			expected: nil,
+			wantErr:  false,
+		},
+		{
+			name: "Error other than 404 returns an error with no SLO rules",
+			owner: Owner{
+				name: "Google",
+				SLORules: []*SLORule{&SLORule{
+					AppliesTo: AppliesTo{
+						Issues: true,
+						PRs:    false,
+					},
+					ComplianceSettings: ComplianceSettings{
+						ResponseTime:   time.Hour,
+						ResolutionTime: time.Second,
+						Responders:     Responders{Contributors: "WRITE"},
+					},
+				}},
+			},
+			repoName:    "MyRepo",
+			mockContent: nil,
+			mockError: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: 401,
+					Status:     "401 Unauthorized",
+					Request:    &http.Request{},
+				},
+				Message: "Unauthorized",
+			},
+			expected: nil,
+			wantErr:  true,
+		},
+		{
+			name: "Error other than GH Err Response",
+			owner: Owner{
+				name: "Google",
+				SLORules: []*SLORule{&SLORule{
+					AppliesTo: AppliesTo{
+						Issues: true,
+						PRs:    false,
+					},
+					ComplianceSettings: ComplianceSettings{
+						ResponseTime:   time.Hour,
+						ResolutionTime: time.Second,
+						Responders:     Responders{Contributors: "WRITE"},
+					},
+				}},
+			},
+			repoName: "MyRepo",
+			mockContent: &github.RepositoryContent{
+				Type:    &file,
+				Name:    &fileName,
+				Content: new(string),
+			},
+			mockError: fmt.Errorf("other error"),
+			expected:  nil,
+			wantErr:   true,
 		},
 	}
 
