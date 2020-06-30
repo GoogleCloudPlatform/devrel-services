@@ -133,7 +133,7 @@ func TestFetchFile(t *testing.T) {
 				},
 				Message: "GH error"},
 			expected: "",
-			wantErr:  GoGitHubErr,
+			wantErr:  ErrGoGitHub,
 		},
 	}
 	for _, test := range tests {

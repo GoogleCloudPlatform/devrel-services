@@ -25,18 +25,18 @@ import (
 
 const sloConfigFileName = "issue_slo_rules.json"
 
+var ErrGoGitHub = errors.New("an error came from go github")
 var ErrNoContent = errors.New("no content found")
 var ErrNotAFile = errors.New("not a file")
-var GoGitHubErr = errors.New("an error came from go github")
 
-type errg github.ErrorResponse
+type goGitHubErr github.ErrorResponse
 
-func (e *errg) Error() string {
+func (e *goGitHubErr) Error() string {
 	return e.Message
 }
 
-func (e *errg) Unwrap() error {
-	return GoGitHubErr
+func (e *goGitHubErr) Unwrap() error {
+	return ErrGoGitHub
 }
 
 type noContentError struct {
@@ -102,7 +102,7 @@ type Repository struct {
 }
 
 func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *gitHubClient) ([]*SLORule, error) {
-	var ghErrorResponse *errg
+	var ghErrorResponse *goGitHubErr
 
 	path := ".github/" + sloConfigFileName
 
@@ -125,7 +125,7 @@ func fetchFile(ctx context.Context, ownerName string, repoName string, filePath 
 		var ghErrorResponse *github.ErrorResponse
 
 		if errors.As(err, &ghErrorResponse) {
-			e := errg(*ghErrorResponse)
+			e := goGitHubErr(*ghErrorResponse)
 			return "", &e
 		}
 		return "", err
