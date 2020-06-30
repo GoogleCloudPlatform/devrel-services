@@ -78,7 +78,7 @@ func (mgc *MockGithubRepositoryService) GetContents(ctx context.Context, owner, 
 func TestFetchFile(t *testing.T) {
 	tests := []struct {
 		name        string
-		orgName     string
+		ownerName   string
 		repoName    string
 		filePath    string
 		mockContent *github.RepositoryContent
@@ -87,10 +87,10 @@ func TestFetchFile(t *testing.T) {
 		wantErr     error
 	}{
 		{
-			name:     "Fetch empty file",
-			orgName:  "Google",
-			repoName: "MyRepo",
-			filePath: "file.json",
+			name:      "Fetch empty file",
+			ownerName: "Google",
+			repoName:  "MyRepo",
+			filePath:  "file.json",
 			mockContent: &github.RepositoryContent{
 				Type:     &file,
 				Encoding: &base64,
@@ -102,10 +102,10 @@ func TestFetchFile(t *testing.T) {
 			wantErr:   nil,
 		},
 		{
-			name:     "Fetches file with content",
-			orgName:  "Google",
-			repoName: "MyRepo",
-			filePath: "file.json",
+			name:      "Fetches file with content",
+			ownerName: "Google",
+			repoName:  "MyRepo",
+			filePath:  "file.json",
 			mockContent: &github.RepositoryContent{
 				Type:    &file,
 				Name:    &fileName,
@@ -116,10 +116,10 @@ func TestFetchFile(t *testing.T) {
 			wantErr:   nil,
 		},
 		{
-			name:     "Fails if content is not a file",
-			orgName:  "Google",
-			repoName: "MyRepo",
-			filePath: "directory",
+			name:      "Fails if content is not a file",
+			ownerName: "Google",
+			repoName:  "MyRepo",
+			filePath:  "directory",
 			mockContent: &github.RepositoryContent{
 				Type:     new(string),
 				Encoding: &base64,
@@ -132,7 +132,7 @@ func TestFetchFile(t *testing.T) {
 		},
 		{
 			name:        "Errors if no file content provided",
-			orgName:     "Google",
+			ownerName:   "Google",
 			repoName:    "MyRepo",
 			filePath:    "no-content",
 			mockContent: nil,
@@ -141,10 +141,10 @@ func TestFetchFile(t *testing.T) {
 			wantErr:     ErrNoContent,
 		},
 		{
-			name:     "Errors if file is not found",
-			orgName:  "Google",
-			repoName: "MyRepo",
-			filePath: "dna",
+			name:      "Errors if file is not found",
+			ownerName: "Google",
+			repoName:  "MyRepo",
+			filePath:  "dna",
 			mockContent: &github.RepositoryContent{
 				Type:     &file,
 				Encoding: &base64,
@@ -164,7 +164,7 @@ func TestFetchFile(t *testing.T) {
 	}
 	for _, test := range tests {
 		mock := new(MockGithubRepositoryService)
-		mock.Owner = test.orgName
+		mock.Owner = test.ownerName
 		mock.Repo = test.repoName
 		mock.Content = test.mockContent
 		mock.Error = test.mockError
@@ -172,7 +172,7 @@ func TestFetchFile(t *testing.T) {
 		client := NewGitHubClient(nil, mock)
 
 		ctx := context.Background()
-		got, gotErr := fetchFile(ctx, test.orgName, test.repoName, test.filePath, &client)
+		got, gotErr := fetchFile(ctx, test.ownerName, test.repoName, test.filePath, &client)
 
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
