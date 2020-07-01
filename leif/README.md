@@ -11,6 +11,6 @@ periodically syncing to update the SLO rules, which are exposed over an API.
 
 `leif` looks for the config file for the repository in the following places:
 1. In the repository itself: `.github/issue_slo_rules.json`
-2. If there is no config file in the respository, `leif` looks for the config file at the org-level:         `<orgname>/.github/issue_slo_rules.json`
+2. If there is no config file in the respository, `leif` looks for the config file at the owner level: `<ownername>/.github/issue_slo_rules.json`
 
 Note: an empty config file opts-out of SLO tracking
