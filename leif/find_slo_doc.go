@@ -28,8 +28,13 @@ import (
 const gitHubDir = ".github"
 const sloConfigFileName = "issue_slo_rules.json"
 
+// ErrGoGitHub is a sentinel error against which to check github.ErrorResponse errors
 var ErrGoGitHub = errors.New("an error came from go github")
+
+// ErrNoContent is a sentinel error representing the github.RepositoryContent is nil
 var ErrNoContent = errors.New("no content found")
+
+// ErrNotAFile is a sentinel error representing that the github.RepositoryContent is not a file
 var ErrNotAFile = errors.New("not a file")
 
 type goGitHubErr github.ErrorResponse
@@ -70,12 +75,6 @@ func (e *notAFileError) Error() string {
 
 func (e *notAFileError) Unwrap() error {
 	return e.err
-}
-
-// Repository represents a GitHub repository and stores its SLO rules
-type Repository struct {
-	name     string
-	SLORules []*SLORule
 }
 
 func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *githubreposervice.Client) ([]*SLORule, error) {

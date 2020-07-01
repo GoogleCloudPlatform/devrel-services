@@ -18,9 +18,18 @@ import (
 	"time"
 )
 
+// Owner represents a GitHub owner and their tracked repositories
+// Owners can specify default SLO rules that will apply to all tracked repos
+// unless the repository overrides them with its own SLO rules config
 type Owner struct {
 	name     string
 	Repos    []*Repository
+	SLORules []*SLORule
+}
+
+// Repository represents a GitHub repository and stores its SLO rules
+type Repository struct {
+	name     string
 	SLORules []*SLORule
 }
 
