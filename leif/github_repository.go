@@ -18,8 +18,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"path"
+
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
 
 	"github.com/google/go-github/github"
 )
@@ -71,39 +72,13 @@ func (e *notAFileError) Unwrap() error {
 	return e.err
 }
 
-// githubRepoService is an interface defining the needed behaviour of the GitHub client
-// This way, the default client may be replaced for testing
-type gitHubRepoService interface {
-	GetContents(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentGetOptions) (fileContent *github.RepositoryContent, directoryContent []*github.RepositoryContent, resp *github.Response, err error)
-}
-
-// githubClient is a a wrapper around the GitHub client's RepositoriesService
-type gitHubClient struct {
-	Repositories gitHubRepoService
-}
-
-// NewGithubClient creates a wrapper around the GitHub client's RepositoriesService
-// The RepositoriesService can be replaced for unit testing
-func NewGitHubClient(httpClient *http.Client, repoMock gitHubRepoService) gitHubClient {
-	if repoMock != nil {
-		return gitHubClient{
-			Repositories: repoMock,
-		}
-	}
-	client := github.NewClient(httpClient)
-
-	return gitHubClient{
-		Repositories: client.Repositories,
-	}
-}
-
 // Repository represents a GitHub repository and stores its SLO rules
 type Repository struct {
 	name     string
 	SLORules []*SLORule
 }
 
-func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *gitHubClient) ([]*SLORule, error) {
+func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *githubreposervice.Client) ([]*SLORule, error) {
 	var ghErrorResponse *goGitHubErr
 
 	p := path.Join(gitHubDir, sloConfigFileName)
@@ -121,7 +96,7 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 	return unmarshalSLOs([]byte(file))
 }
 
-func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *gitHubClient) (string, error) {
+func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *githubreposervice.Client) (string, error) {
 	content, _, _, err := ghClient.Repositories.GetContents(ctx, ownerName, repoName, filePath, nil)
 	if err != nil {
 		var ghErrorResponse *github.ErrorResponse

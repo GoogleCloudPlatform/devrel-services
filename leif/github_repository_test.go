@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
 	"github.com/google/go-github/github"
 )
 
@@ -169,7 +170,7 @@ func TestFetchFile(t *testing.T) {
 		mock.Content = test.mockContent
 		mock.Error = test.mockError
 
-		client := NewGitHubClient(nil, mock)
+		client := githubreposervice.NewClient(nil, mock)
 
 		ctx := context.Background()
 		got, gotErr := fetchFile(ctx, test.ownerName, test.repoName, test.filePath, &client)
@@ -380,7 +381,7 @@ func TestFindSLODoc(t *testing.T) {
 		mock.Repo = test.repoName
 		mock.Content = test.mockContent
 		mock.Error = test.mockError
-		client := NewGitHubClient(nil, mock)
+		client := githubreposervice.NewClient(nil, mock)
 
 		got, gotErr := findSLODoc(context.Background(), test.owner, test.repoName, &client)
 
