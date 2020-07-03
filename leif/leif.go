@@ -15,8 +15,27 @@
 package leif
 
 import (
+	"sync"
 	"time"
 )
+
+// Corpus holds all of a project's metadata.
+type Corpus struct {
+	verbose bool
+
+	mu sync.RWMutex // guards all following fields
+	// corpus state:
+	didInit bool
+	debug   bool
+	syncing bool
+
+	watchedOrgs  []Org
+	watchedRepos []WatchedRepository
+
+	// github-specific
+
+	// gitReposToAdd chan WatchedRepository
+}
 
 // Owner represents a GitHub owner and their tracked repositories
 // Owners can specify default SLO rules that will apply to all tracked repos
