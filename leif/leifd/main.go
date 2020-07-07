@@ -80,6 +80,8 @@ func main() {
 
 	if *bucket != "" {
 		repoList = repos.NewBucketRepo(*bucket, *reposFile)
+	} else {
+		repoList = leif.NewDiskRepo(*reposFile)
 	}
 
 	_, err := repoList.UpdateTrackedRepos(context.Background())
@@ -90,7 +92,9 @@ func main() {
 
 	ghClient := githubreposervice.NewClient(nil, nil)
 	for _, r := range repoList.GetTrackedRepos() {
-		corpus.TrackRepo(context.Background(), r.Owner, r.Name, &ghClient)
+		if r.IsTrackingIssues {
+			corpus.TrackRepo(context.Background(), r.Owner, r.Name, &ghClient)
+		}
 	}
 
 	_, cancel := context.WithCancel(context.Background())
