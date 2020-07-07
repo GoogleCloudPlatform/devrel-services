@@ -31,10 +31,11 @@ import (
 
 // if bucket is specified, repos file is to be found in that bucket, elsewise, it's local
 var (
-	listen    = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
-	bucket    = flag.String("bucket", "", "Google Cloud Storage bucket to use for settings storage")
-	reposFile = flag.String("repos", "", "File that contains the list of repositories")
-	verbose   = flag.Bool("verbose", false, "Verbose logs")
+	bucket       = flag.String("bucket", "", "Google Cloud Storage bucket to use for settings storage")
+	listen       = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
+	reposFile    = flag.String("repos", "", "File that contains the list of repositories")
+	syncInterval = flag.Int("sync", 10, "The SLO rules update every X minutes")
+	verbose      = flag.Bool("verbose", false, "Verbose logs")
 )
 
 var log *logrus.Logger
