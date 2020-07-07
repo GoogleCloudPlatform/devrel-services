@@ -80,6 +80,14 @@ func (e *notAFileError) Unwrap() error {
 func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *githubreposervice.Client) ([]*SLORule, error) {
 	var ghErrorResponse *goGitHubErr
 
+	if len(repoName) < 1 {
+		file, err := fetchFile(ctx, owner.name, gitHubDir, sloConfigFileName, ghClient)
+		if err != nil {
+			return nil, fmt.Errorf("error finding SLO config: %w", err)
+		}
+		return unmarshalSLOs([]byte(file))
+	}
+
 	p := path.Join(gitHubDir, sloConfigFileName)
 
 	file, err := fetchFile(ctx, owner.name, repoName, p, ghClient)

@@ -15,9 +15,31 @@
 package leif
 
 import (
+	"context"
+	"errors"
+	"os"
+	"sort"
 	"sync"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
+	"github.com/sirupsen/logrus"
 )
+
+var log *logrus.Logger
+
+func init() {
+	log = logrus.New()
+	log.Out = os.Stdout
+}
+
+func VerboseLog() {
+	log.Level = logrus.DebugLevel
+}
+
+func FormatLog(f logrus.Formatter) {
+	log.Formatter = f
+}
 
 // Corpus holds all of a project's metadata.
 type Corpus struct {
@@ -29,12 +51,77 @@ type Corpus struct {
 	debug   bool
 	syncing bool
 
-	watchedOrgs  []Org
-	watchedRepos []WatchedRepository
+	watchedOwners []Owner
+	// watchedRepos  []Repository do we want this
 
 	// github-specific
 
 	// gitReposToAdd chan WatchedRepository
+}
+
+func (c *Corpus) TrackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) error {
+
+	i := sort.Search(len(c.watchedOwners), func(i int) bool { return c.watchedOwners[i].name >= name })
+
+	if i < len(c.watchedOwners) && c.watchedOwners[i].name == name {
+		// already tracked
+		return nil
+	}
+
+	owner := Owner{name: name}
+	rules, err := findSLODoc(ctx, owner, "", ghClient)
+	if err != nil {
+		log.Error(err)
+		var ghErrorResponse *goGitHubErr
+
+		if !(errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404) {
+			// SLO config not found
+			return err
+		}
+	}
+	owner.SLORules = rules
+	c.watchedOwners = append(c.watchedOwners, owner)
+	copy(c.watchedOwners[i+1:], c.watchedOwners[i:])
+	c.watchedOwners[i] = owner
+
+	return nil
+}
+
+func (c *Corpus) TrackRepo(ctx context.Context, owner string, repo string, ghClient *githubreposervice.Client) error {
+
+	err := c.TrackOwner(ctx, owner, ghClient)
+	if err != nil {
+		return err
+	}
+
+	ownerIndex := sort.Search(len(c.watchedOwners), func(i int) bool { return c.watchedOwners[i].name >= owner })
+
+	repoIndex := sort.Search(len(c.watchedOwners[ownerIndex].Repos), func(i int) bool { return c.watchedOwners[ownerIndex].Repos[i].name >= repo })
+
+	watchedOwner := &c.watchedOwners[ownerIndex]
+
+	if repoIndex < len(watchedOwner.Repos) && watchedOwner.Repos[repoIndex].name == repo {
+		// repo already tracked
+		return nil
+	}
+
+	addRepo := Repository{name: repo}
+	rules, err := findSLODoc(ctx, *watchedOwner, repo, ghClient)
+	if err != nil {
+		log.Error(err)
+		var ghErrorResponse *goGitHubErr
+
+		if !(errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404) {
+			// SLO config not found
+			return err
+		}
+	}
+	addRepo.SLORules = rules
+	watchedOwner.Repos = append(watchedOwner.Repos, addRepo)
+	copy(watchedOwner.Repos[repoIndex+1:], watchedOwner.Repos[repoIndex:])
+	watchedOwner.Repos[repoIndex] = addRepo
+
+	return nil
 }
 
 // Owner represents a GitHub owner and their tracked repositories
@@ -42,7 +129,7 @@ type Corpus struct {
 // unless the repository overrides them with its own SLO rules config
 type Owner struct {
 	name     string
-	Repos    []*Repository
+	Repos    []Repository
 	SLORules []*SLORule
 }
 

@@ -20,52 +20,53 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-services/leif"
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
+	"github.com/GoogleCloudPlatform/devrel-services/repos"
+
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
-// if owner is specified, file is to be found in that bucket, elsewise, it's local
-// kept these as in leifd to maintain consistency but may have to change if confusing/diff in this context
+// if bucket is specified, repos file is to be found in that bucket, elsewise, it's local
 var (
-	listen  = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
-	owner   = flag.String("owner", "", "Google Cloud Storage bucket to use for settings storage")
-	repos   = flag.String("repo", "", "File that contains the list of repositories")
-	verbose = flag.Bool("verbose", false, "Verbose logs")
+	listen    = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
+	bucket    = flag.String("bucket", "", "Google Cloud Storage bucket to use for settings storage")
+	reposFile = flag.String("repos", "", "File that contains the list of repositories")
+	verbose   = flag.Bool("verbose", false, "Verbose logs")
 )
 
 var log *logrus.Logger
+var repoList repos.RepoList
+
+func init() {
+	log = logrus.New()
+	log.Formatter = &logrus.JSONFormatter{
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyTime:  "timestamp",
+			logrus.FieldKeyLevel: "severity",
+			logrus.FieldKeyMsg:   "message",
+		},
+		TimestampFormat: time.RFC3339Nano,
+	}
+	leif.FormatLog(log.Formatter)
+
+	log.Out = os.Stdout
+}
 
 func parseFlags() {
 	flag.Parse()
 
 	if *verbose == true {
 		log.Level = logrus.DebugLevel
-		// leif.VerboseLog()
+		leif.VerboseLog()
 	}
 
-	if *repos == "" {
+	if *reposFile == "" {
 		err := fmt.Errorf("must provide --repos")
 		log.Fatal(err)
 	}
-}
-
-func loadRepos() {
-
-	loadGroup, _ := errgroup.WithContext(context.Background())
-
-	repoPath := fmt.Sprintf("https://github.com/%v/%v", *owner, *repo)
-	loadGroup.Go(func() error {
-		log.Printf("Tracking repo: %s", repoPath)
-		return corpus.TrackGit(repoPath)
-	})
-
-	if err := loadGroup.Wait(); err != nil {
-		log.Fatal(err)
-		return
-	}
-
 }
 
 func main() {
@@ -76,7 +77,22 @@ func main() {
 
 	corpus := &leif.Corpus{}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	if *bucket != "" {
+		repoList = repos.NewBucketRepo(*bucket, *reposFile)
+	}
+
+	_, err := repoList.UpdateTrackedRepos(context.Background())
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	ghClient := githubreposervice.NewClient(nil, nil)
+	for _, r := range repoList.GetTrackedRepos() {
+		corpus.TrackRepo(context.Background(), r.Owner, r.Name, &ghClient)
+	}
+
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)
@@ -86,13 +102,5 @@ func main() {
 		cancel()
 	}()
 
-	repo := leif.Repository{}
-	fmt.Println(repo)
-	fmt.Println(ctx)
-	// err := repo.FindRepository(ctx, "e")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-
+	fmt.Println(corpus)
 }
