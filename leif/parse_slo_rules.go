@@ -59,7 +59,7 @@ func (d duration) MarshalJSON() ([]byte, error) {
 // Unmarshalling a duration converts it from a string in the time.Duration format (plus days) or an int representing seconds
 // It is unmarshalled into the time.Duration representation (an int64 representing nanoseconds)
 // Unmarshalling "2d" and then remarshalling it would return 172800000000000
-func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
+func (d *duration) UnmarshalJSON(data []byte) error {
 	var tempInterface interface{}
 
 	err := json.Unmarshal(data, &tempInterface)
@@ -70,15 +70,15 @@ func (stringOrInt *duration) UnmarshalJSON(data []byte) error {
 	str, isString := tempInterface.(string)
 
 	if isString {
-		d, err := parseDurationWithDays(str)
-		*stringOrInt = duration(d)
+		dur, err := parseDurationWithDays(str)
+		*d = duration(dur)
 		return err
 	}
 
 	value, isNumber := tempInterface.(float64)
 
 	if isNumber {
-		*stringOrInt = duration(time.Duration(int64(value) * int64(time.Second.Nanoseconds())))
+		*d = duration(time.Duration(int64(value) * int64(time.Second.Nanoseconds())))
 		return err
 	}
 
@@ -169,6 +169,8 @@ func unmarshalSLOs(data []byte) ([]*SLORule, error) {
 	return sloRules, err
 }
 
+// AppliesToJSON is the intermediary struct between the JSON representation and the structured leif representation
+// that stores structured data on which issues and/or pull requests a SLO applies to
 type AppliesToJSON struct {
 	GitHubLabelsRaw         stringOrArray `json:"gitHubLabels"`
 	ExcludedGitHubLabelsRaw stringOrArray `json:"excludedGitHubLabels"`
@@ -178,6 +180,8 @@ type AppliesToJSON struct {
 	PRs                     bool          `json:"prs"`
 }
 
+// ComplianceSettingsJSON is the intermediary struct between the JSON representation and the structured leif representation
+// that stores data on the requirements for an issue or pull request to be considered compliant with the SLO
 type ComplianceSettingsJSON struct {
 	ResponseTime     duration       `json:"responseTime"`
 	ResolutionTime   duration       `json:"resolutionTime"`
@@ -185,6 +189,8 @@ type ComplianceSettingsJSON struct {
 	RespondersJSON   RespondersJSON `json:"responders"`
 }
 
+// RespondersJSON is the intermediary struct between the JSON representation and the structured leif representation
+// that stores structured data on the responders to the issue or pull request the SLO applies to
 type RespondersJSON struct {
 	OwnersRaw    stringOrArray `json:"owners"`
 	Contributors string        `json:"contributors"`
