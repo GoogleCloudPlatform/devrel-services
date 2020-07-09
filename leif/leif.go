@@ -47,7 +47,7 @@ type AppliesTo struct {
 	PRs                  bool     `json:"prs"`
 }
 
-// ComplianceSetting stores data on the requirements for an issue or pull request to be considered compliant with the SLO
+// ComplianceSettings stores data on the requirements for an issue or pull request to be considered compliant with the SLO
 type ComplianceSettings struct {
 	ResponseTime     time.Duration `json:"responseTime"`
 	ResolutionTime   time.Duration `json:"resolutionTime"`
