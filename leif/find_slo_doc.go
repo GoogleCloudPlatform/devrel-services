@@ -104,7 +104,9 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 }
 
 func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *githubreposervice.Client) (string, error) {
-	content, _, _, err := ghClient.Repositories.GetContents(ctx, ownerName, repoName, filePath, nil)
+	content, _, r, err := ghClient.Repositories.GetContents(ctx, ownerName, repoName, "LICENSE", nil)
+	fmt.Println(r.Rate)
+	fmt.Println(r.Header.Get("Last-Modified"))
 	if err != nil {
 		var ghErrorResponse *github.ErrorResponse
 

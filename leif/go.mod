@@ -7,6 +7,7 @@ require (
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0-20200618181902-d6276ab34484
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v32 v32.0.0
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/shurcooL/githubv4 v0.0.0-20200414012201-bbc966b061dd
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect

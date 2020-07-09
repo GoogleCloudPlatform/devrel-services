@@ -20,14 +20,20 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-services/leif"
 	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
+	"github.com/gregjones/httpcache"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
+
+const gitHubEnvVar = "GITHUB_TOKEN"
 
 // if bucket is specified, repos file is to be found in that bucket, elsewise, it's local
 var (
@@ -70,11 +76,71 @@ func parseFlags() {
 	}
 }
 
+var arr []int
+var arrc chan int
+var mu sync.RWMutex
+
+func rando() {
+	fmt.Println("Hello ra!")
+
+	go func() {
+
+		fmt.Println("in arrc")
+		for e := range arrc {
+			fmt.Println("updating c", e)
+			time.Sleep(100 * time.Millisecond)
+		}
+		fmt.Println("go func done")
+	}()
+
+	for e := range arr {
+		fmt.Println("updating", e)
+		fmt.Println(arr)
+		time.Sleep(100 * time.Millisecond)
+
+	}
+	fmt.Println("done")
+	return
+}
+
+func addTo() {
+
+	mu.Lock()
+	defer mu.Unlock()
+	// fmt.Println("adding to rrc")
+	// fmt.Println(arrc)
+	for i := 5; i < 10; i++ {
+		arr = append(arr, i)
+		arrc <- i
+	}
+	// // fmt.Println(arrc)
+	// fmt.Println("added to rrc")
+	return
+}
+
+var ghClient githubreposervice.Client
+
+func initGHClient() {
+	if os.Getenv(gitHubEnvVar) == "" {
+		log.Fatalf("env var %v is empty", gitHubEnvVar)
+	}
+
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: strings.Trim(os.Getenv(gitHubEnvVar), "\n")},
+	)
+	hc := oauth2.NewClient(context.Background(), src)
+
+	cachedTransport := httpcache.Transport{Transport: hc.Transport, Cache: httpcache.NewMemoryCache()}
+
+	ghClient = githubreposervice.NewClient(cachedTransport.Client(), nil)
+}
+
 func main() {
 	fmt.Println("Hello World!")
 
 	log = logrus.New()
 	parseFlags()
+	initGHClient()
 
 	corpus := &leif.Corpus{}
 
@@ -90,7 +156,6 @@ func main() {
 		return
 	}
 
-	ghClient := githubreposervice.NewClient(nil, nil)
 	for _, r := range repoList.GetTrackedRepos() {
 		if r.IsTrackingIssues {
 			corpus.TrackRepo(context.Background(), r.Owner, r.Name, &ghClient)

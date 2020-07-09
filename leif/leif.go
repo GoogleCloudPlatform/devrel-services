@@ -17,6 +17,7 @@ package leif
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sort"
 	"sync"
@@ -57,6 +58,21 @@ type Corpus struct {
 	// github-specific
 
 	// gitReposToAdd chan WatchedRepository
+}
+
+func (c *Corpus) Initialize() error {
+	c.mu.Lock()
+	if c.didInit {
+		c.mu.Unlock()
+		return fmt.Errorf("Multiple calls to Initialize")
+	}
+	defer c.mu.Unlock()
+
+	log.Info("Corpus Initializing")
+
+	c.didInit = true
+	log.Info("Corpus finished Initializing")
+	return nil
 }
 
 func (c *Corpus) TrackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) error {
@@ -102,11 +118,11 @@ func (c *Corpus) TrackRepo(ctx context.Context, owner string, repo string, ghCli
 
 	if repoIndex < len(watchedOwner.Repos) && watchedOwner.Repos[repoIndex].name == repo {
 		// repo already tracked
-		return nil
+		return nil //error here/log?
 	}
 
 	addRepo := Repository{name: repo}
-	rules, err := findSLODoc(ctx, *watchedOwner, repo, ghClient)
+	rules, err := findSLODoc(ctx, *watchedOwner, repo, ghClient) // is it rgiht to put this here
 	if err != nil {
 		log.Error(err)
 		var ghErrorResponse *goGitHubErr
