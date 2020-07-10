@@ -89,6 +89,27 @@ func (c *Corpus) Initialize() error {
 	return nil
 }
 
+func (c *Corpus) TrackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) error {
+
+	owner, err := c.trackOwner(ctx, name, ghClient)
+	if err != nil {
+		return err
+	}
+
+	owner.trackAllRepos(ctx, ghClient)
+	return nil
+}
+
+func (c *Corpus) TrackRepo(ctx context.Context, ownerName string, repoName string, ghClient *githubreposervice.Client) error {
+
+	owner, err := c.trackOwner(ctx, ownerName, ghClient)
+	if err != nil {
+		return err
+	}
+
+	return owner.trackRepo(ctx, repoName, ghClient)
+}
+
 func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) (*Owner, error) {
 	i := sort.Search(len(c.watchedOwners), func(i int) bool { return c.watchedOwners[i].name >= name })
 
@@ -111,6 +132,15 @@ func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubre
 	return &c.watchedOwners[i], nil
 }
 
+// Owner represents a GitHub owner and their tracked repositories
+// Owners can specify default SLO rules that will apply to all tracked repos
+// unless the repository overrides them with its own SLO rules config
+type Owner struct {
+	name     string
+	Repos    []Repository
+	SLORules []*SLORule
+}
+
 func (o *Owner) trackAllRepos(ctx context.Context, ghClient *githubreposervice.Client) error {
 	o.Repos = []Repository{}
 
@@ -128,16 +158,6 @@ func (o *Owner) trackAllRepos(ctx context.Context, ghClient *githubreposervice.C
 
 		page = resp.NextPage
 	}
-	return nil
-}
-
-func (c *Corpus) TrackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) error {
-
-	owner, err := c.trackOwner(ctx, name, ghClient)
-	if err != nil {
-		return err
-	}
-	owner.trackAllRepos(ctx, ghClient)
 	return nil
 }
 
@@ -164,25 +184,6 @@ func (owner *Owner) trackRepo(ctx context.Context, repoName string, ghClient *gi
 	return nil
 }
 
-func (c *Corpus) TrackRepo(ctx context.Context, ownerName string, repoName string, ghClient *githubreposervice.Client) error {
-
-	owner, err := c.trackOwner(ctx, ownerName, ghClient)
-	if err != nil {
-		return err
-	}
-
-	return owner.trackRepo(ctx, repoName, ghClient)
-}
-
-// Owner represents a GitHub owner and their tracked repositories
-// Owners can specify default SLO rules that will apply to all tracked repos
-// unless the repository overrides them with its own SLO rules config
-type Owner struct {
-	name     string
-	Repos    []Repository
-	SLORules []*SLORule
-}
-
 // Repository represents a GitHub repository and stores its SLO rules
 type Repository struct {
 	name     string
@@ -203,7 +204,7 @@ type AppliesTo struct {
 	PRs                  bool     `json:"prs"`
 }
 
-// ComplianceSetting stores data on the requirements for an issue or pull request to be considered compliant with the SLO
+// ComplianceSettings stores data on the requirements for an issue or pull request to be considered compliant with the SLO
 type ComplianceSettings struct {
 	ResponseTime     time.Duration `json:"responseTime"`
 	ResolutionTime   time.Duration `json:"resolutionTime"`
