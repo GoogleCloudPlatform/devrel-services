@@ -16,6 +16,7 @@ package leif
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -53,11 +54,8 @@ type Corpus struct {
 	syncing bool
 
 	watchedOwners []Owner
-	// watchedRepos  []Repository do we want this
 
-	// github-specific
-
-	// gitReposToAdd chan WatchedRepository
+	OwnersToAdd chan Owner
 }
 
 func (c *Corpus) String() string {
@@ -74,7 +72,7 @@ func (c *Corpus) String() string {
 	return s
 }
 
-func (c *Corpus) Initialize() error {
+func (c *Corpus) Initialize(ctx context.Context, ghClient *githubreposervice.Client) error {
 	c.mu.Lock()
 	if c.didInit {
 		c.mu.Unlock()
@@ -83,6 +81,15 @@ func (c *Corpus) Initialize() error {
 	defer c.mu.Unlock()
 
 	log.Info("Corpus Initializing")
+
+	for _, o := range c.watchedOwners {
+		log.Debugf("Starting initial update of owner %s", o.name)
+		err := o.Update(ctx, ghClient)
+		if err != nil {
+			log.Errorf("Initial update of owner %s failed: %s", o.name, err)
+		}
+		log.Debugf("Finished initial update of owner %s", o.name)
+	}
 
 	c.didInit = true
 	log.Info("Corpus finished Initializing")
@@ -141,6 +148,28 @@ type Owner struct {
 	SLORules []*SLORule
 }
 
+func (o *Owner) Update(ctx context.Context, ghClient *githubreposervice.Client) error {
+	// update overarching config
+	rules, err := findSLODoc(ctx, *o, "", ghClient)
+	if err != nil {
+		var ghErrorResponse *github.ErrorResponse
+
+		if !(errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404) {
+			// any error other than config not found returns
+			return err
+		}
+	}
+
+	o.SLORules = rules
+
+	// update the repos under it
+	for _, r := range o.Repos {
+		r.Update(ctx, *o, ghClient)
+	}
+
+	return nil
+}
+
 func (o *Owner) trackAllRepos(ctx context.Context, ghClient *githubreposervice.Client) error {
 	o.Repos = []Repository{}
 
@@ -171,7 +200,6 @@ func (owner *Owner) trackRepo(ctx context.Context, repoName string, ghClient *gi
 
 	// check that repo exists:
 	_, _, err := ghClient.Repositories.Get(ctx, owner.name, repoName)
-	fmt.Println(err)
 	if err != nil {
 		log.Errorf("Unable to get repository %s/%s from GitHub: %s", owner.name, repoName, err)
 		return err
@@ -188,6 +216,18 @@ func (owner *Owner) trackRepo(ctx context.Context, repoName string, ghClient *gi
 type Repository struct {
 	name     string
 	SLORules []*SLORule
+}
+
+func (r *Repository) Update(ctx context.Context, owner Owner, ghClient *githubreposervice.Client) error {
+
+	rules, err := findSLODoc(ctx, owner, r.name, ghClient)
+	if err != nil {
+		log.Errorf("Error updating repository %s/%s: %s", owner.name, r.name, err)
+		return err
+	}
+
+	r.SLORules = rules
+	return nil
 }
 
 // SLORule represents a service level objective (SLO) rule

@@ -162,6 +162,12 @@ func main() {
 		}
 	}
 
+	err = corpus.Initialize(context.Background(), &ghClient)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalCh := make(chan os.Signal, 1)
