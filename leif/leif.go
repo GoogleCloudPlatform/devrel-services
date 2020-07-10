@@ -16,7 +16,6 @@ package leif
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -24,6 +23,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
+	"github.com/google/go-github/v31/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -60,6 +60,20 @@ type Corpus struct {
 	// gitReposToAdd chan WatchedRepository
 }
 
+func (c *Corpus) String() string {
+	var s string
+	for _, o := range c.watchedOwners {
+		s += o.name + ": "
+		for _, r := range o.Repos {
+			s += r.name
+			s += ","
+		}
+		s += "\n"
+	}
+
+	return s
+}
+
 func (c *Corpus) Initialize() error {
 	c.mu.Lock()
 	if c.didInit {
@@ -75,69 +89,89 @@ func (c *Corpus) Initialize() error {
 	return nil
 }
 
-func (c *Corpus) TrackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) error {
-
+func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) (*Owner, error) {
 	i := sort.Search(len(c.watchedOwners), func(i int) bool { return c.watchedOwners[i].name >= name })
 
 	if i < len(c.watchedOwners) && c.watchedOwners[i].name == name {
 		// already tracked
-		return nil
+		return &c.watchedOwners[i], nil
+	}
+
+	// check that it exists in GH:
+	_, _, err := ghClient.Organizations.Get(ctx, name)
+	if err != nil {
+		log.Errorf("Unable to get org %s from GitHub: %s", name, err)
+		return nil, err
 	}
 
 	owner := Owner{name: name}
-	rules, err := findSLODoc(ctx, owner, "", ghClient)
-	if err != nil {
-		log.Error(err)
-		var ghErrorResponse *goGitHubErr
-
-		if !(errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404) {
-			// SLO config not found
-			return err
-		}
-	}
-	owner.SLORules = rules
 	c.watchedOwners = append(c.watchedOwners, owner)
 	copy(c.watchedOwners[i+1:], c.watchedOwners[i:])
 	c.watchedOwners[i] = owner
+	return &c.watchedOwners[i], nil
+}
 
+func (o *Owner) trackAllRepos(ctx context.Context, ghClient *githubreposervice.Client) error {
+	o.Repos = []Repository{}
+
+	var page int = 1
+	for page > 0 {
+		opt := &github.RepositoryListByOrgOptions{Sort: "full_name", ListOptions: github.ListOptions{Page: page, PerPage: 100}}
+		repos, resp, err := ghClient.Repositories.ListByOrg(ctx, o.name, opt)
+		if err != nil {
+			return err
+		}
+
+		for _, r := range repos {
+			o.Repos = append(o.Repos, Repository{name: *r.Name})
+		}
+
+		page = resp.NextPage
+	}
 	return nil
 }
 
-func (c *Corpus) TrackRepo(ctx context.Context, owner string, repo string, ghClient *githubreposervice.Client) error {
+func (c *Corpus) TrackOwner(ctx context.Context, name string, ghClient *githubreposervice.Client) error {
 
-	err := c.TrackOwner(ctx, owner, ghClient)
+	owner, err := c.trackOwner(ctx, name, ghClient)
+	if err != nil {
+		return err
+	}
+	owner.trackAllRepos(ctx, ghClient)
+	return nil
+}
+
+func (owner *Owner) trackRepo(ctx context.Context, repoName string, ghClient *githubreposervice.Client) error {
+	repoIndex := sort.Search(len(owner.Repos), func(i int) bool { return owner.Repos[i].name >= repoName })
+
+	if repoIndex < len(owner.Repos) && owner.Repos[repoIndex].name == repoName {
+		log.Warningf("Repository %s/%s already tracked", owner.name, repoName)
+		return nil
+	}
+
+	// check that repo exists:
+	_, _, err := ghClient.Repositories.Get(ctx, owner.name, repoName)
+	fmt.Println(err)
+	if err != nil {
+		log.Errorf("Unable to get repository %s/%s from GitHub: %s", owner.name, repoName, err)
+		return err
+	}
+
+	addRepo := Repository{name: repoName}
+	owner.Repos = append(owner.Repos, addRepo)
+	copy(owner.Repos[repoIndex+1:], owner.Repos[repoIndex:])
+	owner.Repos[repoIndex] = addRepo
+	return nil
+}
+
+func (c *Corpus) TrackRepo(ctx context.Context, ownerName string, repoName string, ghClient *githubreposervice.Client) error {
+
+	owner, err := c.trackOwner(ctx, ownerName, ghClient)
 	if err != nil {
 		return err
 	}
 
-	ownerIndex := sort.Search(len(c.watchedOwners), func(i int) bool { return c.watchedOwners[i].name >= owner })
-
-	repoIndex := sort.Search(len(c.watchedOwners[ownerIndex].Repos), func(i int) bool { return c.watchedOwners[ownerIndex].Repos[i].name >= repo })
-
-	watchedOwner := &c.watchedOwners[ownerIndex]
-
-	if repoIndex < len(watchedOwner.Repos) && watchedOwner.Repos[repoIndex].name == repo {
-		// repo already tracked
-		return nil //error here/log?
-	}
-
-	addRepo := Repository{name: repo}
-	rules, err := findSLODoc(ctx, *watchedOwner, repo, ghClient) // is it rgiht to put this here
-	if err != nil {
-		log.Error(err)
-		var ghErrorResponse *goGitHubErr
-
-		if !(errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404) {
-			// SLO config not found
-			return err
-		}
-	}
-	addRepo.SLORules = rules
-	watchedOwner.Repos = append(watchedOwner.Repos, addRepo)
-	copy(watchedOwner.Repos[repoIndex+1:], watchedOwner.Repos[repoIndex:])
-	watchedOwner.Repos[repoIndex] = addRepo
-
-	return nil
+	return owner.trackRepo(ctx, repoName, ghClient)
 }
 
 // Owner represents a GitHub owner and their tracked repositories

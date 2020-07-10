@@ -132,7 +132,7 @@ func initGHClient() {
 
 	cachedTransport := httpcache.Transport{Transport: hc.Transport, Cache: httpcache.NewMemoryCache()}
 
-	ghClient = githubreposervice.NewClient(cachedTransport.Client(), nil)
+	ghClient = githubreposervice.NewClient(cachedTransport.Client(), nil, nil)
 }
 
 func main() {

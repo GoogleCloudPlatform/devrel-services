@@ -21,31 +21,40 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v31/github"
 )
 
-// RepoService is an interface defining the needed behaviour of the GitHub client
+// repoService is an interface defining the needed behaviour of the GitHub client
 // This way, the default client may be replaced for testing
 type repoService interface {
+	Get(ctx context.Context, owner, repo string) (*github.Repository, *github.Response, error)
 	GetContents(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentGetOptions) (fileContent *github.RepositoryContent, directoryContent []*github.RepositoryContent, resp *github.Response, err error)
+	ListByOrg(ctx context.Context, org string, opts *github.RepositoryListByOrgOptions) ([]*github.Repository, *github.Response, error)
+}
+
+type orgService interface {
+	Get(ctx context.Context, org string) (*github.Organization, *github.Response, error)
 }
 
 // Client is a a wrapper around the GitHub client's RepositoriesService
 type Client struct {
-	Repositories repoService
+	Repositories  repoService
+	Organizations orgService
 }
 
 // NewClient creates a wrapper around the GitHub client's RepositoriesService
 // The RepositoriesService can be replaced for unit testing
-func NewClient(httpClient *http.Client, repoMock repoService) Client {
+func NewClient(httpClient *http.Client, repoMock repoService, orgMock orgService) Client {
 	if repoMock != nil {
 		return Client{
-			Repositories: repoMock,
+			Repositories:  repoMock,
+			Organizations: orgMock,
 		}
 	}
 	client := github.NewClient(httpClient)
 
 	return Client{
-		Repositories: client.Repositories,
+		Repositories:  client.Repositories,
+		Organizations: client.Organizations,
 	}
 }

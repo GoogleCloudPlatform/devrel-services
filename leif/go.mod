@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.40.0
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0-20200618181902-d6276ab34484
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/go-github/v31 v31.0.0
 	github.com/google/go-github/v32 v32.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/mitchellh/mapstructure v1.3.2
