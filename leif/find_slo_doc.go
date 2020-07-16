@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
 
 	"github.com/google/go-github/github"
 )
@@ -77,7 +77,7 @@ func (e *notAFileError) Unwrap() error {
 	return e.err
 }
 
-func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *githubreposervice.Client) ([]*SLORule, error) {
+func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *githubservices.Client) ([]*SLORule, error) {
 	var ghErrorResponse *goGitHubErr
 
 	if len(repoName) < 1 {
@@ -93,7 +93,7 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 	file, err := fetchFile(ctx, owner.name, repoName, p, ghClient)
 
 	if errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404 {
-		// SLO config not found, get SLO rules from owner:
+		log.Infof("Repository %s does not have SLO config file %s; using the owner's SLO rules", repoName, p)
 		return owner.SLORules, nil
 	}
 	if err != nil {
@@ -103,7 +103,7 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 	return unmarshalSLOs([]byte(file))
 }
 
-func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *githubreposervice.Client) (string, error) {
+func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *githubservices.Client) (string, error) {
 	content, _, _, err := ghClient.Repositories.GetContents(ctx, ownerName, repoName, filePath, nil)
 
 	if err != nil {

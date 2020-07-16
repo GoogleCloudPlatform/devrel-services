@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 )
 
+// NewDiskRepo returns a RepoList based on a local file
 func NewDiskRepo(fileName string) repos.RepoList {
 	return &diskRepoList{
 		fileName:  fileName,
@@ -64,7 +65,7 @@ func (r *diskRepoList) GetTrackedRepos() []repos.TrackedRepository {
 type diskRepo struct {
 	Repo               string `json:"repo"`
 	IsTrackingIssues   bool   `json:"is_tracking_issues"`
-	IsTrackingSnippets bool   `json:"is_tracking_snippets`
+	IsTrackingSnippets bool   `json:"is_tracking_snippets"`
 }
 
 func (r *diskRepoList) getRepos() ([]repos.TrackedRepository, error) {

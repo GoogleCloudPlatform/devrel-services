@@ -21,11 +21,12 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/GoogleCloudPlatform/devrel-services/leif"
-	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"github.com/gregjones/httpcache"
@@ -46,6 +47,7 @@ var (
 
 var log *logrus.Logger
 var repoList repos.RepoList
+var ghClient githubservices.Client
 
 func init() {
 	log = logrus.New()
@@ -76,50 +78,6 @@ func parseFlags() {
 	}
 }
 
-var arr []int
-var arrc chan int
-var mu sync.RWMutex
-
-func rando() {
-	fmt.Println("Hello ra!")
-
-	go func() {
-
-		fmt.Println("in arrc")
-		for e := range arrc {
-			fmt.Println("updating c", e)
-			time.Sleep(100 * time.Millisecond)
-		}
-		fmt.Println("go func done")
-	}()
-
-	for e := range arr {
-		fmt.Println("updating", e)
-		fmt.Println(arr)
-		time.Sleep(100 * time.Millisecond)
-
-	}
-	fmt.Println("done")
-	return
-}
-
-func addTo() {
-
-	mu.Lock()
-	defer mu.Unlock()
-	// fmt.Println("adding to rrc")
-	// fmt.Println(arrc)
-	for i := 5; i < 10; i++ {
-		arr = append(arr, i)
-		arrc <- i
-	}
-	// // fmt.Println(arrc)
-	// fmt.Println("added to rrc")
-	return
-}
-
-var ghClient githubreposervice.Client
-
 func initGHClient() {
 	if os.Getenv(gitHubEnvVar) == "" {
 		log.Fatalf("env var %v is empty", gitHubEnvVar)
@@ -132,17 +90,13 @@ func initGHClient() {
 
 	cachedTransport := httpcache.Transport{Transport: hc.Transport, Cache: httpcache.NewMemoryCache()}
 
-	ghClient = githubreposervice.NewClient(cachedTransport.Client(), nil, nil)
+	ghClient = githubservices.NewClient(cachedTransport.Client(), nil, nil)
 }
 
 func main() {
-	fmt.Println("Hello World!")
-
 	log = logrus.New()
 	parseFlags()
 	initGHClient()
-
-	corpus := &leif.Corpus{}
 
 	if *bucket != "" {
 		repoList = repos.NewBucketRepo(*bucket, *reposFile)
@@ -156,19 +110,7 @@ func main() {
 		return
 	}
 
-	for _, r := range repoList.GetTrackedRepos() {
-		if r.IsTrackingIssues {
-			corpus.TrackRepo(context.Background(), r.Owner, r.Name, &ghClient)
-		}
-	}
-
-	err = corpus.Initialize(context.Background(), &ghClient)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)
@@ -178,5 +120,25 @@ func main() {
 		cancel()
 	}()
 
-	fmt.Println(corpus)
+	// init corpus with repos from list
+	corpus := &leif.Corpus{}
+	for _, r := range repoList.GetTrackedRepos() {
+		if r.IsTrackingIssues {
+			err = corpus.TrackRepo(ctx, r.Owner, r.Name, &ghClient)
+			if err != nil {
+				log.Warningf("Could not track repository %s/%s:%v", r.Owner, r.Name, err)
+			}
+		}
+	}
+
+	group, ctx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		return corpus.SyncLoop(ctx, *syncInterval, &ghClient)
+	})
+
+	err = group.Wait()
+
+	log.Fatal(err)
+	return
 }
