@@ -14,9 +14,7 @@
 
 package leif
 
-import (
-	"time"
-)
+import "time"
 
 // Owner represents a GitHub owner and their tracked repositories
 // Owners can specify default SLO rules that will apply to all tracked repos

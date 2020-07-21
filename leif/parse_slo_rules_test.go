@@ -33,19 +33,19 @@ func TestParseSLORules(t *testing.T) {
 		name      string
 		jsonInput string
 		expected  []*SLORule
-		wanterr   bool
+		wantErr   bool
 	}{
 		{
 			name:      "Empty array returns no rules",
 			jsonInput: `[]`,
 			expected:  nil,
-			wanterr:   false,
+			wantErr:   false,
 		},
 		{
 			name:      "Empty json returns no rules",
 			jsonInput: ``,
 			expected:  nil,
-			wanterr:   false,
+			wantErr:   false,
 		},
 		{
 			name: "More than one rule is parsed correctly",
@@ -66,13 +66,13 @@ func TestParseSLORules(t *testing.T) {
 				}
 		 	]`,
 			expected: []*SLORule{&defaultSLO, &defaultSLO},
-			wanterr:  false,
+			wantErr:  false,
 		},
 		{
 			name:      "Malformed input errors",
 			jsonInput: `["no end bracket`,
 			expected:  nil,
-			wanterr:   true,
+			wantErr:   true,
 		},
 		{
 			name: "Malformed rule errors",
@@ -86,7 +86,7 @@ func TestParseSLORules(t *testing.T) {
 				}
 		 	]`,
 			expected: nil,
-			wanterr:  true,
+			wantErr:  true,
 		},
 	}
 	for _, test := range tests {
@@ -94,8 +94,8 @@ func TestParseSLORules(t *testing.T) {
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
-		if (test.wanterr && err == nil) || (!test.wanterr && err != nil) {
-			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wanterr, err)
+		if (test.wantErr && err == nil) || (!test.wantErr && err != nil) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, err)
 		}
 	}
 }
@@ -105,7 +105,7 @@ func TestParseSLORule(t *testing.T) {
 		name      string
 		jsonInput string
 		expected  *SLORule
-		wanterr   bool
+		wantErr   bool
 	}{
 		{
 			name: "Minimum default rule returns a rule with defaults applied",
@@ -117,7 +117,7 @@ func TestParseSLORule(t *testing.T) {
 				}
 			}`,
 			expected: &defaultSLO,
-			wanterr:  false,
+			wantErr:  false,
 		},
 		{
 			name: "Time strings are parsed correctly",
@@ -139,7 +139,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Time strings with multiple values are parsed correctly",
@@ -161,7 +161,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Time strings with day values are parsed correctly",
@@ -183,7 +183,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Time defined as a number is parsed correctly",
@@ -205,7 +205,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Incorrect time string fails with error",
@@ -217,7 +217,7 @@ func TestParseSLORule(t *testing.T) {
 					}
 				}`,
 			expected: nil,
-			wanterr:  true,
+			wantErr:  true,
 		},
 		{
 			name: "Priority gets converted to a GitHub label",
@@ -242,7 +242,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Issue type gets converted to a GitHub label",
@@ -267,7 +267,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Contributors is set to none if another field is defined in Responders",
@@ -292,7 +292,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Users: []string{"@jeff"}},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Can set GitHubLabels as a string",
@@ -317,7 +317,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "Can set GitHubLabels as an array",
@@ -342,7 +342,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Contributors: "WRITE"},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 		{
 			name: "No responders can be specified",
@@ -367,7 +367,7 @@ func TestParseSLORule(t *testing.T) {
 					Responders:     Responders{Users: []string{}},
 				},
 			},
-			wanterr: false,
+			wantErr: false,
 		},
 	}
 	for _, test := range tests {
@@ -376,8 +376,8 @@ func TestParseSLORule(t *testing.T) {
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
-		if (test.wanterr && err == nil) || (!test.wanterr && err != nil) {
-			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wanterr, err)
+		if (test.wantErr && err == nil) || (!test.wantErr && err != nil) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, err)
 		}
 	}
 }
@@ -502,7 +502,7 @@ func TestStringOrArrayUnmarshalling(t *testing.T) {
 	for _, c := range cases {
 		var got stringOrArray
 		gotErr := json.Unmarshal([]byte(c.jsonInput), &got)
-		if !reflect.DeepEqual(got, c.expected) || (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
+		if !reflect.DeepEqual(got, c.expected) {
 			t.Errorf("%v did not pass.\n\tGot:\t%v\n\tWant:\t%v", c.name, got, c.expected)
 		}
 		if (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
