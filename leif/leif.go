@@ -16,6 +16,21 @@ package leif
 
 import "time"
 
+// Owner represents a GitHub owner and their tracked repositories
+// Owners can specify default SLO rules that will apply to all tracked repos
+// unless the repository overrides them with its own SLO rules config
+type Owner struct {
+	name     string
+	Repos    []*Repository
+	SLORules []*SLORule
+}
+
+// Repository represents a GitHub repository and stores its SLO rules
+type Repository struct {
+	name     string
+	SLORules []*SLORule
+}
+
 // SLORule represents a service level objective (SLO) rule
 type SLORule struct {
 	AppliesTo          AppliesTo          `json:"appliesTo"`
@@ -30,7 +45,7 @@ type AppliesTo struct {
 	PRs                  bool     `json:"prs"`
 }
 
-// ComplianceSetting stores data on the requirements for an issue or pull request to be considered compliant with the SLO
+// ComplianceSettings stores data on the requirements for an issue or pull request to be considered compliant with the SLO
 type ComplianceSettings struct {
 	ResponseTime     time.Duration `json:"responseTime"`
 	ResolutionTime   time.Duration `json:"resolutionTime"`

@@ -502,7 +502,7 @@ func TestStringOrArrayUnmarshalling(t *testing.T) {
 	for _, c := range cases {
 		var got stringOrArray
 		gotErr := json.Unmarshal([]byte(c.jsonInput), &got)
-		if !reflect.DeepEqual(got, c.expected) || (c.wantErr == nil && gotErr != nil) {
+		if !reflect.DeepEqual(got, c.expected) {
 			t.Errorf("%v did not pass.\n\tGot:\t%v\n\tWant:\t%v", c.name, got, c.expected)
 		}
 		if (c.wantErr == nil && gotErr != nil) || (c.wantErr != nil && reflect.TypeOf(gotErr) != reflect.TypeOf(c.wantErr)) {
