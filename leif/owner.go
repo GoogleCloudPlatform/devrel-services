@@ -108,7 +108,7 @@ func (o *Owner) trackRepo(ctx context.Context, repoName string, ghClient *github
 		return err
 	}
 
-	addRepo := Repository{name: repoName}
+	addRepo := Repository{name: repoName, ownerName: o.name}
 	o.Repos = append(o.Repos, &addRepo)
 	copy(o.Repos[repoIndex+1:], o.Repos[repoIndex:])
 	o.Repos[repoIndex] = &addRepo

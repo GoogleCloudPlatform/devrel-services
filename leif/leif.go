@@ -136,3 +136,25 @@ func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubse
 	}
 	return c.watchedOwners[i], nil
 }
+
+// ForEachRepo iterates over the set of repositories and performs the
+// given function on each and returns the first non-nil error it recieves.
+func (c *Corpus) ForEachRepo(fn func(repo Repository) error) error {
+	return c.ForEachRepoF(fn, func(repo Repository) bool { return true })
+}
+
+// ForEachRepoF iterates over the set of repositories that match the given filter
+// and performs the given function on them, and returns the first non-nil error
+// it recieves.
+func (c *Corpus) ForEachRepoF(fn func(repo Repository) error, filter func(repo Repository) bool) error {
+	for _, owner := range c.watchedOwners {
+		for _, repo := range owner.Repos {
+			if filter(*repo) {
+				if err := fn(*repo); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}

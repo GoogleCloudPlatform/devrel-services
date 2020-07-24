@@ -26,8 +26,19 @@ import (
 
 // Repository represents a GitHub repository and stores its SLO rules
 type Repository struct {
-	name     string
-	SLORules []*SLORule
+	name      string
+	ownerName string
+	SLORules  []*SLORule
+}
+
+// OwnerName returns the name of the repository's owner
+func (r *Repository) OwnerName() string {
+	return r.ownerName
+}
+
+// RepoName returns the repository's name
+func (r *Repository) RepoName() string {
+	return r.name
 }
 
 // Update reaches out to GitHub to update the SLO rules for the repository
