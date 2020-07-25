@@ -53,6 +53,11 @@ type Owner struct {
 	SLORules []*SLORule
 }
 
+// Name returns the name of the owner
+func (o *Owner) Name() string {
+	return o.name
+}
+
 // UpdateLoop updates the owner and their tracked repositories every given amount of minutes
 func (o *Owner) UpdateLoop(ctx context.Context, minutes int, ghClient *githubservices.Client) error {
 	log.Printf("Beginning sync loop for owner %s", o.name)

@@ -23,3 +23,9 @@ func makeRepositoryPB(rname string) (*drghs_v1.Repository, error) {
 		Name: rname,
 	}, nil
 }
+
+func makeOwnerPB(name string) (*drghs_v1.Owner, error) {
+	return &drghs_v1.Owner{
+		Name: name,
+	}, nil
+}

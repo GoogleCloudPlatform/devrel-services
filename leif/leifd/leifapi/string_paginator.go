@@ -21,17 +21,17 @@ import (
 	"time"
 )
 
-type repositoryPage struct {
-	repos []string
+type stringPage struct {
+	items []string
 	index int
 }
 
-type repositoryPaginator struct {
-	set map[time.Time]repositoryPage
+type stringPaginator struct {
+	set map[time.Time]stringPage
 	mu  sync.Mutex
 }
 
-func (p *repositoryPaginator) PurgeOldRecords() {
+func (p *stringPaginator) PurgeOldRecords() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	now := time.Now()
@@ -42,7 +42,7 @@ func (p *repositoryPaginator) PurgeOldRecords() {
 	}
 }
 
-func (p *repositoryPaginator) CreatePage(s []string) (time.Time, error) {
+func (p *stringPaginator) CreatePage(withItems []string) (time.Time, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	key := time.Now().UTC().Truncate(0)
@@ -50,14 +50,14 @@ func (p *repositoryPaginator) CreatePage(s []string) (time.Time, error) {
 		return time.Unix(0, 0), errors.New("Key already exists")
 	}
 
-	p.set[key] = repositoryPage{
-		repos: s,
+	p.set[key] = stringPage{
+		items: withItems,
 		index: 0,
 	}
 	return key, nil
 }
 
-func (p *repositoryPaginator) GetPage(key time.Time, numRepos int) ([]string, int, error) {
+func (p *stringPaginator) GetPage(key time.Time, numItems int) ([]string, int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -67,22 +67,22 @@ func (p *repositoryPaginator) GetPage(key time.Time, numRepos int) ([]string, in
 	}
 	val := p.set[key]
 
-	numReposRemaining := len(val.repos) - val.idx
-	log.Debugf("There are %v records remaining, requested %v", numReposRemaining, numRepos)
+	numItemsRemaining := len(val.items) - val.index
+	log.Debugf("There are %v records remaining, requested %v", numItemsRemaining, numItems)
 
-	if numRepos > numReposRemaining {
-		numRepos = numReposRemaining
+	if numItems > numItemsRemaining {
+		numItems = numItemsRemaining
 	}
 
-	if numRepos == 0 {
+	if numItems == 0 {
 		return nil, 0, errors.New("Get 0 from page")
 	}
 
-	retSet := val.repos[val.index:(val.index + numRepos)]
-	val.index = val.index + numRepos
+	retSet := val.items[val.index:(val.index + numItems)]
+	val.index = val.index + numItems
 
 	retIndex := val.index
-	if val.index == len(val.repos) {
+	if val.index == len(val.items) {
 		delete(p.set, key)
 		retIndex = -1
 	} else {

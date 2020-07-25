@@ -81,7 +81,7 @@ message ListOwnersRequest {
 // Response message for [SLOService.ListSLOs][].
 message ListOwnersResponse {
   // The list of [SLOs][SLO].
-  repeated drghs.v1.Owner owner = 1;
+  repeated drghs.v1.Owner owners = 1;
 
   // A token to retrieve the next page of results, or empty if there are no
   // more results in the list. Pass this value in
@@ -124,15 +124,9 @@ message ListOwnerSLOsRequest {
   //     field3 IN (value3, value4)
   //     field4 LIKE "%somestring%"
   //
-  // Valid filter fields are: `name`, `repo.name`, `repo.owner`, and `size`.
+  // Valid filter fields are: `name` and `size`.
   //
   string filter = 4;
-
-  // Optional. Specify how the results should be sorted. The fields supported
-  // for sorting are `name` and `size`.
-  // The default ordering is by `name`. Prefix with `-` to specify
-  // descending order, e.g. `-name`.
-  string order_by = 5;
 }
 
 // Request message for [SLOService.ListSLOs][].
@@ -169,12 +163,6 @@ message ListSLOsRequest {
   // Valid filter fields are: `name`, `repo.name`, `repo.owner`, and `size`.
   //
   string filter = 4;
-
-  // Optional. Specify how the results should be sorted. The fields supported
-  // for sorting are `name` and `size`.
-  // The default ordering is by `name`. Prefix with `-` to specify
-  // descending order, e.g. `-name`.
-  string order_by = 5;
 }
 
 // Response message for [SLOService.ListSLOs][].

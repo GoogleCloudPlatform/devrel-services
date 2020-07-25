@@ -138,14 +138,14 @@ func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubse
 }
 
 // ForEachRepo iterates over the set of repositories and performs the
-// given function on each and returns the first non-nil error it recieves.
+// given function on each and returns the first non-nil error it receives.
 func (c *Corpus) ForEachRepo(fn func(repo Repository) error) error {
 	return c.ForEachRepoF(fn, func(repo Repository) bool { return true })
 }
 
 // ForEachRepoF iterates over the set of repositories that match the given filter
 // and performs the given function on them, and returns the first non-nil error
-// it recieves.
+// it receives.
 func (c *Corpus) ForEachRepoF(fn func(repo Repository) error, filter func(repo Repository) bool) error {
 	for _, owner := range c.watchedOwners {
 		for _, repo := range owner.Repos {
@@ -153,6 +153,26 @@ func (c *Corpus) ForEachRepoF(fn func(repo Repository) error, filter func(repo R
 				if err := fn(*repo); err != nil {
 					return err
 				}
+			}
+		}
+	}
+	return nil
+}
+
+// ForEachOwner iterates over the set of owners and performs the
+// given function on each and returns the first non-nil error it receives.
+func (c *Corpus) ForEachOwner(fn func(o Owner) error) error {
+	return c.ForEachOwnerF(fn, func(o Owner) bool { return true })
+}
+
+// ForEachOwnerF iterates over the set of owners that match the given filter
+// and performs the given function on them, and returns the first non-nil error
+// it receives.
+func (c *Corpus) ForEachOwnerF(fn func(o Owner) error, filter func(o Owner) bool) error {
+	for _, owner := range c.watchedOwners {
+		if filter(*owner) {
+			if err := fn(*owner); err != nil {
+				return err
 			}
 		}
 	}
