@@ -162,8 +162,6 @@ func unmarshalSLOs(data []byte) ([]*SLORule, error) {
 type AppliesToJSON struct {
 	GitHubLabelsRaw         stringOrArray `json:"gitHubLabels"`
 	ExcludedGitHubLabelsRaw stringOrArray `json:"excludedGitHubLabels"`
-	Priority                string        `json:"priority"`
-	IssueType               string        `json:"issueType"`
 	Issues                  bool          `json:"issues"`
 	PRs                     bool          `json:"prs"`
 }
