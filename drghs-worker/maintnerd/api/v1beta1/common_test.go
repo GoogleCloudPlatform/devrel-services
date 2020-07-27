@@ -232,3 +232,90 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 		}
 	}
 }
+
+func TestMakeCommentPBFieldMask(t *testing.T) {
+	now := time.Now()
+	ghIssC := &maintner.GitHubComment{
+		Created: now,
+		Updated: now,
+		User: &maintner.GitHubUser{
+			Login: "testuser2",
+		},
+		Body: "body",
+		ID:   1234,
+	}
+
+	tests := []struct {
+		ghIss                   *maintner.GitHubComment
+		fm                      *field_mask.FieldMask
+		includeAllCommentFields bool
+		want                    *drghs_v1.GitHubComment
+	}{
+		{
+			fm:                      nil,
+			includeAllCommentFields: true,
+			want: &drghs_v1.GitHubComment{
+				CreatedAt: &tspb.Timestamp{
+					Seconds: now.Unix(),
+					Nanos:   int32(now.Nanosecond()),
+				},
+				UpdatedAt: &tspb.Timestamp{
+					Seconds: now.Unix(),
+					Nanos:   int32(now.Nanosecond()),
+				},
+				User: &drghs_v1.GitHubUser{
+					Login: "testuser2",
+				},
+				Body: "body",
+				Id:   1234,
+			},
+		},
+		{
+			fm:                      &field_mask.FieldMask{Paths: []string{"comments.created_at"}},
+			includeAllCommentFields: false,
+			want: &drghs_v1.GitHubComment{
+				CreatedAt: &tspb.Timestamp{
+					Seconds: now.Unix(),
+					Nanos:   int32(now.Nanosecond()),
+				},
+			},
+		},
+		{
+			fm:                      &field_mask.FieldMask{Paths: []string{"comments.updated_at"}},
+			includeAllCommentFields: false,
+			want: &drghs_v1.GitHubComment{
+				UpdatedAt: &tspb.Timestamp{
+					Seconds: now.Unix(),
+					Nanos:   int32(now.Nanosecond()),
+				},
+			},
+		},
+		{
+			fm:                      &field_mask.FieldMask{Paths: []string{"comments.user"}},
+			includeAllCommentFields: false,
+			want: &drghs_v1.GitHubComment{
+				User: &drghs_v1.GitHubUser{Login: "testuser2"},
+			},
+		},
+		{
+			fm:                      &field_mask.FieldMask{Paths: []string{"comments.body"}},
+			includeAllCommentFields: false,
+			want:                    &drghs_v1.GitHubComment{Body: "body"},
+		},
+		{
+			fm:                      &field_mask.FieldMask{Paths: []string{"comments.id"}},
+			includeAllCommentFields: false,
+			want:                    &drghs_v1.GitHubComment{Id: 1234},
+		},
+	}
+
+	for _, test := range tests {
+		got, err := makeCommentPB(ghIssC, test.includeAllCommentFields, test.fm.GetPaths())
+		if err != nil {
+			t.Errorf("Unexpected error from makeCommentPB. Wanted nil, Got %v", err)
+		}
+		if diff := cmp.Diff(*test.want, *got); diff != "" {
+			t.Errorf("makeCommentPB() mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
