@@ -220,56 +220,6 @@ func TestParseSLORule(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "Priority gets converted to a GitHub label",
-			jsonInput: `{
-				"appliesTo": {
-					"priority": "P1"
-				},
-				"complianceSettings": {
-					"responseTime": 0,
-					"resolutionTime": 0
-				}
-			}`,
-			expected: &SLORule{
-				AppliesTo: AppliesTo{
-					GitHubLabels: []string{"priority: P1"},
-					Issues:       true,
-					PRs:          false,
-				},
-				ComplianceSettings: ComplianceSettings{
-					ResponseTime:   0,
-					ResolutionTime: 0,
-					Responders:     Responders{Contributors: "WRITE"},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Issue type gets converted to a GitHub label",
-			jsonInput: `{
-				"appliesTo": {
-					"issueType": "bug"
-				},
-				"complianceSettings": {
-					"responseTime": 0,
-					"resolutionTime": 0
-				}
-			}`,
-			expected: &SLORule{
-				AppliesTo: AppliesTo{
-					GitHubLabels: []string{"type: bug"},
-					Issues:       true,
-					PRs:          false,
-				},
-				ComplianceSettings: ComplianceSettings{
-					ResponseTime:   0,
-					ResolutionTime: 0,
-					Responders:     Responders{Contributors: "WRITE"},
-				},
-			},
-			wantErr: false,
-		},
-		{
 			name: "Contributors is set to none if another field is defined in Responders",
 			jsonInput: `{
 				"appliesTo": {},
@@ -672,67 +622,6 @@ func TestSLORuleCreation(t *testing.T) {
 	for _, c := range cases {
 		if got := newSLORuleJSON(); !reflect.DeepEqual(got, c.expected) {
 			t.Errorf("%v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, got, c.expected)
-		}
-
-	}
-}
-
-func TestAddToGitHubLabels(t *testing.T) {
-	cases := []struct {
-		name     string
-		prepend  string
-		label    string
-		current  *sloRuleJSON
-		expected *sloRuleJSON
-	}{
-		{
-			name:    "Adds basic priority to labels",
-			prepend: "priority: ",
-			label:   "P2",
-			current: &sloRuleJSON{
-				AppliesToJSON:          AppliesToJSON{},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{},
-			},
-			expected: &sloRuleJSON{
-				AppliesToJSON: AppliesToJSON{
-					GitHubLabelsRaw: []string{"priority: P2"},
-				},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{},
-			},
-		},
-		{
-			name:    "Adds type to labels",
-			prepend: "type: ",
-			label:   "bug",
-			current: &sloRuleJSON{
-				AppliesToJSON:          AppliesToJSON{},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{},
-			},
-			expected: &sloRuleJSON{
-				AppliesToJSON: AppliesToJSON{
-					GitHubLabelsRaw: []string{"type: bug"},
-				},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{},
-			},
-		},
-		{
-			name:    "Empty label is not added",
-			prepend: "type: ",
-			label:   "",
-			current: &sloRuleJSON{
-				AppliesToJSON:          AppliesToJSON{},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{},
-			},
-			expected: &sloRuleJSON{
-				AppliesToJSON:          AppliesToJSON{},
-				ComplianceSettingsJSON: ComplianceSettingsJSON{},
-			},
-		},
-	}
-	for _, c := range cases {
-		c.current.addToGitHubLabels(c.prepend, c.label)
-		if !reflect.DeepEqual(c.current, c.expected) {
-			t.Errorf("%v did not pass. \n\tGot:\t\t%v\n\tExpected:\t%v", c.name, c.current, c.expected)
 		}
 
 	}

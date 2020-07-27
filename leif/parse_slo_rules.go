@@ -102,12 +102,6 @@ func newSLORuleJSON() *sloRuleJSON {
 	}
 }
 
-func (rule *sloRuleJSON) addToGitHubLabels(prepend string, property string) {
-	if len(property) > 0 {
-		rule.AppliesToJSON.GitHubLabelsRaw = append(rule.AppliesToJSON.GitHubLabelsRaw, prepend+property)
-	}
-}
-
 // Applies the default value to the Responders field in the ComplianceSettings
 // Only applies it if none of the values in the Responders fiel have been initialized
 func (rule *sloRuleJSON) applyResponderDefault() {
@@ -126,12 +120,6 @@ func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
 		return nil, err
 	}
 
-	if len(jsonRule.AppliesToJSON.Priority) > 0 {
-		jsonRule.addToGitHubLabels("priority: ", jsonRule.AppliesToJSON.Priority)
-	}
-	if len(jsonRule.AppliesToJSON.IssueType) > 0 {
-		jsonRule.addToGitHubLabels("type: ", jsonRule.AppliesToJSON.IssueType)
-	}
 	jsonRule.applyResponderDefault()
 
 	marshaled, err := json.Marshal(jsonRule)
@@ -174,8 +162,6 @@ func unmarshalSLOs(data []byte) ([]*SLORule, error) {
 type AppliesToJSON struct {
 	GitHubLabelsRaw         stringOrArray `json:"gitHubLabels"`
 	ExcludedGitHubLabelsRaw stringOrArray `json:"excludedGitHubLabels"`
-	Priority                string        `json:"priority"`
-	IssueType               string        `json:"issueType"`
 	Issues                  bool          `json:"issues"`
 	PRs                     bool          `json:"prs"`
 }
