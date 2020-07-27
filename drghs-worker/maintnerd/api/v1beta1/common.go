@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -27,14 +28,24 @@ import (
 	"golang.org/x/build/maintner"
 )
 
-var bugLabels = []string{
-	"bug",
-	"type: bug",
-	"type:bug",
-	"kind/bug",
-	"end-to-end bugs",
-	"type:bug/performance",
-}
+var (
+	bugLabels = []string{
+		"bug",
+		"type: bug",
+		"type:bug",
+		"kind/bug",
+		"end-to-end bugs",
+		"type:bug/performance",
+	}
+	anyCommentRe       = regexp.MustCompile(`comments`)
+	allCommentsRe      = regexp.MustCompile(`^comments$`)
+	allCommentsRe2     = regexp.MustCompile(`^comments\.\*$`)
+	commentIDRe        = regexp.MustCompile(`^comments\.id$`)
+	commentBodyRe      = regexp.MustCompile(`^comments\.body$`)
+	commentCreatedAtRe = regexp.MustCompile(`^comments\.created_at$`)
+	commentUpdatedAtRe = regexp.MustCompile(`^comments\.updated_at$`)
+	commentUserRe      = regexp.MustCompile(`^comments\.user$`)
+)
 
 func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 	rID := repo.ID()
@@ -64,6 +75,19 @@ func makeRepoPB(repo *maintner.GitHubRepo) (*drghs_v1.Repository, error) {
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func containsRegex(s []string, re *regexp.Regexp) bool {
+	if s == nil {
+		return false
+	}
+	for _, a := range s {
+		matched := re.MatchString(a)
+		if matched == true {
 			return true
 		}
 	}
@@ -186,10 +210,11 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 
 	fillFromLabels(riss, labels, fm)
 
-	if includeComments || (paths != nil && contains(paths, "comments")) {
+	if includeComments || (paths != nil && containsRegex(paths, anyCommentRe)) {
 		riss.Comments = make([]*drghs_v1.GitHubComment, 0)
+		includeAllComments := includeComments || containsRegex(paths, allCommentsRe) || containsRegex(paths, allCommentsRe2)
 		err := issue.ForeachComment(func(co *maintner.GitHubComment) error {
-			cpb, err := makeCommentPB(co)
+			cpb, err := makeCommentPB(co, includeAllComments, paths)
 			if err != nil {
 				return err
 			}
@@ -295,28 +320,42 @@ func fillFromLabels(s *drghs_v1.Issue, labels []string, fm *field_mask.FieldMask
 	}
 }
 
-func makeCommentPB(comment *maintner.GitHubComment) (*drghs_v1.GitHubComment, error) {
-	createdAt, err := ptypes.TimestampProto(comment.Created)
-	if err != nil {
-		return nil, err
-	}
-	updatedAt, err := ptypes.TimestampProto(comment.Updated)
-	if err != nil {
-		return nil, err
+func makeCommentPB(comment *maintner.GitHubComment, includeAllComments bool, paths []string) (*drghs_v1.GitHubComment, error) {
+	dc := &drghs_v1.GitHubComment{}
+
+	if includeAllComments || (paths != nil && containsRegex(paths, commentIDRe)) {
+		dc.Id = int32(comment.ID)
 	}
 
-	user, err := makeUserPB(comment.User)
-	if err != nil {
-		return nil, err
+	if includeAllComments || (paths != nil && containsRegex(paths, commentCreatedAtRe)) {
+		createdAt, err := ptypes.TimestampProto(comment.Created)
+		if err != nil {
+			return nil, err
+		}
+		dc.CreatedAt = createdAt
 	}
 
-	return &drghs_v1.GitHubComment{
-		Id:        int32(comment.ID),
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
-		User:      user,
-		Body:      comment.Body,
-	}, nil
+	if includeAllComments || (paths != nil && containsRegex(paths, commentUpdatedAtRe)) {
+		updatedAt, err := ptypes.TimestampProto(comment.Updated)
+		if err != nil {
+			return nil, err
+		}
+		dc.UpdatedAt = updatedAt
+	}
+
+	if includeAllComments || (paths != nil && containsRegex(paths, commentUserRe)) {
+		user, err := makeUserPB(comment.User)
+		if err != nil {
+			return nil, err
+		}
+		dc.User = user
+	}
+
+	if includeAllComments || (paths != nil && containsRegex(paths, commentBodyRe)) {
+		dc.Body = comment.Body
+	}
+
+	return dc, nil
 }
 
 func makeReviewPB(review *maintner.GitHubReview) (*drghs_v1.GitHubReview, error) {
