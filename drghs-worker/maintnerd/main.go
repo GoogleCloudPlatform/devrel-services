@@ -103,7 +103,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	exporter, err := texporter.NewExporter(texporter.WithProjectID(projectID))
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(*projectID))
 	if err != nil {
 		log.Fatalf("texporter.NewExporter: %v", err)
 	}
