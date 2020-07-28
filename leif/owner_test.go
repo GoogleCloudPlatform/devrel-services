@@ -177,7 +177,7 @@ func TestOwnerTrackRepo(t *testing.T) {
 			expected: Owner{
 				name: "MyOwner",
 				Repos: []*Repository{
-					&Repository{name: "someRepo"},
+					&Repository{name: "someRepo", ownerName: "MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -224,7 +224,7 @@ func TestOwnerTrackRepo(t *testing.T) {
 			owner: Owner{
 				name: "MyOwner",
 				Repos: []*Repository{
-					&Repository{name: "someRepo"},
+					&Repository{name: "someRepo", ownerName: "MyOwner"},
 				},
 			},
 			repoName:  "aDifferentRepo",
@@ -232,8 +232,8 @@ func TestOwnerTrackRepo(t *testing.T) {
 			expected: Owner{
 				name: "MyOwner",
 				Repos: []*Repository{
-					&Repository{name: "aDifferentRepo"},
-					&Repository{name: "someRepo"},
+					&Repository{name: "aDifferentRepo", ownerName: "MyOwner"},
+					&Repository{name: "someRepo", ownerName: "MyOwner"},
 				},
 			},
 			wantErr: false,

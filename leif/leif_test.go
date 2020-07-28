@@ -149,7 +149,7 @@ func TestTrackRepo(t *testing.T) {
 				watchedOwners: []*Owner{
 					&Owner{
 						name:  "someOwner",
-						Repos: []*Repository{&Repository{name: "someRepo"}},
+						Repos: []*Repository{&Repository{name: "someRepo", ownerName: "someOwner"}},
 					}},
 			},
 			wantErr: false,
@@ -165,7 +165,7 @@ func TestTrackRepo(t *testing.T) {
 				watchedOwners: []*Owner{
 					&Owner{
 						name:  "someOwner",
-						Repos: []*Repository{&Repository{name: "someRepo"}},
+						Repos: []*Repository{&Repository{name: "someRepo", ownerName: "someOwner"}},
 					}},
 			},
 			wantErr: false,
@@ -174,7 +174,7 @@ func TestTrackRepo(t *testing.T) {
 			name: "Correctly tracks a repo on existing owner with repos",
 			corpus: Corpus{watchedOwners: []*Owner{&Owner{
 				name:  "someOwner",
-				Repos: []*Repository{&Repository{name: "aRepo"}},
+				Repos: []*Repository{&Repository{name: "aRepo", ownerName: "someOwner"}},
 			}}},
 			ownerName:     "someOwner",
 			repoName:      "someRepo",
@@ -183,8 +183,11 @@ func TestTrackRepo(t *testing.T) {
 			wantCorpus: Corpus{
 				watchedOwners: []*Owner{
 					&Owner{
-						name:  "someOwner",
-						Repos: []*Repository{&Repository{name: "aRepo"}, &Repository{name: "someRepo"}},
+						name: "someOwner",
+						Repos: []*Repository{
+							&Repository{name: "aRepo", ownerName: "someOwner"},
+							&Repository{name: "someRepo", ownerName: "someOwner"},
+						},
 					}},
 			},
 			wantErr: false,
