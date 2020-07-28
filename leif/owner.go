@@ -57,15 +57,16 @@ type Owner struct {
 func (o *Owner) UpdateLoop(ctx context.Context, minutes int, ghClient *githubservices.Client) error {
 	log.Printf("Beginning sync loop for owner %s", o.name)
 
-	for {
+	ticker := time.NewTicker(time.Duration(minutes) * time.Minute)
+	for range ticker.C {
 		err := o.Update(ctx, ghClient)
 		if err != nil {
 			log.Printf("Ended sync loop for owner %s: %v", o.name, err)
 			return err
 		}
 
-		time.Sleep(time.Duration(minutes) * time.Minute)
 	}
+	return nil
 }
 
 // Update reaches out to GitHub to update the SLO rules for the owner,
