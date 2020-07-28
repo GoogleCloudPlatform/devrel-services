@@ -41,6 +41,8 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"go.opentelemetry.io/otel/api/global"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -175,7 +177,13 @@ func main() {
 
 	group.Go(func() error {
 		// Add gRPC service for v1beta1
-		grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(
+				grpc_middleware.ChainUnaryServer(
+					grpc_opentracing.UnaryServerInterceptor(),
+					unaryInterceptorLog),
+			),
+		)
 		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver)
 		drghs_v1.RegisterIssueServiceServer(grpcServer, s)
 		healthpb.RegisterHealthServer(grpcServer, s)

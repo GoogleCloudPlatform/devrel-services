@@ -15,12 +15,13 @@
 module github.com/GoogleCloudPlatform/devrel-services/drghs-worker
 
 require (
-	cloud.google.com/go v0.52.0
-	cloud.google.com/go/storage v1.0.0
+	cloud.google.com/go v0.53.0
+	cloud.google.com/go/storage v1.5.0
 	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-00010101000000-000000000000
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
 	github.com/GoogleCloudPlatform/devrel-services/rtr v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/devrel-services/sprvsr v0.0.0
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.2.1
 	github.com/aclements/go-gg v0.0.0-20170323211221-abd1f791f5ee // indirect
 	github.com/aclements/go-moremath v0.0.0-20190830160640-d16893ddf098 // indirect
 	github.com/ajstarks/deck v0.0.0-20200217041847-5bf3c34cfe40 // indirect
@@ -50,7 +51,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/protobuf v1.4.2
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
 	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
@@ -58,7 +59,7 @@ require (
 	github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9 // indirect
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
 	github.com/google/cel-go v0.3.0
-	github.com/google/go-cmp v0.4.0
+	github.com/google/go-cmp v0.5.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/schema v1.1.0 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
@@ -84,14 +85,15 @@ require (
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/syndtr/goleveldb v1.0.0 // indirect
+	go.opentelemetry.io/otel v0.9.0
 	golang.org/x/build v0.0.0-20190201181641-63986c177d1f
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	google.golang.org/api v0.17.0
+	google.golang.org/api v0.20.0
 	google.golang.org/genproto v0.0.0-20200305110556-506484158171
-	google.golang.org/grpc v1.27.1
+	google.golang.org/grpc v1.30.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919

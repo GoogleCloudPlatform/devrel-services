@@ -37,6 +37,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"go.opentelemetry.io/otel/api/global"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -121,7 +123,14 @@ func main() {
 	}
 	global.SetTraceProvider(tp)
 
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				grpc_opentracing.UnaryServerInterceptor(),
+				unaryInterceptorLog,
+			),
+		),
+	)
 	reverseProxy := &reverseProxyServer{
 		reps: rlist,
 	}
@@ -163,7 +172,12 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 		conn, err := grpc.Dial(
 			pth,
 			grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+			grpc.WithUnaryInterceptor(
+				grpc_middleware.ChainUnaryClient(
+					grpc_opentracing.UnaryClientInterceptor(),
+					buildRetryInterceptor(),
+				),
+			),
 		)
 		if err != nil {
 			return nil, err
@@ -190,7 +204,12 @@ func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIss
 		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpc_opentracing.UnaryClientInterceptor(),
+				buildRetryInterceptor(),
+			),
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -210,7 +229,12 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpc_opentracing.UnaryClientInterceptor(),
+				buildRetryInterceptor(),
+			),
+		),
 	)
 	if err != nil {
 		return nil, err
