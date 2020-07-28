@@ -35,6 +35,10 @@ import (
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"go.opentelemetry.io/otel/api/global"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 var (
@@ -103,6 +107,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(projectID))
+	if err != nil {
+		log.Fatalf("texporter.NewExporter: %v", err)
+	}
+
+	config := sdktrace.Config{DefaultSampler: sdktrace.ProbabilitySampler(0.01)}
+	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(config), sdktrace.WithSyncer(exporter))
+	if err != nil {
+		log.Fatal(err)
+	}
+	global.SetTraceProvider(tp)
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
 	reverseProxy := &reverseProxyServer{
