@@ -16,7 +16,15 @@ package leifapi
 
 import (
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/GoogleCloudPlatform/devrel-services/leif"
+	"github.com/golang/protobuf/ptypes"
 )
+
+func makeOwnerPB(name string) (*drghs_v1.Owner, error) {
+	return &drghs_v1.Owner{
+		Name: name,
+	}, nil
+}
 
 func makeRepositoryPB(rname string) (*drghs_v1.Repository, error) {
 	return &drghs_v1.Repository{
@@ -24,8 +32,18 @@ func makeRepositoryPB(rname string) (*drghs_v1.Repository, error) {
 	}, nil
 }
 
-func makeOwnerPB(name string) (*drghs_v1.Owner, error) {
-	return &drghs_v1.Owner{
-		Name: name,
+func makeSloPB(slo *leif.SLORule) (*drghs_v1.SLO, error) {
+	return &drghs_v1.SLO{
+		GitHubLabels:         slo.AppliesTo.GitHubLabels,
+		ExcludedGitHubLabels: slo.AppliesTo.ExcludedGitHubLabels,
+		AppliesToIssues:      slo.AppliesTo.Issues,
+		AppliesToPrs:         slo.AppliesTo.PRs,
+		ResponseTime:         ptypes.DurationProto(slo.ComplianceSettings.ResponseTime),
+		ResolutionTime:       ptypes.DurationProto(slo.ComplianceSettings.ResolutionTime),
+		RequiresAssignee:     slo.ComplianceSettings.RequiresAssignee,
+		Responders: &drghs_v1.Responders{
+			Owners:       slo.ComplianceSettings.Responders.Owners,
+			Contributors: drghs_v1.Responders_ContributorsType(drghs_v1.Responders_ContributorsType_value[slo.ComplianceSettings.Responders.Contributors]),
+			Users:        slo.ComplianceSettings.Responders.Users},
 	}, nil
 }

@@ -116,7 +116,7 @@ message File {
 }
 
 message SnippetVersionMeta {
-  // Output only. Used as metadata information on the [SnipeptVersion[
+  // Output only. Used as metadata information on the [SnippetVersion][]
   string title = 1;
   string description = 2;
   string usage = 3;

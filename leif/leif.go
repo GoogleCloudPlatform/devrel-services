@@ -159,6 +159,31 @@ func (c *Corpus) ForEachRepoF(fn func(repo Repository) error, filter func(repo R
 	return nil
 }
 
+// ForEachRepoFSort iterates over the set of repositories that match the given filter
+// and performs the given function on them in the order given by the given sort func.
+// Returns the first non-nil error it receives.
+func (c *Corpus) ForEachRepoFSort(fn func(Repository) error, filter func(Repository) bool, sortfn func([]*Repository) func(i, j int) bool) error {
+	var repos []*Repository
+	for _, owner := range c.watchedOwners {
+		for _, repo := range owner.Repos {
+			if filter(*repo) {
+				repos = append(repos, repo)
+			}
+		}
+	}
+
+	s := sortfn(repos)
+
+	sort.Slice(repos, s)
+
+	for _, r := range repos {
+		if err := fn(*r); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ForEachOwner iterates over the set of owners and performs the
 // given function on each and returns the first non-nil error it receives.
 func (c *Corpus) ForEachOwner(fn func(o Owner) error) error {
@@ -166,10 +191,26 @@ func (c *Corpus) ForEachOwner(fn func(o Owner) error) error {
 }
 
 // ForEachOwnerF iterates over the set of owners that match the given filter
-// and performs the given function on them, and returns the first non-nil error
-// it receives.
+// and performs the given function on them, and returns the first non-nil error.
 func (c *Corpus) ForEachOwnerF(fn func(o Owner) error, filter func(o Owner) bool) error {
 	for _, owner := range c.watchedOwners {
+		if filter(*owner) {
+			if err := fn(*owner); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// ForEachOwnerFSort iterates over the set of owners that match the given filter
+// and performs the given function on them in the order given by the given sort func.
+// Returns the first non-nil error it receives.
+func (c *Corpus) ForEachOwnerFSort(fn func(o Owner) error, filter func(o Owner) bool, sortfn func([]*Owner) func(i, j int) bool) error {
+	owners := c.watchedOwners
+	sort.Slice(owners, sortfn(owners))
+
+	for _, owner := range owners {
 		if filter(*owner) {
 			if err := fn(*owner); err != nil {
 				return err

@@ -16,11 +16,13 @@ syntax = "proto3";
 
 package drghs.v1;
 
-import "google/api/annotations.proto"; //prob necessary?
+option go_package = ".;drghs_v1";
+
+import "google/api/annotations.proto";
 import "resources.proto";
 import "service_resources.proto";
 
-//  SLO rules service
+//  SLO Rules Service
 service SLOService {
   // Lists [Owners][Owner].
   rpc ListOwners(ListOwnersRequest) returns (ListOwnersResponse) {
@@ -30,7 +32,7 @@ service SLOService {
   }
 
   // Lists [SLOs][SLO].
-  rpc ListOwnerSLOs(ListOwnerSLOsRequest) returns (ListSLOsResponse) {
+  rpc ListOwnerSLOs(ListSLOsRequest) returns (ListSLOsResponse) {
     option (google.api.http) = {
       get: "/v1/{parent=owners/*}/slos"
     };
@@ -59,74 +61,45 @@ message ListOwnersRequest {
   //
   // The maximum page size is `100`. If unspecified, the page size will be the
   // maximum. Further [Owners][Owner] can subsequently be obtained
-  // by including the [ListSLOsResponse.next_page_token][] in a
+  // by including the [ListOwnersResponse.next_page_token][] in a
   // subsequent request.
   int32 page_size = 1;
 
   // Optional. To request the first page of results, `page_token` must be empty.
   // To request the next page of results, page_token must be the value of
   // [ListOwnersResponse.next_page_token][] returned by a previous call to
-  // [Issueservice.ListIssues][].
+  // [SLOService.ListOwners][].
   //
   // The page token is valid for only 2 hours.
   string page_token = 2;
 
-  // Optional. Specify how the results should be sorted. The fields supported
-  // for sorting are `name` and `size`.
-  // The default ordering is by `name`. Prefix with `-` to specify
-  // descending order, e.g. `-name`.
-  string order_by = 3;
+  // Optional. Filter expression used to only include resources that match the
+  // filter in the response. Filter must be in following the format:
+  //
+  //     field == "value"
+  //
+  // Valid filter fields are: `owner.name`.
+  string filter = 3;
+
+  // Optional. Specify how the results should be sorted.
+  // Supported fields for sorting are: `name`.
+  // Prefix with `-` to specify descending order, e.g. `-name`.
+  string order_by = 4;
 }
 
-// Response message for [SLOService.ListSLOs][].
+// Response message for [SLOService.ListOwners][].
 message ListOwnersResponse {
-  // The list of [SLOs][SLO].
+  // The list of [Owners][Owner].
   repeated drghs.v1.Owner owners = 1;
 
   // A token to retrieve the next page of results, or empty if there are no
   // more results in the list. Pass this value in
-  // [ListSLOsRequest.page_token][] to retrieve the next page of
+  // [ListOwnersRequest.page_token][] to retrieve the next page of
   // results.
   string next_page_token = 2;
 
-  // The total number of [SLOs][SLO] that matched the query.
+  // The total number of [Owners][Owner] that matched the query.
   int32 total = 3;
-}
-
-// Request message for [SLOService.ListSLOs][].
-message ListOwnerSLOsRequest {
-  // Required. The resource name of the repository associated with the
-  // [SLOs][SLO], in the format `owners/*`.
-  string parent = 1;
-
-  // Optional. Limit the number of [Issues][Issue] to include in the
-  // response. Fewer Issues than requested might be returned.
-  //
-  // The maximum page size is `100`. If unspecified, the page size will be the
-  // maximum. Further [Issues][Issue] can subsequently be obtained
-  // by including the [ListIssuesResponse.next_page_token][] in a
-  // subsequent request.
-  int32 page_size = 2;
-
-  // Optional. To request the first page of results, `page_token` must be empty.
-  // To request the next page of results, page_token must be the value of
-  // [ListIssuesResponse.next_page_token][] returned by a previous call to
-  // [Issueservice.ListIssues][].
-  //
-  // The page token is valid for only 2 hours.
-  string page_token = 3;
-
-  // Optional. Filter expression used to only include resources that match the
-  // filter in the response. Filter must be in following the format:
-  //
-  //     field1=123
-  //     field2="Foo bar"
-  //     field3 IN (value3, value4)
-  //     field4 LIKE "%somestring%"
-  //
-  // Valid filter fields are: `name` and `size`.
-  //
-  string filter = 4;
 }
 
 // Request message for [SLOService.ListSLOs][].
@@ -139,15 +112,15 @@ message ListSLOsRequest {
   // response. Fewer Issues than requested might be returned.
   //
   // The maximum page size is `100`. If unspecified, the page size will be the
-  // maximum. Further [Issues][Issue] can subsequently be obtained
-  // by including the [ListIssuesResponse.next_page_token][] in a
+  // maximum. Further [SLOs][SLO] can subsequently be obtained
+  // by including the [ListSLOsResponse.next_page_token][] in a
   // subsequent request.
   int32 page_size = 2;
 
   // Optional. To request the first page of results, `page_token` must be empty.
   // To request the next page of results, page_token must be the value of
-  // [ListIssuesResponse.next_page_token][] returned by a previous call to
-  // [Issueservice.ListIssues][].
+  // [ListSLOsResponse.next_page_token][] returned by a previous call to
+  // [SLOService.ListSLOs][].
   //
   // The page token is valid for only 2 hours.
   string page_token = 3;
@@ -155,13 +128,10 @@ message ListSLOsRequest {
   // Optional. Filter expression used to only include resources that match the
   // filter in the response. Filter must be in following the format:
   //
-  //     field1=123
-  //     field2="Foo bar"
-  //     field3 IN (value3, value4)
-  //     field4 LIKE "%somestring%"
+  //     field == value
   //
-  // Valid filter fields are: `name`, `repo.name`, `repo.owner`, and `size`.
-  //
+  // Valid filter fields are: `slo.requires_assignee, slo.gitHubLabels`,
+  // `slo.excludedGitHubLabels`, `slo.applies_to_isssues`, `slo.applies_to_prs`.
   string filter = 4;
 }
 

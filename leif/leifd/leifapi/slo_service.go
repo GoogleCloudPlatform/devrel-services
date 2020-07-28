@@ -30,7 +30,7 @@ import (
 )
 
 var reposParent = regexp.MustCompile(`owners/([\w-_]+|\*)`)
-var slosParent = regexp.MustCompile(`owners/([\w-_]+)/repositories/([\w-_]+)`)
+var slosParent = regexp.MustCompile(`owners/([\w-_]+|\*)/repositories/([\w-_]+|\*)`)
 
 var log *logrus.Logger
 
@@ -53,23 +53,23 @@ var _ drghs_v1.SLOServiceServer = &SLOServiceServer{}
 // SLOServiceServer is an implementation of drghs_v1.SLOServiceServer
 type SLOServiceServer struct {
 	c              *leif.Corpus
-	ownerPaginator *stringsPaginator
-	repoPaginator  *stringsPaginator
-	sloPaginator   *paginator
+	ownerPaginator *stringPaginator
+	repoPaginator  *stringPaginator
+	sloPaginator   *sloPaginator
 }
 
 // NewSLOServiceServer builds and returns a new SLOServiceServer
 func NewSLOServiceServer(c *leif.Corpus) *SLOServiceServer {
 	return &SLOServiceServer{
 		c: c,
-		ownerPaginator: &stringsPaginator{
-			set: make(map[time.Time]stringsPage),
+		ownerPaginator: &stringPaginator{
+			set: make(map[time.Time]stringPage),
 		},
-		repoPaginator: &stringsPaginator{
-			set: make(map[time.Time]stringsPage),
+		repoPaginator: &stringPaginator{
+			set: make(map[time.Time]stringPage),
 		},
-		sloPaginator: &paginator{
-			set: make(map[time.Time]page),
+		sloPaginator: &sloPaginator{
+			set: make(map[time.Time]sloPage),
 		},
 	}
 }
@@ -77,7 +77,7 @@ func NewSLOServiceServer(c *leif.Corpus) *SLOServiceServer {
 // ListOwners returns the list of Owners tracked by the Corpus
 func (s *SLOServiceServer) ListOwners(ctx context.Context, req *drghs_v1.ListOwnersRequest) (*drghs_v1.ListOwnersResponse, error) {
 
-	owners, index, nextToken, err := s.handleOwnerPagination(req.PageToken, req.PageSize)
+	owners, nextToken, err := s.handleOwnerPagination(req.PageToken, req.PageSize, req.OrderBy)
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +104,11 @@ func (s *SLOServiceServer) ListOwners(ctx context.Context, req *drghs_v1.ListOwn
 	return &drghs_v1.ListOwnersResponse{
 		Owners:        protoOwners,
 		NextPageToken: nextToken,
-		Total:         int32(len(repos)),
+		Total:         int32(len(owners)),
 	}, err
 }
 
-func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32) ([]string, int, string, error) {
+func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32, orderBy string) ([]string, string, error) {
 	var pg []string
 	var index int
 	var err error
@@ -117,51 +117,81 @@ func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32) ([]
 	if pToken != "" {
 		pageToken, err := decodePageToken(pToken)
 		if err != nil {
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
 		if err != nil {
 			log.Errorf("Error deserializing time: %v", err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		pageSize := getPageSize(int(pSize))
 
-		pg, index, err = s.repoPaginator.GetPage(ftime, pageSize)
+		pg, index, err = s.ownerPaginator.GetPage(ftime, pageSize)
 		if err != nil {
-			return nil, -1, "", err
+			return nil, "", err
 		}
-		nextToken, err := makeNextPageToken(pageToken, index)
+		nextToken, err = makeNextPageToken(pageToken, index)
 	} else {
 		owners := make([]string, 0)
 
-		err := s.c.ForEachOwnerF(func(o leif.Owner) error {
-			owners = append(owners, fmt.Sprintf("owners %v/", o.Name()))
-			return nil
-		}, filter)
+		if orderBy == "" {
+			err = s.c.ForEachOwner(func(o leif.Owner) error {
+				owners = append(owners, fmt.Sprintf("owners/%v", o.Name()))
+				return nil
+			})
+		} else {
+			var sortFn func(o []*leif.Owner) func(i, j int) bool
+
+			switch orderBy {
+			case "name":
+				sortFn = func(o []*leif.Owner) func(i, j int) bool {
+					return func(i, j int) bool { return o[i].Name() < o[j].Name() }
+				}
+			case "-name":
+				sortFn = func(o []*leif.Owner) func(i, j int) bool {
+					return func(i, j int) bool { return o[i].Name() > o[j].Name() }
+				}
+			default:
+				return nil, "", fmt.Errorf("Cannot order repositories by %s", orderBy)
+			}
+
+			err = s.c.ForEachOwnerFSort(
+				func(o leif.Owner) error {
+					owners = append(owners, fmt.Sprintf("owners/%v", o.Name()))
+					return nil
+				},
+				func(o leif.Owner) bool { return true },
+				sortFn,
+			)
+		}
+		if err != nil {
+			log.Error(err)
+			return nil, "", err
+		}
 
 		// Create Page
 		t, err := s.ownerPaginator.CreatePage(owners)
 		if err != nil {
 			log.Error(err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		pageSize := getPageSize(int(pSize))
 
 		//Get page
-		pg, index, err := s.ownerPaginator.GetPage(t, pageSize)
+		pg, index, err = s.ownerPaginator.GetPage(t, pageSize)
 		if err != nil {
 			log.Error(err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		if index > 0 {
-			nextToken, err := makeFirstPageToken(t, index)
+			nextToken, err = makeFirstPageToken(t, index)
 		}
 	}
-	return pg, index, nextToken, err
+	return pg, nextToken, err
 }
 
 // ListRepositories returns the list of Repositories tracked by the Corpus
@@ -171,7 +201,7 @@ func (s *SLOServiceServer) ListRepositories(ctx context.Context, req *drghs_v1.L
 		return nil, fmt.Errorf("Invalid parent: %v", req.Parent)
 	}
 
-	repos, index, nextToken, err := s.handleRepoPagination(req.PageToken, req.PageSize, req.Parent)
+	repos, nextToken, err := s.handleRepoPagination(req.PageToken, req.PageSize, req.OrderBy, req.Parent)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +232,7 @@ func (s *SLOServiceServer) ListRepositories(ctx context.Context, req *drghs_v1.L
 	}, err
 }
 
-func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, parent string) ([]string, int, string, error) {
+func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, orderBy string, parent string) ([]string, string, error) {
 	var pg []string
 	var index int
 	var err error
@@ -211,22 +241,22 @@ func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, pare
 	if pToken != "" {
 		pageToken, err := decodePageToken(pToken)
 		if err != nil {
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
 		if err != nil {
 			log.Errorf("Error deserializing time: %v", err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		pageSize := getPageSize(int(pSize))
 
 		pg, index, err = s.repoPaginator.GetPage(ftime, pageSize)
 		if err != nil {
-			return nil, -1, "", err
+			return nil, "", err
 		}
-		nextToken, err := makeNextPageToken(pageToken, index)
+		nextToken, err = makeNextPageToken(pageToken, index)
 	} else {
 		repos := make([]string, 0)
 
@@ -242,32 +272,100 @@ func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, pare
 			}
 		}
 
-		err := s.c.ForEachRepoF(func(repo leif.Repository) error {
-			repos = append(repos, fmt.Sprintf("owners/%v/repositories/%v", repo.OwnerName(), repo.RepoName()))
-			return nil
-		}, filter)
+		if orderBy == "" {
+			err = s.c.ForEachRepoF(func(repo leif.Repository) error {
+				repos = append(repos, fmt.Sprintf("owners/%v/repositories/%v", repo.OwnerName(), repo.RepoName()))
+				return nil
+			}, filter)
+		} else {
+			var sortFn func(repos []*leif.Repository) func(i, j int) bool
+
+			switch orderBy {
+			case "name":
+				sortFn = func(repos []*leif.Repository) func(i, j int) bool {
+					return func(i, j int) bool { return repos[i].RepoName() < repos[j].RepoName() }
+				}
+			case "-name":
+				sortFn = func(repos []*leif.Repository) func(i, j int) bool {
+					return func(i, j int) bool { return repos[i].RepoName() > repos[j].RepoName() }
+				}
+			default:
+				return nil, "", fmt.Errorf("Cannot order repositories by %s", orderBy)
+			}
+
+			err = s.c.ForEachRepoFSort(
+				func(repo leif.Repository) error {
+					repos = append(repos, fmt.Sprintf("owners/%v/repositories/%v", repo.OwnerName(), repo.RepoName()))
+					return nil
+				},
+				filter,
+				sortFn,
+			)
+		}
+		if err != nil {
+			log.Error(err)
+			return nil, "", err
+		}
 
 		// Create Page
 		t, err := s.repoPaginator.CreatePage(repos)
 		if err != nil {
 			log.Error(err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		pageSize := getPageSize(int(pSize))
 
 		//Get page
-		pg, index, err := s.repoPaginator.GetPage(t, pageSize)
+		pg, index, err = s.repoPaginator.GetPage(t, pageSize)
 		if err != nil {
 			log.Error(err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		if index > 0 {
-			nextToken, err := makeFirstPageToken(t, index)
+			nextToken, err = makeFirstPageToken(t, index)
 		}
 	}
-	return pg, index, nextToken, err
+	return pg, nextToken, err
+}
+
+// ListOwnerSLOs returns the list of slos for an owner tracked by the Corpus
+func (s *SLOServiceServer) ListOwnerSLOs(ctx context.Context, req *drghs_v1.ListSLOsRequest) (*drghs_v1.ListSLOsResponse, error) {
+
+	if !reposParent.MatchString(req.Parent) {
+		return nil, fmt.Errorf("Invalid parent: %v", req.Parent)
+	}
+
+	slos, nextToken, err := s.handleSloPagination(req.PageToken, req.PageSize, req.Parent)
+	if err != nil {
+		return nil, err
+	}
+
+	protoSlos := make([]*drghs_v1.SLO, 0)
+	for _, slo := range slos {
+		protoSlo, err := makeSloPB(slo)
+		if err != nil {
+			log.Errorf("Could not create repository pb %v", err)
+			return nil, err
+		}
+
+		include, err := filter.Slo(protoSlo, req.Filter)
+		if err != nil {
+			log.Errorf("Issue filtering repository: %v", err)
+			return nil, err
+		}
+
+		if include {
+			protoSlos = append(protoSlos, protoSlo)
+		}
+	}
+
+	return &drghs_v1.ListSLOsResponse{
+		Slos:          protoSlos,
+		NextPageToken: nextToken,
+		Total:         int32(len(slos)),
+	}, err
 }
 
 // ListSLOs returns the list of slos for a repository tracked by the Corpus
@@ -277,38 +375,38 @@ func (s *SLOServiceServer) ListSLOs(ctx context.Context, req *drghs_v1.ListSLOsR
 		return nil, fmt.Errorf("Invalid parent: %v", req.Parent)
 	}
 
-	slos, index, nextToken, err := s.handleSloPagination(req.PageToken, req.PageSize, req.Parent)
+	slos, nextToken, err := s.handleSloPagination(req.PageToken, req.PageSize, req.Parent)
 	if err != nil {
 		return nil, err
 	}
 
 	protoSlos := make([]*drghs_v1.SLO, 0)
-	for _, slo := range repos {
-		protoRepo, err := makeRepositoryPB(repo)
+	for _, slo := range slos {
+		protoSlo, err := makeSloPB(slo)
 		if err != nil {
 			log.Errorf("Could not create repository pb %v", err)
 			return nil, err
 		}
 
-		include, err := filter.Repository(protoRepo, req.Filter)
+		include, err := filter.Slo(protoSlo, req.Filter)
 		if err != nil {
 			log.Errorf("Issue filtering repository: %v", err)
 			return nil, err
 		}
 
 		if include {
-			protoRepositories = append(protoRepositories, protoRepo)
+			protoSlos = append(protoSlos, protoSlo)
 		}
 	}
 
-	return &drghs_v1.ListRepositoriesResponse{
-		Repositories:  protoRepositories,
+	return &drghs_v1.ListSLOsResponse{
+		Slos:          protoSlos,
 		NextPageToken: nextToken,
-		Total:         int32(len(repos)),
+		Total:         int32(len(slos)),
 	}, err
 }
 
-func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, parent string) ([]*leif.SLORule, int, string, error) {
+func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, parent string) ([]*leif.SLORule, string, error) {
 	var pg []*leif.SLORule
 	var index int
 	var err error
@@ -317,61 +415,81 @@ func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, paren
 	if pToken != "" {
 		pageToken, err := decodePageToken(pToken)
 		if err != nil {
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		ftime, err := ptypes.Timestamp(pageToken.FirstRequestTimeUsec)
 		if err != nil {
 			log.Errorf("Error deserializing time: %v", err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		pageSize := getPageSize(int(pSize))
 
-		pg, index, err = s.repoPaginator.GetPage(ftime, pageSize)
+		pg, index, err = s.sloPaginator.GetPage(ftime, pageSize)
 		if err != nil {
-			return nil, -1, "", err
+			return nil, "", err
 		}
-		nextToken, err := makeNextPageToken(pageToken, index)
+		nextToken, err = makeNextPageToken(pageToken, index)
 	} else {
-		repos := make([]string, 0)
+		slos := make([]*leif.SLORule, 0)
 
-		parts := reposParent.FindStringSubmatch(parent)
-		owner := parts[1]
+		parts := slosParent.FindStringSubmatch(parent)
 
-		filter := func(repo leif.Repository) bool {
-			return repo.OwnerName() == owner
+		var owner, repo string
+		if len(parts) < 1 {
+			repo = "*"
+			parts = reposParent.FindStringSubmatch(parent)
+		} else {
+
+			repo = parts[2]
+		}
+		owner = parts[1]
+
+		parentFilter := func(r leif.Repository) bool {
+			return r.OwnerName() == owner && r.RepoName() == repo
+		}
+
+		if repo == "*" {
+			parentFilter = func(r leif.Repository) bool {
+				return r.OwnerName() == owner
+			}
 		}
 		if owner == "*" {
-			filter = func(repo leif.Repository) bool {
+			parentFilter = func(r leif.Repository) bool {
+				return r.RepoName() == repo
+			}
+		}
+		if owner == "*" && repo == "*" {
+			parentFilter = func(r leif.Repository) bool {
 				return true
 			}
 		}
 
 		err := s.c.ForEachRepoF(func(repo leif.Repository) error {
-			repos = append(repos, fmt.Sprintf("owners/%v/repositories/%v", repo.OwnerName(), repo.RepoName()))
+			slos = append(slos, repo.SLORules...)
 			return nil
-		}, filter)
+		}, parentFilter)
 
 		// Create Page
-		t, err := s.repoPaginator.CreatePage(repos)
+		t, err := s.sloPaginator.CreatePage(slos)
 		if err != nil {
 			log.Error(err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		pageSize := getPageSize(int(pSize))
 
 		//Get page
-		pg, index, err := s.repoPaginator.GetPage(t, pageSize)
+		pg, index, err = s.sloPaginator.GetPage(t, pageSize)
 		if err != nil {
 			log.Error(err)
-			return nil, -1, "", err
+			return nil, "", err
 		}
 
 		if index > 0 {
-			nextToken, err := makeFirstPageToken(t, index)
+			nextToken, err = makeFirstPageToken(t, index)
 		}
 	}
-	return pg, index, nextToken, err
+	return pg, nextToken, err
 }

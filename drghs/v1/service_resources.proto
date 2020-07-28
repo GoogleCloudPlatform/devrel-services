@@ -16,7 +16,6 @@ syntax = "proto3";
 
 package drghs.v1;
 
-import "google/api/annotations.proto";
 import "resources.proto";
 
 // Request message for [SampleService.ListRepositories][].

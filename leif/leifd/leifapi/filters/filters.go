@@ -32,11 +32,11 @@ func Owner(o *drghs_v1.Owner, filter string) (bool, error) {
 	if o == nil {
 		return false, nil
 	}
-	drghs_v1.
+
 	env, err := cel.NewEnv(
 		cel.Types(&drghs_v1.Owner{}),
 		cel.Declarations(
-			decls.NewIdent("repository", decls.NewObjectType("drghs.v1.Owner"), nil)))
+			decls.NewIdent("owner", decls.NewObjectType("drghs.v1.Owner"), nil)))
 
 	parsed, issues := env.Parse(filter)
 	if issues != nil && issues.Err() != nil {
@@ -95,6 +95,44 @@ func Repository(r *drghs_v1.Repository, filter string) (bool, error) {
 	// was arrive at.
 	out, _, err := prg.Eval(map[string]interface{}{
 		"repository": r,
+	})
+
+	return out == types.True, err
+}
+
+// Slo checks if the Slo passes the given CEL expression.
+func Slo(s *drghs_v1.SLO, filter string) (bool, error) {
+	if filter == "" {
+		filter = defaultFilter
+	}
+	if s == nil {
+		return false, nil
+	}
+
+	env, err := cel.NewEnv(
+		cel.Types(&drghs_v1.SLO{}),
+		cel.Declarations(
+			decls.NewIdent("slo", decls.NewObjectType("drghs.v1.SLO"), nil)))
+
+	parsed, issues := env.Parse(filter)
+	if issues != nil && issues.Err() != nil {
+		return false, issues.Err()
+	}
+	checked, issues := env.Check(parsed)
+	if issues != nil && issues.Err() != nil {
+		return false, issues.Err()
+	}
+	prg, err := env.Program(checked)
+	if err != nil {
+		return false, err
+	}
+
+	// The `out` var contains the output of a successful evaluation.
+	// The `details' var would contain intermediate evalaution state if enabled as
+	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
+	// was arrive at.
+	out, _, err := prg.Eval(map[string]interface{}{
+		"slo": s,
 	})
 
 	return out == types.True, err
