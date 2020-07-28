@@ -19,7 +19,6 @@ module github.com/GoogleCloudPlatform/devrel-services/drghs/
 
 require (
 	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-00010101000000-000000000000 // indirect
-	// github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-20200723024905-6c479f56d135 // indirect
 	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/kisielk/gotool v1.0.0 // indirect
@@ -32,5 +31,3 @@ require (
 )
 
 go 1.13
-
-replace github.com/GoogleCloudPlatform/devrel-services/drghs => /usr/local/google/home/brennae/devrel-services/drghs

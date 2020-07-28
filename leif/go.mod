@@ -18,4 +18,3 @@ require (
 	google.golang.org/protobuf v1.25.0
 )
 
-replace github.com/GoogleCloudPlatform/devrel-services/drghs => /usr/local/google/home/brennae/devrel-services/drghs
