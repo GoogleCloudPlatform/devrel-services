@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.7.1-slim-stretch as base
+FROM python:slim as base
 
 RUN apt update &&  \
     apt install -y \
@@ -21,9 +21,9 @@ RUN apt update &&  \
     --no-install-recommends && \
     rm -rf /var/lib/apt/lists*
 
-WORKDIR /work/theacodes/magic-github-proxy
-RUN wget -O - https://github.com/theacodes/magic-github-proxy/tarball/master | tar xzC . --strip-components 1
-WORKDIR /work/theacodes/magic-github-proxy
+WORKDIR /work/google/magic-github-proxy
+RUN wget -O - https://github.com/google/magic-github-proxy/tarball/master | tar xzC . --strip-components 1
+WORKDIR /work/google/magic-github-proxy
 RUN pip install -r requirements.txt
 RUN python3 setup.py install
 

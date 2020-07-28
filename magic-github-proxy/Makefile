@@ -56,7 +56,7 @@ build: ## Builds the docker image locally
 deploy: check-project check-deploy ## Deploys the app to the cluster
 	gcloud builds submit \
     --config=cloudbuild.yaml \
-    --substitutions _ZONE=$(GCP_CLUSTER_NAME),_CLUSTER=$(GCP_CLUSTER_NAME),_KMS_LOCATION=$(KMS_LOCATION),_KMS_KEY_RING=$(KMS_KEY_RING),_KMS_KEY=$(KMS_KEY),_BUCKET_NAME=$(GCS_BUCKET_NAME),_PRIVATE_FILE=$(PRIVATE_KEY_FILE),_CERTIFICATE_FILE=$(CERTIFICATE_FILE) \
+    --substitutions _ZONE=$(GCP_CLUSTER_ZONE),_CLUSTER=$(GCP_CLUSTER_NAME),_KMS_LOCATION=$(KMS_LOCATION),_KMS_KEY_RING=$(KMS_KEY_RING),_KMS_KEY=$(KMS_KEY),_BUCKET_NAME=$(GCS_BUCKET_NAME),_PRIVATE_FILE=$(PRIVATE_KEY_FILE),_CERTIFICATE_FILE=$(CERTIFICATE_FILE) \
 	.
 
 .PHONY: check-deploy
