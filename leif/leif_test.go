@@ -16,6 +16,7 @@ package leif
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -243,6 +244,721 @@ func TestTrackRepo(t *testing.T) {
 
 		if !reflect.DeepEqual(gotCorpus, test.wantCorpus) {
 			t.Errorf("%v did not pass.\n\tWant corpus:\t%v\n\tGot corpus:\t%v", test.name, test.wantCorpus, gotCorpus)
+		}
+
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}
+
+func TestForEachRepo(t *testing.T) {
+
+	var workingSet map[string]int
+
+	tests := []struct {
+		name    string
+		corpus  Corpus
+		fn      func(r Repository) error
+		wantSet map[string]int
+		wantErr bool
+	}{
+		{
+			name: "Iterates through a single repo",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+				},
+			}}},
+			fn:      func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			wantSet: map[string]int{"aRepo": 1},
+			wantErr: false,
+		},
+		{
+			name:    "Iterates through empty corpus",
+			corpus:  Corpus{},
+			fn:      func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			wantSet: map[string]int{},
+			wantErr: false,
+		},
+		{
+			name: "Iterates through several repos",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:      func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			wantSet: map[string]int{"aRepo": 1, "repo2": 1, "repo3": 1},
+			wantErr: false,
+		},
+		{
+			name: "Iterates through repos with different owners",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+						&Repository{name: "repo3", ownerName: "someOwner"},
+					},
+				},
+				&Owner{
+					name: "anotherOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "anotherOwner"},
+						&Repository{name: "otherRepo", ownerName: "anotherOwner"},
+					},
+				},
+			}},
+			fn:      func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			wantSet: map[string]int{"aRepo": 2, "repo2": 1, "repo3": 1, "otherRepo": 1},
+			wantErr: false,
+		},
+		{
+			name: "Returns first error from func",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+					},
+				},
+			}},
+			fn:      func(r Repository) error { workingSet["runCount"]++; return fmt.Errorf("an error") },
+			wantSet: map[string]int{"runCount": 1},
+			wantErr: true,
+		},
+	}
+	for _, test := range tests {
+		workingSet = map[string]int{}
+
+		gotErr := test.corpus.ForEachRepo(test.fn)
+
+		if !reflect.DeepEqual(workingSet, test.wantSet) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.wantSet, workingSet)
+		}
+
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}
+
+func TestForEachRepoF(t *testing.T) {
+
+	var workingSet map[string]int
+
+	tests := []struct {
+		name     string
+		corpus   Corpus
+		fn       func(r Repository) error
+		filterfn func(r Repository) bool
+		wantSet  map[string]int
+		wantErr  bool
+	}{
+		{
+			name:     "Iterates through empty corpus",
+			corpus:   Corpus{},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return true },
+			wantSet:  map[string]int{},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through a single repo",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return true },
+			wantSet:  map[string]int{"aRepo": 1},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates and filters out a single repo",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return false },
+			wantSet:  map[string]int{},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through several repos",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return true },
+			wantSet:  map[string]int{"aRepo": 1, "repo2": 1, "repo3": 1},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through and filters out several repos",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return false },
+			wantSet:  map[string]int{},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through several repos and filters one out",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return !(r.RepoName() == "repo3") },
+			wantSet:  map[string]int{"aRepo": 1, "repo2": 1},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through several repos and filters several out",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return (r.RepoName() == "repo3") },
+			wantSet:  map[string]int{"repo3": 1},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through repos with different owners",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+						&Repository{name: "repo3", ownerName: "someOwner"},
+					},
+				},
+				&Owner{
+					name: "anotherOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "anotherOwner"},
+						&Repository{name: "otherRepo", ownerName: "anotherOwner"},
+					},
+				},
+			}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return true },
+			wantSet:  map[string]int{"aRepo": 2, "repo2": 1, "repo3": 1, "otherRepo": 1},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates and filters through repos with different owners",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+						&Repository{name: "repo3", ownerName: "someOwner"},
+					},
+				},
+				&Owner{
+					name: "anotherOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "anotherOwner"},
+						&Repository{name: "otherRepo", ownerName: "anotherOwner"},
+					},
+				},
+			}},
+			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
+			filterfn: func(r Repository) bool { return (r.RepoName() == "aRepo") },
+			wantSet:  map[string]int{"aRepo": 2},
+			wantErr:  false,
+		},
+		{
+			name: "Returns first error from func",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+					},
+				},
+			}},
+			fn:       func(r Repository) error { workingSet["runCount"]++; return fmt.Errorf("an error") },
+			filterfn: func(r Repository) bool { return true },
+			wantSet:  map[string]int{"runCount": 1},
+			wantErr:  true,
+		},
+	}
+	for _, test := range tests {
+		workingSet = map[string]int{}
+
+		gotErr := test.corpus.ForEachRepoF(test.fn, test.filterfn)
+
+		if !reflect.DeepEqual(workingSet, test.wantSet) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.wantSet, workingSet)
+		}
+
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}
+
+func TestForEachRepoFSort(t *testing.T) {
+
+	var workingSlice []string
+
+	tests := []struct {
+		name      string
+		corpus    Corpus
+		fn        func(r Repository) error
+		filterfn  func(r Repository) bool
+		sortfn    func([]*Repository) func(i, j int) bool
+		wantSlice []string
+		wantErr   bool
+	}{
+		{
+			name:     "Iterates through empty corpus",
+			corpus:   Corpus{},
+			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
+			filterfn: func(r Repository) bool { return true },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() < repos[j].RepoName() }
+			},
+			wantSlice: []string{},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through a single repo",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
+			filterfn: func(r Repository) bool { return true },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() < repos[j].RepoName() }
+			},
+			wantSlice: []string{"aRepo"},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through several repos in order",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
+			filterfn: func(r Repository) bool { return true },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() < repos[j].RepoName() }
+			},
+			wantSlice: []string{"aRepo", "repo2", "repo3"},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through several repos in reverse order",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
+			filterfn: func(r Repository) bool { return true },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() > repos[j].RepoName() }
+			},
+			wantSlice: []string{"repo3", "repo2", "aRepo"},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through several repos in order with filtering",
+			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+				name: "someOwner",
+				Repos: []*Repository{
+					&Repository{name: "aRepo", ownerName: "someOwner"},
+					&Repository{name: "repo2", ownerName: "someOwner"},
+					&Repository{name: "repo3", ownerName: "someOwner"},
+				},
+			}}},
+			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
+			filterfn: func(r Repository) bool { return !(r.RepoName() == "repo3") },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() > repos[j].RepoName() }
+			},
+			wantSlice: []string{"repo2", "aRepo"},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates in order through repos with different owners",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+						&Repository{name: "repo3", ownerName: "someOwner"},
+					},
+				},
+				&Owner{
+					name: "anotherOwner",
+					Repos: []*Repository{
+						&Repository{name: "aARepo", ownerName: "anotherOwner"},
+						&Repository{name: "otherRepo", ownerName: "anotherOwner"},
+					},
+				},
+			}},
+			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
+			filterfn: func(r Repository) bool { return true },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() < repos[j].RepoName() }
+			},
+			wantSlice: []string{"aARepo", "aRepo", "otherRepo", "repo2", "repo3"},
+			wantErr:   false,
+		},
+		{
+			name: "Returns first error from func",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+					},
+				},
+			}},
+			fn: func(r Repository) error {
+				workingSlice = append(workingSlice, r.RepoName())
+				return fmt.Errorf("an error")
+			},
+			filterfn: func(r Repository) bool { return true },
+			sortfn: func(repos []*Repository) func(i, j int) bool {
+				return func(i, j int) bool { return repos[i].RepoName() < repos[j].RepoName() }
+			},
+			wantSlice: []string{"aRepo"},
+			wantErr:   true,
+		},
+	}
+	for _, test := range tests {
+		workingSlice = []string{}
+
+		gotErr := test.corpus.ForEachRepoFSort(test.fn, test.filterfn, test.sortfn)
+
+		if !reflect.DeepEqual(workingSlice, test.wantSlice) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.wantSlice, workingSlice)
+		}
+
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}
+
+func TestForEachOwner(t *testing.T) {
+
+	var workingSet map[string]int
+
+	tests := []struct {
+		name    string
+		corpus  Corpus
+		fn      func(o Owner) error
+		wantSet map[string]int
+		wantErr bool
+	}{
+		{
+			name:    "Iterates through a single owner",
+			corpus:  Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			fn:      func(o Owner) error { workingSet[o.Name()]++; return nil },
+			wantSet: map[string]int{"anOwner": 1},
+			wantErr: false,
+		},
+		{
+			name:    "Iterates through empty corpus",
+			corpus:  Corpus{},
+			fn:      func(o Owner) error { workingSet[o.Name()]++; return nil },
+			wantSet: map[string]int{},
+			wantErr: false,
+		},
+		{
+			name: "Iterates through several owners",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "anOwner"},
+				&Owner{
+					name: "someOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "someOwner"},
+						&Repository{name: "repo2", ownerName: "someOwner"},
+						&Repository{name: "repo3", ownerName: "someOwner"},
+					},
+				},
+				&Owner{
+					name: "anotherOwner",
+					Repos: []*Repository{
+						&Repository{name: "aRepo", ownerName: "anotherOwner"},
+						&Repository{name: "otherRepo", ownerName: "anotherOwner"},
+					},
+				},
+			}},
+			fn:      func(o Owner) error { workingSet[o.Name()]++; return nil },
+			wantSet: map[string]int{"someOwner": 1, "anOwner": 1, "anotherOwner": 1},
+			wantErr: false,
+		},
+		{
+			name: "Returns first error from func",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "anOwner"},
+				&Owner{name: "someOwner"},
+			}},
+			fn:      func(o Owner) error { workingSet["runCount"]++; return fmt.Errorf("an error") },
+			wantSet: map[string]int{"runCount": 1},
+			wantErr: true,
+		},
+	}
+	for _, test := range tests {
+		workingSet = map[string]int{}
+
+		gotErr := test.corpus.ForEachOwner(test.fn)
+
+		if !reflect.DeepEqual(workingSet, test.wantSet) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.wantSet, workingSet)
+		}
+
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}
+
+func TestForEachOwnerF(t *testing.T) {
+
+	var workingSet map[string]int
+
+	tests := []struct {
+		name     string
+		corpus   Corpus
+		fn       func(o Owner) error
+		filterfn func(o Owner) bool
+		wantSet  map[string]int
+		wantErr  bool
+	}{
+		{
+			name:     "Iterates through empty corpus",
+			corpus:   Corpus{},
+			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
+			filterfn: func(o Owner) bool { return true },
+			wantSet:  map[string]int{},
+			wantErr:  false,
+		},
+		{
+			name:     "Iterates through a single owner",
+			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
+			filterfn: func(o Owner) bool { return true },
+			wantSet:  map[string]int{"anOwner": 1},
+			wantErr:  false,
+		},
+		{
+			name:     "Iterates and filters out through a single owner",
+			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
+			filterfn: func(o Owner) bool { return false },
+			wantSet:  map[string]int{},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through several owners and filters several out",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "anOwner"},
+				&Owner{name: "someOwner"},
+				&Owner{name: "anotherOwner"},
+			}},
+			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
+			filterfn: func(o Owner) bool { return o.Name() == "someOwner" },
+			wantSet:  map[string]int{"someOwner": 1},
+			wantErr:  false,
+		},
+		{
+			name: "Iterates through several owners and filters all out",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "anOwner"},
+				&Owner{name: "someOwner"},
+				&Owner{name: "anotherOwner"},
+			}},
+			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
+			filterfn: func(o Owner) bool { return false },
+			wantSet:  map[string]int{},
+			wantErr:  false,
+		},
+		{
+			name: "Returns first error from func",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "anOwner"},
+				&Owner{name: "someOwner"},
+			}},
+			fn:       func(o Owner) error { workingSet["runCount"]++; return fmt.Errorf("an error") },
+			filterfn: func(o Owner) bool { return true },
+			wantSet:  map[string]int{"runCount": 1},
+			wantErr:  true,
+		},
+	}
+	for _, test := range tests {
+		workingSet = map[string]int{}
+
+		gotErr := test.corpus.ForEachOwnerF(test.fn, test.filterfn)
+
+		if !reflect.DeepEqual(workingSet, test.wantSet) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.wantSet, workingSet)
+		}
+
+		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
+			t.Errorf("%v did not pass.\n\tWant Err: %v \n\tGot Err: %v", test.name, test.wantErr, gotErr)
+		}
+	}
+}
+
+func TestForEachOwnerFSort(t *testing.T) {
+
+	var workingSlice []string
+
+	tests := []struct {
+		name      string
+		corpus    Corpus
+		fn        func(o Owner) error
+		filterfn  func(o Owner) bool
+		sortfn    func([]*Owner) func(i, j int) bool
+		wantSlice []string
+		wantErr   bool
+	}{
+		{
+			name:     "Iterates through a single owner",
+			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
+			filterfn: func(o Owner) bool { return true },
+			sortfn: func(owners []*Owner) func(i, j int) bool {
+				return func(i, j int) bool { return owners[i].Name() < owners[j].Name() }
+			},
+			wantSlice: []string{"anOwner"},
+			wantErr:   false,
+		},
+		{
+			name:     "Iterates and filters out through a single owner",
+			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
+			filterfn: func(o Owner) bool { return false },
+			sortfn: func(owners []*Owner) func(i, j int) bool {
+				return func(i, j int) bool { return owners[i].Name() < owners[j].Name() }
+			},
+			wantSlice: []string{},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through several owners in order",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "o2"},
+				&Owner{name: "o3"},
+				&Owner{name: "o1"},
+			}},
+			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
+			filterfn: func(o Owner) bool { return true },
+			sortfn: func(owners []*Owner) func(i, j int) bool {
+				return func(i, j int) bool { return owners[i].Name() < owners[j].Name() }
+			},
+			wantSlice: []string{"o1", "o2", "o3"},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through several owners in reverse order",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "o1"},
+				&Owner{name: "o2"},
+				&Owner{name: "o3"},
+			}},
+			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
+			filterfn: func(o Owner) bool { return true },
+			sortfn: func(owners []*Owner) func(i, j int) bool {
+				return func(i, j int) bool { return owners[i].Name() > owners[j].Name() }
+			},
+			wantSlice: []string{"o3", "o2", "o1"},
+			wantErr:   false,
+		},
+		{
+			name: "Iterates through several owners in order with filtering",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "o3"},
+				&Owner{name: "o2"},
+				&Owner{name: "o1"},
+			}},
+			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
+			filterfn: func(o Owner) bool { return o.Name() != "o3" },
+			sortfn: func(owners []*Owner) func(i, j int) bool {
+				return func(i, j int) bool { return owners[i].Name() < owners[j].Name() }
+			},
+			wantSlice: []string{"o1", "o2"},
+			wantErr:   false,
+		},
+		{
+			name: "Returns first error from func",
+			corpus: Corpus{watchedOwners: []*Owner{
+				&Owner{name: "someOwner"},
+				&Owner{name: "anOwner"},
+			}},
+			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return fmt.Errorf("an error") },
+			filterfn: func(o Owner) bool { return true },
+			sortfn: func(owners []*Owner) func(i, j int) bool {
+				return func(i, j int) bool { return owners[i].Name() < owners[j].Name() }
+			},
+			wantSlice: []string{"anOwner"},
+			wantErr:   true,
+		},
+	}
+	for _, test := range tests {
+		workingSlice = []string{}
+
+		gotErr := test.corpus.ForEachOwnerFSort(test.fn, test.filterfn, test.sortfn)
+
+		if !reflect.DeepEqual(workingSlice, test.wantSlice) {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.wantSlice, workingSlice)
 		}
 
 		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {

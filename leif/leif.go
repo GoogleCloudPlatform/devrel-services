@@ -139,14 +139,14 @@ func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubse
 
 // ForEachRepo iterates over the set of repositories and performs the
 // given function on each and returns the first non-nil error it receives.
-func (c *Corpus) ForEachRepo(fn func(repo Repository) error) error {
-	return c.ForEachRepoF(fn, func(repo Repository) bool { return true })
+func (c *Corpus) ForEachRepo(fn func(r Repository) error) error {
+	return c.ForEachRepoF(fn, func(r Repository) bool { return true })
 }
 
 // ForEachRepoF iterates over the set of repositories that match the given filter
 // and performs the given function on them, and returns the first non-nil error
 // it receives.
-func (c *Corpus) ForEachRepoF(fn func(repo Repository) error, filter func(repo Repository) bool) error {
+func (c *Corpus) ForEachRepoF(fn func(r Repository) error, filter func(r Repository) bool) error {
 	for _, owner := range c.watchedOwners {
 		for _, repo := range owner.Repos {
 			if filter(*repo) {
@@ -162,7 +162,7 @@ func (c *Corpus) ForEachRepoF(fn func(repo Repository) error, filter func(repo R
 // ForEachRepoFSort iterates over the set of repositories that match the given filter
 // and performs the given function on them in the order given by the given sort func.
 // Returns the first non-nil error it receives.
-func (c *Corpus) ForEachRepoFSort(fn func(Repository) error, filter func(Repository) bool, sortfn func([]*Repository) func(i, j int) bool) error {
+func (c *Corpus) ForEachRepoFSort(fn func(r Repository) error, filter func(r Repository) bool, sortfn func([]*Repository) func(i, j int) bool) error {
 	var repos []*Repository
 	for _, owner := range c.watchedOwners {
 		for _, repo := range owner.Repos {
@@ -206,7 +206,7 @@ func (c *Corpus) ForEachOwnerF(fn func(o Owner) error, filter func(o Owner) bool
 // ForEachOwnerFSort iterates over the set of owners that match the given filter
 // and performs the given function on them in the order given by the given sort func.
 // Returns the first non-nil error it receives.
-func (c *Corpus) ForEachOwnerFSort(fn func(o Owner) error, filter func(o Owner) bool, sortfn func([]*Owner) func(i, j int) bool) error {
+func (c *Corpus) ForEachOwnerFSort(fn func(o Owner) error, filter func(o Owner) bool, sortfn func(owners []*Owner) func(i, j int) bool) error {
 	owners := c.watchedOwners
 	sort.Slice(owners, sortfn(owners))
 
