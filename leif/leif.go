@@ -14,48 +14,125 @@
 
 package leif
 
-import "time"
+import (
+	"context"
+	"fmt"
+	"os"
+	"sort"
+	"sync"
 
-// Owner represents a GitHub owner and their tracked repositories
-// Owners can specify default SLO rules that will apply to all tracked repos
-// unless the repository overrides them with its own SLO rules config
-type Owner struct {
-	name     string
-	Repos    []*Repository
-	SLORules []*SLORule
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+)
+
+var log *logrus.Logger
+
+func init() {
+	log = logrus.New()
+	log.Out = os.Stdout
 }
 
-// Repository represents a GitHub repository and stores its SLO rules
-type Repository struct {
-	name     string
-	SLORules []*SLORule
+// VerboseLog sets the log level to DebugLevel
+func VerboseLog() {
+	log.Level = logrus.DebugLevel
 }
 
-// SLORule represents a service level objective (SLO) rule
-type SLORule struct {
-	AppliesTo          AppliesTo          `json:"appliesTo"`
-	ComplianceSettings ComplianceSettings `json:"complianceSettings"`
+// FormatLog sets the log's formatter to the one provided
+func FormatLog(f logrus.Formatter) {
+	log.Formatter = f
 }
 
-// AppliesTo stores structured data on which issues and/or pull requests a SLO applies to
-type AppliesTo struct {
-	GitHubLabels         []string `json:"gitHubLabels"`
-	ExcludedGitHubLabels []string `json:"excludedGitHubLabels"`
-	Issues               bool     `json:"issues"`
-	PRs                  bool     `json:"prs"`
+// Corpus holds all of a project's metadata.
+type Corpus struct {
+	mu      sync.RWMutex // guards the sync state
+	syncing bool
+
+	watchedOwners []*Owner
+	ownersToAdd   chan *Owner
 }
 
-// ComplianceSettings stores data on the requirements for an issue or pull request to be considered compliant with the SLO
-type ComplianceSettings struct {
-	ResponseTime     time.Duration `json:"responseTime"`
-	ResolutionTime   time.Duration `json:"resolutionTime"`
-	RequiresAssignee bool          `json:"requiresAssignee"`
-	Responders       Responders    `json:"responders"`
+// SyncLoop instructs the Corpus to update all the tracked repos every given amount of minutes
+func (c *Corpus) SyncLoop(ctx context.Context, minutes int, ghClient *githubservices.Client) error {
+	c.mu.Lock()
+
+	if c.syncing {
+		c.mu.Unlock()
+		return fmt.Errorf("Sync error; duplicate calls to SyncLoop")
+	}
+
+	c.syncing = true
+	c.ownersToAdd = make(chan *Owner)
+
+	c.mu.Unlock()
+
+	err := c.syncLoop(ctx, minutes, ghClient)
+
+	c.mu.Lock()
+	c.syncing = false
+	close(c.ownersToAdd)
+	c.ownersToAdd = nil
+
+	c.mu.Unlock()
+
+	return err
 }
 
-// Responders stores structured data on the responders to the issue or pull request the SLO applies to
-type Responders struct {
-	Owners       []string `json:"owners"`
-	Contributors string   `json:"contributors"`
-	Users        []string `json:"users"`
+func (c *Corpus) syncLoop(ctx context.Context, minutes int, ghClient *githubservices.Client) error {
+	group, ctx := errgroup.WithContext(ctx)
+
+	go func() {
+		for o := range c.ownersToAdd {
+			ow := o
+			group.Go(func() error {
+				return ow.UpdateLoop(ctx, minutes, ghClient)
+			})
+		}
+	}()
+
+	for _, o := range c.watchedOwners {
+		ow := o
+		group.Go(func() error {
+			return ow.UpdateLoop(ctx, minutes, ghClient)
+		})
+	}
+
+	return group.Wait()
+}
+
+// TrackRepo adds the repository to the corpus to be tracked
+func (c *Corpus) TrackRepo(ctx context.Context, ownerName string, repoName string, ghClient *githubservices.Client) error {
+
+	owner, err := c.trackOwner(ctx, ownerName, ghClient)
+	if err != nil {
+		return err
+	}
+
+	return owner.trackRepo(ctx, repoName, ghClient)
+}
+
+func (c *Corpus) trackOwner(ctx context.Context, name string, ghClient *githubservices.Client) (*Owner, error) {
+
+	i := sort.Search(len(c.watchedOwners), func(i int) bool { return c.watchedOwners[i].name >= name })
+
+	if i < len(c.watchedOwners) && c.watchedOwners[i].name == name {
+		return c.watchedOwners[i], nil
+	}
+
+	// check that it exists in GH:
+	_, _, err := ghClient.Users.Get(ctx, name)
+	if err != nil {
+		log.Errorf("Unable to get owner %s from GitHub: %s", name, err)
+		return nil, err
+	}
+
+	owner := Owner{name: name}
+	c.watchedOwners = append(c.watchedOwners, &owner)
+	copy(c.watchedOwners[i+1:], c.watchedOwners[i:])
+	c.watchedOwners[i] = &owner
+	if c.ownersToAdd != nil {
+		c.ownersToAdd <- &owner
+	}
+	return c.watchedOwners[i], nil
 }
