@@ -127,7 +127,7 @@ func main() {
 		log.Fatalf("texporter.NewExporter: %v", err)
 	}
 
-	config := sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}
+	config := sdktrace.Config{DefaultSampler: sdktrace.ProbabilitySampler(0.01)}
 	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(config), sdktrace.WithSyncer(exporter))
 	if err != nil {
 		log.Fatal(err)
