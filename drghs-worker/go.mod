@@ -15,9 +15,9 @@
 module github.com/GoogleCloudPlatform/devrel-services/drghs-worker
 
 require (
-	cloud.google.com/go v0.53.0
-	cloud.google.com/go/storage v1.5.0
-	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-00010101000000-000000000000
+	cloud.google.com/go v0.61.0
+	cloud.google.com/go/storage v1.10.0
+	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-20200727222033-925b3ded9815
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
 	github.com/GoogleCloudPlatform/devrel-services/rtr v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/devrel-services/sprvsr v0.0.0
@@ -59,7 +59,7 @@ require (
 	github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9 // indirect
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
 	github.com/google/cel-go v0.3.0
-	github.com/google/go-cmp v0.5.0
+	github.com/google/go-cmp v0.5.1
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/schema v1.1.0 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
@@ -83,16 +83,19 @@ require (
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
 	github.com/shurcooL/githubv4 v0.0.0-20191102174205-af46314aec7b
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	go.opentelemetry.io/otel v0.9.0
 	golang.org/x/build v0.0.0-20190201181641-63986c177d1f
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	google.golang.org/api v0.20.0
-	google.golang.org/genproto v0.0.0-20200305110556-506484158171
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1 // indirect
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
+	golang.org/x/tools v0.0.0-20200728190822-edd3c8e9e279 // indirect
+	google.golang.org/api v0.29.0
+	google.golang.org/genproto v0.0.0-20200728010541-3dc8dca74b7b
 	google.golang.org/grpc v1.30.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
