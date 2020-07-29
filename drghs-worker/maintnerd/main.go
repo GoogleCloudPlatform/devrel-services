@@ -45,6 +45,8 @@ import (
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/instrumentation/grpctrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+	"cloud.google.com/go/profiler"
 )
 
 var (
@@ -102,6 +104,21 @@ func main() {
 	if *repo == "" {
 		err := fmt.Errorf("must provide --repo")
 		logAndPrintError(err)
+		log.Fatal(err)
+	}
+
+	cfg := profiler.Config{
+		Service:        fmt.Sprintf("maintnerd-%v-%v", *owner, *repo),
+		ServiceVersion: "0.0.1",
+		ProjectID:      *projectID,
+
+		// For OpenCensus users:
+		// To see Profiler agent spans in APM backend,
+		// set EnableOCTelemetry to true
+		//EnableOCTelemetry: true,
+	}
+
+	if err := profiler.Start(cfg); err != nil {
 		log.Fatal(err)
 	}
 
