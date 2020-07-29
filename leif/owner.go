@@ -58,15 +58,20 @@ func (o *Owner) UpdateLoop(ctx context.Context, minutes int, ghClient *githubser
 	log.Printf("Beginning sync loop for owner %s", o.name)
 
 	ticker := time.NewTicker(time.Duration(minutes) * time.Minute)
-	for range ticker.C {
-		err := o.Update(ctx, ghClient)
-		if err != nil {
+	for {
+		select {
+		case <-ctx.Done():
+			err := fmt.Errorf("Context cancelled")
 			log.Printf("Ended sync loop for owner %s: %v", o.name, err)
 			return err
+		case <-ticker.C:
+			err := o.Update(ctx, ghClient)
+			if err != nil {
+				log.Printf("Ended sync loop for owner %s: %v", o.name, err)
+				return err
+			}
 		}
-
 	}
-	return nil
 }
 
 // Update reaches out to GitHub to update the SLO rules for the owner,
