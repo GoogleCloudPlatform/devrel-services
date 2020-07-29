@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/devrel-services/leif/githubreposervice"
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
 	"github.com/google/go-github/github"
 )
 
@@ -56,25 +56,6 @@ var sloRulesSampleParsed = []*SLORule{&SLORule{
 		RequiresAssignee: true,
 	},
 }}
-
-type MockGithubRepositoryService struct {
-	Content    *github.RepositoryContent
-	DirContent []*github.RepositoryContent
-	Response   *github.Response
-	Error      error
-	Owner      string
-	Repo       string
-}
-
-func (mgc *MockGithubRepositoryService) GetContents(ctx context.Context, owner, repo, path string, opts *github.RepositoryContentGetOptions) (*github.RepositoryContent, []*github.RepositoryContent, *github.Response, error) {
-	if owner != mgc.Owner {
-		return nil, nil, nil, errors.New("owner did not equal expected owner: was: " + owner)
-	}
-	if repo != mgc.Repo && repo != ".github" {
-		return nil, nil, nil, errors.New("repo did not equal expected repo: was: " + repo)
-	}
-	return mgc.Content, mgc.DirContent, mgc.Response, mgc.Error
-}
 
 func TestFetchFile(t *testing.T) {
 	tests := []struct {
@@ -164,13 +145,13 @@ func TestFetchFile(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		mock := new(MockGithubRepositoryService)
+		mock := new(githubservices.MockGithubRepositoryService)
 		mock.Owner = test.ownerName
 		mock.Repo = test.repoName
 		mock.Content = test.mockContent
 		mock.Error = test.mockError
 
-		client := githubreposervice.NewClient(nil, mock)
+		client := githubservices.NewClient(nil, mock, nil)
 
 		ctx := context.Background()
 		got, gotErr := fetchFile(ctx, test.ownerName, test.repoName, test.filePath, &client)
@@ -375,13 +356,13 @@ func TestFindSLODoc(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		mock := new(MockGithubRepositoryService)
+		mock := new(githubservices.MockGithubRepositoryService)
 
 		mock.Owner = test.owner.name
 		mock.Repo = test.repoName
 		mock.Content = test.mockContent
 		mock.Error = test.mockError
-		client := githubreposervice.NewClient(nil, mock)
+		client := githubservices.NewClient(nil, mock, nil)
 
 		got, gotErr := findSLODoc(context.Background(), test.owner, test.repoName, &client)
 
