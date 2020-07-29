@@ -12,26 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package leifapi
+package paginator
 
 import (
 	"errors"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
+
+type Strings struct {
+	Log     *logrus.Logger
+	mu      sync.Mutex
+	set     map[time.Time]stringPage
+	didInit bool
+}
 
 type stringPage struct {
 	items []string
 	index int
 }
 
-type stringPaginator struct {
-	set map[time.Time]stringPage
-	mu  sync.Mutex
+func (p *Strings) Init() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.didInit {
+		return fmt.Errorf("Paginator already initialized")
+	}
+	p.set = make(map[time.Time]stringPage)
+	p.didInit = true
+	return nil
 }
 
-func (p *stringPaginator) PurgeOldRecords() {
+func (p *Strings) PurgeOldRecords() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	now := time.Now()
@@ -42,9 +57,12 @@ func (p *stringPaginator) PurgeOldRecords() {
 	}
 }
 
-func (p *stringPaginator) CreatePage(withItems []string) (time.Time, error) {
+func (p *Strings) CreatePage(withItems []string) (time.Time, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if !p.didInit {
+		return time.Unix(0, 0), fmt.Errorf("Paginator not initialized")
+	}
 	key := time.Now().UTC().Truncate(0)
 	if _, ok := p.set[key]; ok {
 		return time.Unix(0, 0), errors.New("Key already exists")
@@ -57,9 +75,13 @@ func (p *stringPaginator) CreatePage(withItems []string) (time.Time, error) {
 	return key, nil
 }
 
-func (p *stringPaginator) GetPage(key time.Time, numItems int) ([]string, int, error) {
+func (p *Strings) GetPage(key time.Time, numItems int) ([]string, int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if !p.didInit {
+		return nil, 0, fmt.Errorf("Paginator not initialized")
+	}
 
 	key = key.UTC()
 	if _, ok := p.set[key]; !ok {
@@ -68,7 +90,9 @@ func (p *stringPaginator) GetPage(key time.Time, numItems int) ([]string, int, e
 	val := p.set[key]
 
 	numItemsRemaining := len(val.items) - val.index
-	log.Debugf("There are %v records remaining, requested %v", numItemsRemaining, numItems)
+	if p.Log != nil {
+		p.Log.Debugf("There are %v records remaining, requested %v", numItemsRemaining, numItems)
+	}
 
 	if numItems > numItemsRemaining {
 		numItems = numItemsRemaining

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package leifapi
+package paginator
 
 import (
 	"errors"
@@ -21,19 +21,34 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/devrel-services/leif"
+
+	"github.com/sirupsen/logrus"
 )
+
+type Slo struct {
+	Log     *logrus.Logger
+	mu      sync.Mutex
+	set     map[time.Time]sloPage
+	didInit bool
+}
 
 type sloPage struct {
 	items []*leif.SLORule
 	index int
 }
 
-type sloPaginator struct {
-	set map[time.Time]sloPage
-	mu  sync.Mutex
+func (p *Slo) Init() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.didInit {
+		return fmt.Errorf("Paginator already initialized")
+	}
+	p.set = make(map[time.Time]sloPage)
+	p.didInit = true
+	return nil
 }
 
-func (p *sloPaginator) PurgeOldRecords() {
+func (p *Slo) PurgeOldRecords() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	now := time.Now()
@@ -44,9 +59,14 @@ func (p *sloPaginator) PurgeOldRecords() {
 	}
 }
 
-func (p *sloPaginator) CreatePage(withItems []*leif.SLORule) (time.Time, error) {
+func (p *Slo) CreatePage(withItems []*leif.SLORule) (time.Time, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if !p.didInit {
+		return time.Unix(0, 0), fmt.Errorf("Paginator not initialized")
+	}
+
 	key := time.Now().UTC().Truncate(0)
 	if _, ok := p.set[key]; ok {
 		return time.Unix(0, 0), errors.New("Key already exists")
@@ -59,9 +79,13 @@ func (p *sloPaginator) CreatePage(withItems []*leif.SLORule) (time.Time, error) 
 	return key, nil
 }
 
-func (p *sloPaginator) GetPage(key time.Time, numItems int) ([]*leif.SLORule, int, error) {
+func (p *Slo) GetPage(key time.Time, numItems int) ([]*leif.SLORule, int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if !p.didInit {
+		return nil, 0, fmt.Errorf("Paginator not initialized")
+	}
 
 	key = key.UTC()
 	if _, ok := p.set[key]; !ok {
@@ -70,7 +94,9 @@ func (p *sloPaginator) GetPage(key time.Time, numItems int) ([]*leif.SLORule, in
 	val := p.set[key]
 
 	numItemsRemaining := len(val.items) - val.index
-	log.Debugf("There are %v records remaining, requested %v", numItemsRemaining, numItems)
+	if p.Log != nil {
+		p.Log.Debugf("There are %v records remaining, requested %v", numItemsRemaining, numItems)
+	}
 
 	if numItems > numItemsRemaining {
 		numItems = numItemsRemaining

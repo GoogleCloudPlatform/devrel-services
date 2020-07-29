@@ -24,6 +24,7 @@ import (
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"github.com/GoogleCloudPlatform/devrel-services/leif"
 	filter "github.com/GoogleCloudPlatform/devrel-services/leif/leifd/leifapi/filters"
+	paginator "github.com/GoogleCloudPlatform/devrel-services/leif/leifd/leifapi/pagination"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
@@ -53,25 +54,25 @@ var _ drghs_v1.SLOServiceServer = &SLOServiceServer{}
 // SLOServiceServer is an implementation of drghs_v1.SLOServiceServer
 type SLOServiceServer struct {
 	c              *leif.Corpus
-	ownerPaginator *stringPaginator
-	repoPaginator  *stringPaginator
-	sloPaginator   *sloPaginator
+	ownerPaginator *paginator.Strings
+	repoPaginator  *paginator.Strings
+	sloPaginator   *paginator.Slo
 }
 
 // NewSLOServiceServer builds and returns a new SLOServiceServer
 func NewSLOServiceServer(c *leif.Corpus) *SLOServiceServer {
-	return &SLOServiceServer{
-		c: c,
-		ownerPaginator: &stringPaginator{
-			set: make(map[time.Time]stringPage),
-		},
-		repoPaginator: &stringPaginator{
-			set: make(map[time.Time]stringPage),
-		},
-		sloPaginator: &sloPaginator{
-			set: make(map[time.Time]sloPage),
-		},
+	s := &SLOServiceServer{
+		c:              c,
+		ownerPaginator: &paginator.Strings{Log: log},
+		repoPaginator:  &paginator.Strings{Log: log},
+		sloPaginator:   &paginator.Slo{Log: log},
 	}
+
+	s.ownerPaginator.Init()
+	s.repoPaginator.Init()
+	s.sloPaginator.Init()
+
+	return s
 }
 
 // ListOwners returns the list of Owners tracked by the Corpus
@@ -115,7 +116,7 @@ func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32, ord
 	nextToken := ""
 
 	if pToken != "" {
-		pageToken, err := decodePageToken(pToken)
+		pageToken, err := paginator.DecodePageToken(pToken)
 		if err != nil {
 			return nil, "", err
 		}
@@ -126,13 +127,13 @@ func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32, ord
 			return nil, "", err
 		}
 
-		pageSize := getPageSize(int(pSize))
+		pageSize := paginator.GetPageSize(int(pSize))
 
 		pg, index, err = s.ownerPaginator.GetPage(ftime, pageSize)
 		if err != nil {
 			return nil, "", err
 		}
-		nextToken, err = makeNextPageToken(pageToken, index)
+		nextToken, err = paginator.MakeNextPageToken(pageToken, index)
 	} else {
 		owners := make([]string, 0)
 
@@ -178,7 +179,7 @@ func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32, ord
 			return nil, "", err
 		}
 
-		pageSize := getPageSize(int(pSize))
+		pageSize := paginator.GetPageSize(int(pSize))
 
 		//Get page
 		pg, index, err = s.ownerPaginator.GetPage(t, pageSize)
@@ -188,7 +189,7 @@ func (s *SLOServiceServer) handleOwnerPagination(pToken string, pSize int32, ord
 		}
 
 		if index > 0 {
-			nextToken, err = makeFirstPageToken(t, index)
+			nextToken, err = paginator.MakeFirstPageToken(t, index)
 		}
 	}
 	return pg, nextToken, err
@@ -239,7 +240,7 @@ func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, orde
 	nextToken := ""
 
 	if pToken != "" {
-		pageToken, err := decodePageToken(pToken)
+		pageToken, err := paginator.DecodePageToken(pToken)
 		if err != nil {
 			return nil, "", err
 		}
@@ -250,13 +251,13 @@ func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, orde
 			return nil, "", err
 		}
 
-		pageSize := getPageSize(int(pSize))
+		pageSize := paginator.GetPageSize(int(pSize))
 
 		pg, index, err = s.repoPaginator.GetPage(ftime, pageSize)
 		if err != nil {
 			return nil, "", err
 		}
-		nextToken, err = makeNextPageToken(pageToken, index)
+		nextToken, err = paginator.MakeNextPageToken(pageToken, index)
 	} else {
 		repos := make([]string, 0)
 
@@ -314,7 +315,7 @@ func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, orde
 			return nil, "", err
 		}
 
-		pageSize := getPageSize(int(pSize))
+		pageSize := paginator.GetPageSize(int(pSize))
 
 		//Get page
 		pg, index, err = s.repoPaginator.GetPage(t, pageSize)
@@ -324,7 +325,7 @@ func (s *SLOServiceServer) handleRepoPagination(pToken string, pSize int32, orde
 		}
 
 		if index > 0 {
-			nextToken, err = makeFirstPageToken(t, index)
+			nextToken, err = paginator.MakeFirstPageToken(t, index)
 		}
 	}
 	return pg, nextToken, err
@@ -413,7 +414,7 @@ func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, paren
 	nextToken := ""
 
 	if pToken != "" {
-		pageToken, err := decodePageToken(pToken)
+		pageToken, err := paginator.DecodePageToken(pToken)
 		if err != nil {
 			return nil, "", err
 		}
@@ -424,13 +425,13 @@ func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, paren
 			return nil, "", err
 		}
 
-		pageSize := getPageSize(int(pSize))
+		pageSize := paginator.GetPageSize(int(pSize))
 
 		pg, index, err = s.sloPaginator.GetPage(ftime, pageSize)
 		if err != nil {
 			return nil, "", err
 		}
-		nextToken, err = makeNextPageToken(pageToken, index)
+		nextToken, err = paginator.MakeNextPageToken(pageToken, index)
 	} else {
 		slos := make([]*leif.SLORule, 0)
 
@@ -478,7 +479,7 @@ func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, paren
 			return nil, "", err
 		}
 
-		pageSize := getPageSize(int(pSize))
+		pageSize := paginator.GetPageSize(int(pSize))
 
 		//Get page
 		pg, index, err = s.sloPaginator.GetPage(t, pageSize)
@@ -488,7 +489,7 @@ func (s *SLOServiceServer) handleSloPagination(pToken string, pSize int32, paren
 		}
 
 		if index > 0 {
-			nextToken, err = makeFirstPageToken(t, index)
+			nextToken, err = paginator.MakeFirstPageToken(t, index)
 		}
 	}
 	return pg, nextToken, err

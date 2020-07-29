@@ -34,8 +34,8 @@ func makeRepositoryPB(rname string) (*drghs_v1.Repository, error) {
 
 func makeSloPB(slo *leif.SLORule) (*drghs_v1.SLO, error) {
 	return &drghs_v1.SLO{
-		GitHubLabels:         slo.AppliesTo.GitHubLabels,
-		ExcludedGitHubLabels: slo.AppliesTo.ExcludedGitHubLabels,
+		GithubLabels:         slo.AppliesTo.GitHubLabels,
+		ExcludedGithubLabels: slo.AppliesTo.ExcludedGitHubLabels,
 		AppliesToIssues:      slo.AppliesTo.Issues,
 		AppliesToPrs:         slo.AppliesTo.PRs,
 		ResponseTime:         ptypes.DurationProto(slo.ComplianceSettings.ResponseTime),

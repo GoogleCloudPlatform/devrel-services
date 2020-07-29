@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package leifapi
+package paginator
 
 import (
 	b64 "encoding/base64"
@@ -30,7 +30,7 @@ var (
 	ErrNilPageToken = errors.New("nil PageToken")
 )
 
-func decodePageToken(req string) (*drghs_v1.PageToken, error) {
+func DecodePageToken(req string) (*drghs_v1.PageToken, error) {
 	pageToken := &drghs_v1.PageToken{}
 	decstr, err := b64.StdEncoding.DecodeString(req)
 	err = pageToken.XXX_Unmarshal(decstr)
@@ -40,19 +40,18 @@ func decodePageToken(req string) (*drghs_v1.PageToken, error) {
 	return pageToken, nil
 }
 
-func makeFirstPageToken(t time.Time, idx int) (string, error) {
+func MakeFirstPageToken(t time.Time, idx int) (string, error) {
 	tsp, err := ptypes.TimestampProto(t)
 	if err != nil {
-		log.Errorf("Could not make timestamp %v", err)
 		return "", err
 	}
-	return makeNextPageToken(&drghs_v1.PageToken{
+	return MakeNextPageToken(&drghs_v1.PageToken{
 		FirstRequestTimeUsec: tsp,
 		Offset:               int32(idx),
 	}, idx)
 }
 
-func makeNextPageToken(prev *drghs_v1.PageToken, idx int) (string, error) {
+func MakeNextPageToken(prev *drghs_v1.PageToken, idx int) (string, error) {
 	nextPageTokenStr := ""
 	if prev == nil {
 		return "", ErrNilPageToken
@@ -68,7 +67,7 @@ func makeNextPageToken(prev *drghs_v1.PageToken, idx int) (string, error) {
 	return nextPageTokenStr, nil
 }
 
-func getPageSize(reqPageSize int) int {
+func GetPageSize(reqPageSize int) int {
 	pagesize := 100
 	if 0 < reqPageSize && reqPageSize < 100 {
 		pagesize = reqPageSize
