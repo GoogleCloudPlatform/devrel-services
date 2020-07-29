@@ -237,8 +237,9 @@ type ListSLOsRequest struct {
 	//
 	//     field == value
 	//
-	// Valid filter fields are: `slo.requires_assignee, slo.gitHubLabels`,
-	// `slo.excludedGitHubLabels`, `slo.applies_to_isssues`, `slo.applies_to_prs`.
+	// Valid filter fields are: `slo.requires_assignee, slo.github_labels`,
+	// `slo.excluded_github_labels`, `slo.applies_to_isssues`,
+	// `slo.applies_to_prs`.
 	Filter string `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 

@@ -165,8 +165,8 @@ message Responders {
 }
 
 message SLO {
-  repeated string gitHubLabels = 1;
-  repeated string excludedGitHubLabels = 2;
+  repeated string github_labels = 1;
+  repeated string excluded_github_labels = 2;
   bool applies_to_issues = 3;
   bool applies_to_prs = 4;
   google.protobuf.Duration response_time = 5;
