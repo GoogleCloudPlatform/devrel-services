@@ -30,6 +30,7 @@ var (
 	ErrNilPageToken = errors.New("nil PageToken")
 )
 
+// DecodePageToken translates a token from a drghs_v1 api call to Go
 func DecodePageToken(req string) (*drghs_v1.PageToken, error) {
 	pageToken := &drghs_v1.PageToken{}
 	decstr, err := b64.StdEncoding.DecodeString(req)
@@ -40,6 +41,7 @@ func DecodePageToken(req string) (*drghs_v1.PageToken, error) {
 	return pageToken, nil
 }
 
+// MakeFirstPageToken creates a new string page token for the given key/time
 func MakeFirstPageToken(t time.Time, idx int) (string, error) {
 	tsp, err := ptypes.TimestampProto(t)
 	if err != nil {
@@ -51,6 +53,7 @@ func MakeFirstPageToken(t time.Time, idx int) (string, error) {
 	}, idx)
 }
 
+// MakeNextPageToken creates a new string page token at the given index, based on prev
 func MakeNextPageToken(prev *drghs_v1.PageToken, idx int) (string, error) {
 	nextPageTokenStr := ""
 	if prev == nil {
@@ -67,6 +70,7 @@ func MakeNextPageToken(prev *drghs_v1.PageToken, idx int) (string, error) {
 	return nextPageTokenStr, nil
 }
 
+// GetPageSize returns the page size, setting a maximum page size of 100
 func GetPageSize(reqPageSize int) int {
 	pagesize := 100
 	if 0 < reqPageSize && reqPageSize < 100 {

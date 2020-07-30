@@ -23,6 +23,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type stringPage struct {
+	items []string
+	index int
+}
+
+// Strings is a paginator for strings
 type Strings struct {
 	Log     *logrus.Logger
 	mu      sync.Mutex
@@ -30,11 +36,7 @@ type Strings struct {
 	didInit bool
 }
 
-type stringPage struct {
-	items []string
-	index int
-}
-
+// Init must be the first call to the paginator
 func (p *Strings) Init() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -46,6 +48,7 @@ func (p *Strings) Init() error {
 	return nil
 }
 
+// PurgeOldRecords removes all pages that are more than 2 hours old
 func (p *Strings) PurgeOldRecords() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -57,6 +60,8 @@ func (p *Strings) PurgeOldRecords() {
 	}
 }
 
+// CreatePage makes a new page in the paginator
+// It uses the current time as key and add the items to that key
 func (p *Strings) CreatePage(withItems []string) (time.Time, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -75,6 +80,9 @@ func (p *Strings) CreatePage(withItems []string) (time.Time, error) {
 	return key, nil
 }
 
+// GetPage gets the next numItems number of items from the given page/key
+// Key should be the key returned by a call to CreatePage
+// GetPage returns the items and the current index in the total items in the page
 func (p *Strings) GetPage(key time.Time, numItems int) ([]string, int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

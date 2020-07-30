@@ -25,6 +25,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type sloPage struct {
+	items []*leif.SLORule
+	index int
+}
+
+// Slo is a paginator for SLO rules
 type Slo struct {
 	Log     *logrus.Logger
 	mu      sync.Mutex
@@ -32,11 +38,7 @@ type Slo struct {
 	didInit bool
 }
 
-type sloPage struct {
-	items []*leif.SLORule
-	index int
-}
-
+// Init must be the first call to the paginator
 func (p *Slo) Init() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -48,6 +50,7 @@ func (p *Slo) Init() error {
 	return nil
 }
 
+// PurgeOldRecords removes all pages that are more than 2 hours old
 func (p *Slo) PurgeOldRecords() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -59,6 +62,8 @@ func (p *Slo) PurgeOldRecords() {
 	}
 }
 
+// CreatePage makes a new page in the paginator
+// It uses the current time as key and add the items to that key
 func (p *Slo) CreatePage(withItems []*leif.SLORule) (time.Time, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -79,6 +84,9 @@ func (p *Slo) CreatePage(withItems []*leif.SLORule) (time.Time, error) {
 	return key, nil
 }
 
+// GetPage gets the next numItems number of items from the given page/key
+// Key should be the key returned by a call to CreatePage
+// GetPage returns the items and the current index in the total items in the page
 func (p *Slo) GetPage(key time.Time, numItems int) ([]*leif.SLORule, int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
