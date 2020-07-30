@@ -62,14 +62,20 @@ func (o *Owner) Name() string {
 func (o *Owner) UpdateLoop(ctx context.Context, minutes int, ghClient *githubservices.Client) error {
 	log.Printf("Beginning sync loop for owner %s", o.name)
 
+	ticker := time.NewTicker(time.Duration(minutes) * time.Minute)
 	for {
-		err := o.Update(ctx, ghClient)
-		if err != nil {
+		select {
+		case <-ctx.Done():
+			err := fmt.Errorf("Context cancelled")
 			log.Printf("Ended sync loop for owner %s: %v", o.name, err)
 			return err
+		case <-ticker.C:
+			err := o.Update(ctx, ghClient)
+			if err != nil {
+				log.Printf("Ended sync loop for owner %s: %v", o.name, err)
+				return err
+			}
 		}
-
-		time.Sleep(time.Duration(minutes) * time.Minute)
 	}
 }
 

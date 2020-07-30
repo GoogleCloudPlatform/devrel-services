@@ -44,7 +44,7 @@ var (
 	bucket       = flag.String("bucket", "", "Google Cloud Storage bucket to use for settings storage")
 	listen       = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
 	reposFile    = flag.String("repos", "", "File that contains the list of repositories")
-	syncInterval = flag.Int("sync", 10, "The SLO rules update every X minutes")
+	syncInterval = flag.Int("sync", 10, "Update interval in minutes")
 	verbose      = flag.Bool("verbose", false, "Verbose logs")
 )
 
@@ -81,7 +81,7 @@ func parseFlags() {
 	}
 }
 
-func initGHClient() {
+func initGHClient(ctx context.Context) {
 	if os.Getenv(gitHubEnvVar) == "" {
 		log.Fatalf("env var %v is empty", gitHubEnvVar)
 	}
@@ -89,7 +89,7 @@ func initGHClient() {
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: strings.Trim(os.Getenv(gitHubEnvVar), "\n")},
 	)
-	hc := oauth2.NewClient(context.Background(), src)
+	hc := oauth2.NewClient(ctx, src)
 
 	cachedTransport := httpcache.Transport{Transport: hc.Transport, Cache: httpcache.NewMemoryCache()}
 
@@ -99,19 +99,6 @@ func initGHClient() {
 func main() {
 	log = logrus.New()
 	parseFlags()
-	initGHClient()
-
-	if *bucket != "" {
-		repoList = repos.NewBucketRepo(*bucket, *reposFile)
-	} else {
-		repoList = leif.NewDiskRepo(*reposFile)
-	}
-
-	_, err := repoList.UpdateTrackedRepos(context.Background())
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -122,6 +109,20 @@ func main() {
 		fmt.Printf("termination signal received: %s", sig)
 		cancel()
 	}()
+
+	initGHClient(ctx)
+
+	if *bucket != "" {
+		repoList = repos.NewBucketRepo(*bucket, *reposFile)
+	} else {
+		repoList = leif.NewDiskRepo(*reposFile)
+	}
+
+	_, err := repoList.UpdateTrackedRepos(ctx)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 
 	// init corpus with repos from list
 	corpus := &leif.Corpus{}
