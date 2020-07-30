@@ -39,6 +39,14 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/instrumentation/grpctrace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+	"cloud.google.com/go/profiler"
 )
 
 var (
@@ -98,6 +106,33 @@ func main() {
 		logAndPrintError(err)
 		log.Fatal(err)
 	}
+
+	cfg := profiler.Config{
+		Service:        fmt.Sprintf("maintnerd-%v-%v", *owner, *repo),
+		ServiceVersion: "0.0.1",
+		ProjectID:      *projectID,
+
+		// For OpenCensus users:
+		// To see Profiler agent spans in APM backend,
+		// set EnableOCTelemetry to true
+		//EnableOCTelemetry: true,
+	}
+
+	if err := profiler.Start(cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(*projectID))
+	if err != nil {
+		log.Fatalf("texporter.NewExporter: %v", err)
+	}
+
+	config := sdktrace.Config{DefaultSampler: sdktrace.ProbabilitySampler(0.01)}
+	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(config), sdktrace.WithSyncer(exporter))
+	if err != nil {
+		log.Fatal(err)
+	}
+	global.SetTraceProvider(tp)
 
 	const qps = 1
 	limit := rate.Every(time.Second / qps)
@@ -159,7 +194,13 @@ func main() {
 
 	group.Go(func() error {
 		// Add gRPC service for v1beta1
-		grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(
+				grpc_middleware.ChainUnaryServer(
+					grpctrace.UnaryServerInterceptor(global.Tracer("maintnerd")),
+					unaryInterceptorLog),
+			),
+		)
 		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver)
 		drghs_v1.RegisterIssueServiceServer(grpcServer, s)
 		healthpb.RegisterHealthServer(grpcServer, s)
@@ -202,6 +243,9 @@ func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryS
 	start := time.Now()
 	log.Printf("Starting RPC: %v at %v", info.FullMethod, start)
 
+	// Used for Debugging incoming context and metadata issues
+	// md, _ := metadata.FromIncomingContext(ctx)
+	// log.Printf("RPC: %v. Metadata: %v", info.FullMethod, md)
 	m, err := handler(ctx, req)
 	if err != nil {
 		errorClient.Report(errorreporting.Entry{
