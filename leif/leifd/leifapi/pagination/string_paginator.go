@@ -84,6 +84,7 @@ func (p *Strings) GetPage(key time.Time, numItems int) ([]string, int, error) {
 	}
 
 	key = key.UTC()
+
 	if _, ok := p.set[key]; !ok {
 		return nil, 0, fmt.Errorf("Page key: %v not found", key)
 	}
