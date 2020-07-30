@@ -162,7 +162,7 @@ func TestIssueFilters(t *testing.T) {
 	}
 }
 
-func TestGetIsueID(t *testing.T) {
+func TestGetIssueID(t *testing.T) {
 	tests := []struct {
 		id   string
 		want int
