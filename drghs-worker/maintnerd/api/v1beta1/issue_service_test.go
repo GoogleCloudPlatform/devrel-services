@@ -162,7 +162,7 @@ func TestIssueFilters(t *testing.T) {
 	}
 }
 
-func TestGetIsueId(t *testing.T) {
+func TestGetIsueID(t *testing.T) {
 	tests := []struct {
 		id   string
 		want int
@@ -173,9 +173,9 @@ func TestGetIsueId(t *testing.T) {
 		{"foo/bar/issues/13", 13},
 	}
 	for _, tt := range tests {
-		got := getIssueId(tt.id)
+		got := getIssueID(tt.id)
 		if got != tt.want {
-			t.Errorf("getIssueId(%v) = %v; want = %v", tt.id, got, tt.want)
+			t.Errorf("getIssueID(%v) = %v; want = %v", tt.id, got, tt.want)
 		}
 	}
 }
