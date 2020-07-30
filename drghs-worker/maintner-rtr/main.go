@@ -35,6 +35,13 @@ import (
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"go.opentelemetry.io/otel/instrumentation/grpctrace"
+
+	"go.opentelemetry.io/otel/api/global"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 var (
@@ -104,7 +111,27 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(projectID))
+	if err != nil {
+		log.Fatalf("texporter.NewExporter: %v", err)
+	}
+
+	config := sdktrace.Config{DefaultSampler: sdktrace.ProbabilitySampler(0.01)}
+	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(config), sdktrace.WithSyncer(exporter))
+	if err != nil {
+		log.Fatal(err)
+	}
+	global.SetTraceProvider(tp)
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				grpctrace.UnaryServerInterceptor(global.Tracer("maintner-rtr")),
+				unaryInterceptorLog,
+			),
+		),
+	)
 	reverseProxy := &reverseProxyServer{
 		reps: rlist,
 	}
@@ -146,7 +173,12 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 		conn, err := grpc.Dial(
 			pth,
 			grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+			grpc.WithUnaryInterceptor(
+				grpc_middleware.ChainUnaryClient(
+					grpctrace.UnaryClientInterceptor(global.Tracer("maintner-rtr")),
+					buildRetryInterceptor(),
+				),
+			),
 		)
 		if err != nil {
 			return nil, err
@@ -173,7 +205,12 @@ func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIss
 		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpctrace.UnaryClientInterceptor(global.Tracer("maintner-rtr")),
+				buildRetryInterceptor(),
+			),
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -193,7 +230,12 @@ func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueR
 		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpctrace.UnaryClientInterceptor(global.Tracer("maintner-rtr")),
+				buildRetryInterceptor(),
+			),
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -270,6 +312,10 @@ func serviceName(t repos.TrackedRepository) (string, error) {
 func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
 	log.Tracef("Starting RPC: %v at %v", info.FullMethod, start)
+
+	// Used for Debugging incoming context and metadata issues
+	// md, _ := metadata.FromIncomingContext(ctx)
+	// log.Tracef("RPC: %v. Metadata: %v", info.FullMethod, md)
 
 	m, err := handler(ctx, req)
 	if err != nil {
