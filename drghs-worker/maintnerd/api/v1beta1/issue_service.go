@@ -241,7 +241,7 @@ func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 		}
 
 		issue := repo.GetIssue(issueID)
-		if issue == nil {
+		if issue == nil || issue.NotExist {
 			return nil
 		}
 
