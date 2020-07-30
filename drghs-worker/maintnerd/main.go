@@ -109,7 +109,7 @@ func main() {
 
 	cfg := profiler.Config{
 		Service:        fmt.Sprintf("maintnerd-%v-%v", *owner, *repo),
-		ServiceVersion: "0.0.1",
+		ServiceVersion: "0.0.3",
 		ProjectID:      *projectID,
 
 		// For OpenCensus users:

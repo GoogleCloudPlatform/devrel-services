@@ -161,3 +161,21 @@ func TestIssueFilters(t *testing.T) {
 		}
 	}
 }
+
+func TestGetIsueId(t *testing.T) {
+	tests := []struct {
+		id   string
+		want int
+	}{
+		{"foo", -1},
+		{"/api/v1/foo/bar/issues/1", -1},
+		{"/foo/bar/issues/1", -1},
+		{"foo/bar/issues/13", 13},
+	}
+	for _, tt := range tests {
+		got := getIssueId(tt.id)
+		if got != tt.want {
+			t.Errorf("getIssueId(%v) = %v; want = %v", tt.id, got, tt.want)
+		}
+	}
+}
