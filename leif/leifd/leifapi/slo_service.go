@@ -77,28 +77,32 @@ func NewSLOServiceServer(c *leif.Corpus) *SLOServiceServer {
 
 // ListOwners returns the list of Owners tracked by the Corpus
 func (s *SLOServiceServer) ListOwners(ctx context.Context, req *drghs_v1.ListOwnersRequest) (*drghs_v1.ListOwnersResponse, error) {
-
 	owners, nextToken, err := s.handleOwnerPagination(req.PageToken, req.PageSize, req.OrderBy)
+	if err != nil {
+		return nil, err
+	}
+
+	filterP, err := filter.BuildOwnerFilter(req.Filter)
 	if err != nil {
 		return nil, err
 	}
 
 	protoOwners := make([]*drghs_v1.Owner, 0)
 	for _, o := range owners {
-		protoO, err := makeOwnerPB(o)
+		protoOwner, err := makeOwnerPB(o)
 		if err != nil {
 			log.Errorf("Could not create repository pb %v", err)
 			return nil, err
 		}
 
-		include, err := filter.Owner(protoO, req.Filter)
+		include, err := filter.Owner(protoOwner, filterP)
 		if err != nil {
 			log.Errorf("Issue filtering owner: %v", err)
 			return nil, err
 		}
 
 		if include {
-			protoOwners = append(protoOwners, protoO)
+			protoOwners = append(protoOwners, protoOwner)
 		}
 	}
 
@@ -207,6 +211,11 @@ func (s *SLOServiceServer) ListRepositories(ctx context.Context, req *drghs_v1.L
 		return nil, err
 	}
 
+	filterP, err := filter.BuildRepositoryFilter(req.Filter)
+	if err != nil {
+		return nil, err
+	}
+
 	protoRepositories := make([]*drghs_v1.Repository, 0)
 	for _, repo := range repos {
 		protoRepo, err := makeRepositoryPB(repo)
@@ -215,7 +224,7 @@ func (s *SLOServiceServer) ListRepositories(ctx context.Context, req *drghs_v1.L
 			return nil, err
 		}
 
-		include, err := filter.Repository(protoRepo, req.Filter)
+		include, err := filter.Repository(protoRepo, filterP)
 		if err != nil {
 			log.Errorf("Issue filtering repository: %v", err)
 			return nil, err
@@ -343,6 +352,11 @@ func (s *SLOServiceServer) ListOwnerSLOs(ctx context.Context, req *drghs_v1.List
 		return nil, err
 	}
 
+	filterP, err := filter.BuildSloFilter(req.Filter)
+	if err != nil {
+		return nil, err
+	}
+
 	protoSlos := make([]*drghs_v1.SLO, 0)
 	for _, slo := range slos {
 		protoSlo, err := makeSloPB(slo)
@@ -351,7 +365,7 @@ func (s *SLOServiceServer) ListOwnerSLOs(ctx context.Context, req *drghs_v1.List
 			return nil, err
 		}
 
-		include, err := filter.Slo(protoSlo, req.Filter)
+		include, err := filter.Slo(protoSlo, filterP)
 		if err != nil {
 			log.Errorf("Issue filtering repository: %v", err)
 			return nil, err
@@ -381,6 +395,11 @@ func (s *SLOServiceServer) ListSLOs(ctx context.Context, req *drghs_v1.ListSLOsR
 		return nil, err
 	}
 
+	filterP, err := filter.BuildSloFilter(req.Filter)
+	if err != nil {
+		return nil, err
+	}
+
 	protoSlos := make([]*drghs_v1.SLO, 0)
 	for _, slo := range slos {
 		protoSlo, err := makeSloPB(slo)
@@ -389,7 +408,7 @@ func (s *SLOServiceServer) ListSLOs(ctx context.Context, req *drghs_v1.ListSLOsR
 			return nil, err
 		}
 
-		include, err := filter.Slo(protoSlo, req.Filter)
+		include, err := filter.Slo(protoSlo, filterP)
 		if err != nil {
 			log.Errorf("Issue filtering repository: %v", err)
 			return nil, err

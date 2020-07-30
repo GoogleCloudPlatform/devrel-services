@@ -24,13 +24,10 @@ import (
 
 const defaultFilter = "true"
 
-// Owner checks if the Owner passes the given CEL expression.
-func Owner(o *drghs_v1.Owner, filter string) (bool, error) {
+// BuildOwnerFilter builds a CEL program to filter an Owner with the given CEL expression
+func BuildOwnerFilter(filter string) (cel.Program, error) {
 	if filter == "" {
 		filter = defaultFilter
-	}
-	if o == nil {
-		return false, nil
 	}
 
 	env, err := cel.NewEnv(
@@ -38,37 +35,44 @@ func Owner(o *drghs_v1.Owner, filter string) (bool, error) {
 		cel.Declarations(
 			decls.NewIdent("owner", decls.NewObjectType("drghs.v1.Owner"), nil)))
 
+	if err != nil {
+		return nil, err
+	}
+
 	parsed, issues := env.Parse(filter)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
+
 	checked, issues := env.Check(parsed)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
+
+	return env.Program(checked)
+}
+
+// Owner checks if the given Owner passes the given CEL program
+func Owner(o *drghs_v1.Owner, p cel.Program) (bool, error) {
+	if o == nil || p == nil {
+		return false, nil
 	}
 
 	// The `out` var contains the output of a successful evaluation.
 	// The `details' var would contain intermediate evalaution state if enabled as
 	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
 	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
+	out, _, err := p.Eval(map[string]interface{}{
 		"owner": o,
 	})
 
 	return out == types.True, err
 }
 
-// Repository checks if the Repository passes the given CEL expression.
-func Repository(r *drghs_v1.Repository, filter string) (bool, error) {
+// BuildRepositoryFilter builds a CEL program to filter a Repo with the given CEL expression
+func BuildRepositoryFilter(filter string) (cel.Program, error) {
 	if filter == "" {
 		filter = defaultFilter
-	}
-	if r == nil {
-		return false, nil
 	}
 
 	env, err := cel.NewEnv(
@@ -76,37 +80,44 @@ func Repository(r *drghs_v1.Repository, filter string) (bool, error) {
 		cel.Declarations(
 			decls.NewIdent("repository", decls.NewObjectType("drghs.v1.Repository"), nil)))
 
+	if err != nil {
+		return nil, err
+	}
+
 	parsed, issues := env.Parse(filter)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
+
 	checked, issues := env.Check(parsed)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
+
+	return env.Program(checked)
+}
+
+// Repository checks if the Repository passes the given CEL expression
+func Repository(r *drghs_v1.Repository, p cel.Program) (bool, error) {
+	if r == nil || p == nil {
+		return false, nil
 	}
 
 	// The `out` var contains the output of a successful evaluation.
 	// The `details' var would contain intermediate evalaution state if enabled as
 	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
 	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
+	out, _, err := p.Eval(map[string]interface{}{
 		"repository": r,
 	})
 
 	return out == types.True, err
 }
 
-// Slo checks if the Slo passes the given CEL expression.
-func Slo(s *drghs_v1.SLO, filter string) (bool, error) {
+// BuildSloFilter builds a CEL program to filter an Slo with the given CEL expression
+func BuildSloFilter(filter string) (cel.Program, error) {
 	if filter == "" {
 		filter = defaultFilter
-	}
-	if s == nil {
-		return false, nil
 	}
 
 	env, err := cel.NewEnv(
@@ -114,24 +125,33 @@ func Slo(s *drghs_v1.SLO, filter string) (bool, error) {
 		cel.Declarations(
 			decls.NewIdent("slo", decls.NewObjectType("drghs.v1.SLO"), nil)))
 
+	if err != nil {
+		return nil, err
+	}
+
 	parsed, issues := env.Parse(filter)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
+
 	checked, issues := env.Check(parsed)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
+	return env.Program(checked)
+}
+
+// Slo checks if the Slo passes the given CEL expression.
+func Slo(s *drghs_v1.SLO, p cel.Program) (bool, error) {
+	if s == nil || p == nil {
+		return false, nil
 	}
 
 	// The `out` var contains the output of a successful evaluation.
 	// The `details' var would contain intermediate evalaution state if enabled as
 	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
 	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
+	out, _, err := p.Eval(map[string]interface{}{
 		"slo": s,
 	})
 
