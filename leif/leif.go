@@ -207,7 +207,9 @@ func (c *Corpus) ForEachOwnerF(fn func(o Owner) error, filter func(o Owner) bool
 // and performs the given function on them in the order given by the given sort func.
 // Returns the first non-nil error it receives.
 func (c *Corpus) ForEachOwnerFSort(fn func(o Owner) error, filter func(o Owner) bool, sortfn func(owners []*Owner) func(i, j int) bool) error {
-	owners := c.watchedOwners
+	owners := make([]*Owner, len(c.watchedOwners))
+	copy(owners, c.watchedOwners)
+
 	sort.Slice(owners, sortfn(owners))
 
 	for _, owner := range owners {
