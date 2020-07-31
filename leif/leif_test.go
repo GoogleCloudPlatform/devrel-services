@@ -27,28 +27,26 @@ import (
 func TestTrackOwner(t *testing.T) {
 	tests := []struct {
 		name       string
-		corpus     Corpus
+		currOwners []*Owner
 		ownerName  string
 		mockError  error
-		wantCorpus Corpus
+		wantOwners []*Owner
 		wantOwner  *Owner
 		wantErr    bool
 	}{
 		{
-			name:      "Correctly tracks an owner",
-			corpus:    Corpus{},
-			ownerName: "someOwner",
-			mockError: nil,
-			wantCorpus: Corpus{
-				watchedOwners: []*Owner{&Owner{name: "someOwner"}},
-			},
-			wantOwner: &Owner{name: "someOwner"},
-			wantErr:   false,
+			name:       "Correctly tracks an owner",
+			currOwners: nil,
+			ownerName:  "someOwner",
+			mockError:  nil,
+			wantOwners: []*Owner{&Owner{name: "someOwner"}},
+			wantOwner:  &Owner{name: "someOwner"},
+			wantErr:    false,
 		},
 		{
-			name:      "Does not track an owner that does not exist",
-			corpus:    Corpus{},
-			ownerName: "someOwner",
+			name:       "Does not track an owner that does not exist",
+			currOwners: nil,
+			ownerName:  "someOwner",
 			mockError: &github.ErrorResponse{
 				Response: &http.Response{
 					StatusCode: 404,
@@ -57,35 +55,27 @@ func TestTrackOwner(t *testing.T) {
 				},
 				Message: "GH error",
 			},
-			wantCorpus: Corpus{},
+			wantOwners: nil,
 			wantOwner:  nil,
 			wantErr:    true,
 		},
 		{
-			name: "Does not re-track an already tracked owner",
-			corpus: Corpus{
-				watchedOwners: []*Owner{&Owner{name: "someOwner"}},
-			},
-			ownerName: "someOwner",
-			mockError: nil,
-			wantCorpus: Corpus{
-				watchedOwners: []*Owner{&Owner{name: "someOwner"}},
-			},
-			wantOwner: &Owner{name: "someOwner"},
-			wantErr:   false,
+			name:       "Does not re-track an already tracked owner",
+			currOwners: []*Owner{&Owner{name: "someOwner"}},
+			ownerName:  "someOwner",
+			mockError:  nil,
+			wantOwners: []*Owner{&Owner{name: "someOwner"}},
+			wantOwner:  &Owner{name: "someOwner"},
+			wantErr:    false,
 		},
 		{
-			name: "Tracks an owner when tracking other owners",
-			corpus: Corpus{
-				watchedOwners: []*Owner{&Owner{name: "someOwner"}},
-			},
-			ownerName: "anotherOwner",
-			mockError: nil,
-			wantCorpus: Corpus{
-				watchedOwners: []*Owner{
-					&Owner{name: "anotherOwner"},
-					&Owner{name: "someOwner"},
-				},
+			name:       "Tracks an owner when tracking other owners",
+			currOwners: []*Owner{&Owner{name: "someOwner"}},
+			ownerName:  "anotherOwner",
+			mockError:  nil,
+			wantOwners: []*Owner{
+				&Owner{name: "anotherOwner"},
+				&Owner{name: "someOwner"},
 			},
 			wantOwner: &Owner{name: "anotherOwner"},
 			wantErr:   false,
@@ -98,11 +88,11 @@ func TestTrackOwner(t *testing.T) {
 		mock.Error = test.mockError
 		client := githubservices.NewClient(nil, nil, mock)
 
-		gotCorpus := test.corpus
+		gotCorpus := Corpus{watchedOwners: test.currOwners}
 		gotOwner, gotErr := gotCorpus.trackOwner(context.Background(), test.ownerName, &client)
 
-		if !reflect.DeepEqual(gotCorpus, test.wantCorpus) {
-			t.Errorf("%v did not pass.\n\tWant corpus:\t%v\n\tGot corpus:\t%v", test.name, test.wantCorpus, gotCorpus)
+		if !reflect.DeepEqual(gotCorpus.watchedOwners, test.wantOwners) {
+			t.Errorf("%v did not pass.\n\tWant corpus:\t%v\n\tGot corpus:\t%v", test.name, test.wantOwners, gotCorpus.watchedOwners)
 		}
 
 		if !reflect.DeepEqual(gotOwner, test.wantOwner) {
@@ -130,70 +120,67 @@ func TestTrackOwner(t *testing.T) {
 func TestTrackRepo(t *testing.T) {
 	tests := []struct {
 		name          string
-		corpus        Corpus
+		currOwners    []*Owner
 		ownerName     string
 		repoName      string
 		mockUserError error
 		mockRepoError error
-		wantCorpus    Corpus
+		wantOwners    []*Owner
 		wantErr       bool
 	}{
 		{
 			name:          "Correctly tracks a repo",
-			corpus:        Corpus{},
+			currOwners:    nil,
 			ownerName:     "someOwner",
 			repoName:      "someRepo",
 			mockUserError: nil,
 			mockRepoError: nil,
-			wantCorpus: Corpus{
-				watchedOwners: []*Owner{
-					&Owner{
-						name:  "someOwner",
-						Repos: []*Repository{&Repository{name: "someRepo"}},
-					}},
+			wantOwners: []*Owner{
+				&Owner{
+					name:  "someOwner",
+					Repos: []*Repository{&Repository{name: "someRepo"}},
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name:          "Correctly tracks a repo on existing owner",
-			corpus:        Corpus{watchedOwners: []*Owner{&Owner{name: "someOwner"}}},
+			currOwners:    []*Owner{&Owner{name: "someOwner"}},
 			ownerName:     "someOwner",
 			repoName:      "someRepo",
 			mockUserError: nil,
 			mockRepoError: nil,
-			wantCorpus: Corpus{
-				watchedOwners: []*Owner{
-					&Owner{
-						name:  "someOwner",
-						Repos: []*Repository{&Repository{name: "someRepo"}},
-					}},
+			wantOwners: []*Owner{
+				&Owner{
+					name:  "someOwner",
+					Repos: []*Repository{&Repository{name: "someRepo"}},
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "Correctly tracks a repo on existing owner with repos",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			currOwners: []*Owner{&Owner{
 				name:  "someOwner",
 				Repos: []*Repository{&Repository{name: "aRepo"}},
-			}}},
+			}},
 			ownerName:     "someOwner",
 			repoName:      "someRepo",
 			mockUserError: nil,
 			mockRepoError: nil,
-			wantCorpus: Corpus{
-				watchedOwners: []*Owner{
-					&Owner{
-						name:  "someOwner",
-						Repos: []*Repository{&Repository{name: "aRepo"}, &Repository{name: "someRepo"}},
-					}},
+			wantOwners: []*Owner{
+				&Owner{
+					name:  "someOwner",
+					Repos: []*Repository{&Repository{name: "aRepo"}, &Repository{name: "someRepo"}},
+				},
 			},
 			wantErr: false,
 		},
 		{
-			name:      "Errors if owner does not exist",
-			corpus:    Corpus{},
-			ownerName: "someOwner",
-			repoName:  "someRepo",
+			name:       "Errors if owner does not exist",
+			currOwners: nil,
+			ownerName:  "someOwner",
+			repoName:   "someRepo",
 			mockUserError: &github.ErrorResponse{
 				Response: &http.Response{
 					StatusCode: 404,
@@ -203,12 +190,12 @@ func TestTrackRepo(t *testing.T) {
 				Message: "GH error",
 			},
 			mockRepoError: nil,
-			wantCorpus:    Corpus{},
+			wantOwners:    nil,
 			wantErr:       true,
 		},
 		{
 			name:          "Errors if repo does not exist",
-			corpus:        Corpus{watchedOwners: []*Owner{&Owner{name: "someOwner"}}},
+			currOwners:    []*Owner{&Owner{name: "someOwner"}},
 			ownerName:     "someOwner",
 			repoName:      "someRepo",
 			mockUserError: nil,
@@ -220,7 +207,7 @@ func TestTrackRepo(t *testing.T) {
 				},
 				Message: "GH error",
 			},
-			wantCorpus: Corpus{watchedOwners: []*Owner{&Owner{name: "someOwner"}}},
+			wantOwners: []*Owner{&Owner{name: "someOwner"}},
 			wantErr:    true,
 		},
 	}
@@ -235,11 +222,11 @@ func TestTrackRepo(t *testing.T) {
 
 		client := githubservices.NewClient(nil, repoMock, userMock)
 
-		gotCorpus := test.corpus
+		gotCorpus := Corpus{watchedOwners: test.currOwners}
 		gotErr := gotCorpus.TrackRepo(context.Background(), test.ownerName, test.repoName, &client)
 
-		if !reflect.DeepEqual(gotCorpus, test.wantCorpus) {
-			t.Errorf("%v did not pass.\n\tWant corpus:\t%v\n\tGot corpus:\t%v", test.name, test.wantCorpus, gotCorpus)
+		if !reflect.DeepEqual(gotCorpus.watchedOwners, test.wantOwners) {
+			t.Errorf("%v did not pass.\n\tWant owners:\t%v\n\tGot owners:\t%v", test.name, test.wantOwners, gotCorpus.watchedOwners)
 		}
 
 		if (gotErr != nil && !test.wantErr) || (gotErr == nil && test.wantErr) {
