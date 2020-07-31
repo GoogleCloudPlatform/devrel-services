@@ -258,14 +258,14 @@ func TestForEachRepo(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		corpus  Corpus
+		corpus  *Corpus
 		fn      func(r Repository) error
 		wantSet map[string]int
 		wantErr bool
 	}{
 		{
 			name: "Iterates through a single repo",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -277,14 +277,14 @@ func TestForEachRepo(t *testing.T) {
 		},
 		{
 			name:    "Iterates through empty corpus",
-			corpus:  Corpus{},
+			corpus:  &Corpus{},
 			fn:      func(r Repository) error { workingSet[r.RepoName()]++; return nil },
 			wantSet: map[string]int{},
 			wantErr: false,
 		},
 		{
 			name: "Iterates through several repos",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -298,7 +298,7 @@ func TestForEachRepo(t *testing.T) {
 		},
 		{
 			name: "Iterates through repos with different owners",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -321,7 +321,7 @@ func TestForEachRepo(t *testing.T) {
 		},
 		{
 			name: "Returns first error from func",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -351,12 +351,11 @@ func TestForEachRepo(t *testing.T) {
 }
 
 func TestForEachRepoF(t *testing.T) {
-
 	var workingSet map[string]int
 
 	tests := []struct {
 		name     string
-		corpus   Corpus
+		corpus   *Corpus
 		fn       func(r Repository) error
 		filterfn func(r Repository) bool
 		wantSet  map[string]int
@@ -364,7 +363,7 @@ func TestForEachRepoF(t *testing.T) {
 	}{
 		{
 			name:     "Iterates through empty corpus",
-			corpus:   Corpus{},
+			corpus:   &Corpus{},
 			fn:       func(r Repository) error { workingSet[r.RepoName()]++; return nil },
 			filterfn: func(r Repository) bool { return true },
 			wantSet:  map[string]int{},
@@ -372,7 +371,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates through a single repo",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -385,7 +384,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates and filters out a single repo",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -398,7 +397,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates through several repos",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -413,7 +412,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates through and filters out several repos",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -428,7 +427,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates through several repos and filters one out",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -443,7 +442,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates through several repos and filters several out",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -458,7 +457,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates through repos with different owners",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -482,7 +481,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Iterates and filters through repos with different owners",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -506,7 +505,7 @@ func TestForEachRepoF(t *testing.T) {
 		},
 		{
 			name: "Returns first error from func",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -542,7 +541,7 @@ func TestForEachRepoFSort(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		corpus    Corpus
+		corpus    *Corpus
 		fn        func(r Repository) error
 		filterfn  func(r Repository) bool
 		sortfn    func([]*Repository) func(i, j int) bool
@@ -551,7 +550,7 @@ func TestForEachRepoFSort(t *testing.T) {
 	}{
 		{
 			name:     "Iterates through empty corpus",
-			corpus:   Corpus{},
+			corpus:   &Corpus{},
 			fn:       func(r Repository) error { workingSlice = append(workingSlice, r.RepoName()); return nil },
 			filterfn: func(r Repository) bool { return true },
 			sortfn: func(repos []*Repository) func(i, j int) bool {
@@ -562,7 +561,7 @@ func TestForEachRepoFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through a single repo",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -578,7 +577,7 @@ func TestForEachRepoFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through several repos in order",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -596,7 +595,7 @@ func TestForEachRepoFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through several repos in reverse order",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -614,7 +613,7 @@ func TestForEachRepoFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through several repos in order with filtering",
-			corpus: Corpus{watchedOwners: []*Owner{&Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{&Owner{
 				name: "someOwner",
 				Repos: []*Repository{
 					&Repository{name: "aRepo", ownerName: "someOwner"},
@@ -632,7 +631,7 @@ func TestForEachRepoFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates in order through repos with different owners",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -659,7 +658,7 @@ func TestForEachRepoFSort(t *testing.T) {
 		},
 		{
 			name: "Returns first error from func",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{
 					name: "someOwner",
 					Repos: []*Repository{
@@ -696,33 +695,32 @@ func TestForEachRepoFSort(t *testing.T) {
 }
 
 func TestForEachOwner(t *testing.T) {
-
 	var workingSet map[string]int
 
 	tests := []struct {
 		name    string
-		corpus  Corpus
+		corpus  *Corpus
 		fn      func(o Owner) error
 		wantSet map[string]int
 		wantErr bool
 	}{
 		{
 			name:    "Iterates through a single owner",
-			corpus:  Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			corpus:  &Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
 			fn:      func(o Owner) error { workingSet[o.Name()]++; return nil },
 			wantSet: map[string]int{"anOwner": 1},
 			wantErr: false,
 		},
 		{
 			name:    "Iterates through empty corpus",
-			corpus:  Corpus{},
+			corpus:  &Corpus{},
 			fn:      func(o Owner) error { workingSet[o.Name()]++; return nil },
 			wantSet: map[string]int{},
 			wantErr: false,
 		},
 		{
 			name: "Iterates through several owners",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "anOwner"},
 				&Owner{
 					name: "someOwner",
@@ -746,7 +744,7 @@ func TestForEachOwner(t *testing.T) {
 		},
 		{
 			name: "Returns first error from func",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "anOwner"},
 				&Owner{name: "someOwner"},
 			}},
@@ -771,12 +769,11 @@ func TestForEachOwner(t *testing.T) {
 }
 
 func TestForEachOwnerF(t *testing.T) {
-
 	var workingSet map[string]int
 
 	tests := []struct {
 		name     string
-		corpus   Corpus
+		corpus   *Corpus
 		fn       func(o Owner) error
 		filterfn func(o Owner) bool
 		wantSet  map[string]int
@@ -784,7 +781,7 @@ func TestForEachOwnerF(t *testing.T) {
 	}{
 		{
 			name:     "Iterates through empty corpus",
-			corpus:   Corpus{},
+			corpus:   &Corpus{},
 			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
 			filterfn: func(o Owner) bool { return true },
 			wantSet:  map[string]int{},
@@ -792,7 +789,7 @@ func TestForEachOwnerF(t *testing.T) {
 		},
 		{
 			name:     "Iterates through a single owner",
-			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			corpus:   &Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
 			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
 			filterfn: func(o Owner) bool { return true },
 			wantSet:  map[string]int{"anOwner": 1},
@@ -800,7 +797,7 @@ func TestForEachOwnerF(t *testing.T) {
 		},
 		{
 			name:     "Iterates and filters out through a single owner",
-			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			corpus:   &Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
 			fn:       func(o Owner) error { workingSet[o.Name()]++; return nil },
 			filterfn: func(o Owner) bool { return false },
 			wantSet:  map[string]int{},
@@ -808,7 +805,7 @@ func TestForEachOwnerF(t *testing.T) {
 		},
 		{
 			name: "Iterates through several owners and filters several out",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "anOwner"},
 				&Owner{name: "someOwner"},
 				&Owner{name: "anotherOwner"},
@@ -820,7 +817,7 @@ func TestForEachOwnerF(t *testing.T) {
 		},
 		{
 			name: "Iterates through several owners and filters all out",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "anOwner"},
 				&Owner{name: "someOwner"},
 				&Owner{name: "anotherOwner"},
@@ -832,7 +829,7 @@ func TestForEachOwnerF(t *testing.T) {
 		},
 		{
 			name: "Returns first error from func",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "anOwner"},
 				&Owner{name: "someOwner"},
 			}},
@@ -858,12 +855,11 @@ func TestForEachOwnerF(t *testing.T) {
 }
 
 func TestForEachOwnerFSort(t *testing.T) {
-
 	var workingSlice []string
 
 	tests := []struct {
 		name      string
-		corpus    Corpus
+		corpus    *Corpus
 		fn        func(o Owner) error
 		filterfn  func(o Owner) bool
 		sortfn    func([]*Owner) func(i, j int) bool
@@ -872,7 +868,7 @@ func TestForEachOwnerFSort(t *testing.T) {
 	}{
 		{
 			name:     "Iterates through a single owner",
-			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			corpus:   &Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
 			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
 			filterfn: func(o Owner) bool { return true },
 			sortfn: func(owners []*Owner) func(i, j int) bool {
@@ -883,7 +879,7 @@ func TestForEachOwnerFSort(t *testing.T) {
 		},
 		{
 			name:     "Iterates and filters out through a single owner",
-			corpus:   Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
+			corpus:   &Corpus{watchedOwners: []*Owner{&Owner{name: "anOwner"}}},
 			fn:       func(o Owner) error { workingSlice = append(workingSlice, o.Name()); return nil },
 			filterfn: func(o Owner) bool { return false },
 			sortfn: func(owners []*Owner) func(i, j int) bool {
@@ -894,7 +890,7 @@ func TestForEachOwnerFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through several owners in order",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "o2"},
 				&Owner{name: "o3"},
 				&Owner{name: "o1"},
@@ -909,7 +905,7 @@ func TestForEachOwnerFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through several owners in reverse order",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "o1"},
 				&Owner{name: "o2"},
 				&Owner{name: "o3"},
@@ -924,7 +920,7 @@ func TestForEachOwnerFSort(t *testing.T) {
 		},
 		{
 			name: "Iterates through several owners in order with filtering",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "o3"},
 				&Owner{name: "o2"},
 				&Owner{name: "o1"},
@@ -939,7 +935,7 @@ func TestForEachOwnerFSort(t *testing.T) {
 		},
 		{
 			name: "Returns first error from func",
-			corpus: Corpus{watchedOwners: []*Owner{
+			corpus: &Corpus{watchedOwners: []*Owner{
 				&Owner{name: "someOwner"},
 				&Owner{name: "anOwner"},
 			}},
