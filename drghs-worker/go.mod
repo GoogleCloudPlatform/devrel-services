@@ -17,7 +17,7 @@ module github.com/GoogleCloudPlatform/devrel-services/drghs-worker
 require (
 	cloud.google.com/go v0.61.0
 	cloud.google.com/go/storage v1.10.0
-	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-20200727222033-925b3ded9815
+	github.com/GoogleCloudPlatform/devrel-services/drghs v0.0.0-20200730153546-93a9c4fcaf2c
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
 	github.com/GoogleCloudPlatform/devrel-services/rtr v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/devrel-services/sprvsr v0.0.0
@@ -26,6 +26,7 @@ require (
 	github.com/aclements/go-moremath v0.0.0-20190830160640-d16893ddf098 // indirect
 	github.com/ajstarks/deck v0.0.0-20200217041847-5bf3c34cfe40 // indirect
 	github.com/ajstarks/svgo v0.0.0-20200204031535-0cbcf57ea1d8 // indirect
+	github.com/antlr/antlr4 v0.0.0-20200712162734-eb1adaa8a7a6 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cznic/cc v0.0.0-20181122101902-d673e9b70d4d // indirect
@@ -58,12 +59,13 @@ require (
 	github.com/gonum/internal v0.0.0-20181124074243-f884aa714029 // indirect
 	github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9 // indirect
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
-	github.com/google/cel-go v0.3.0
+	github.com/google/cel-go v0.5.1
 	github.com/google/go-cmp v0.5.1
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/schema v1.1.0 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/graph-gophers/graphql-go v0.0.0-20200207002730-8334863f2c8b // indirect
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.14.1 // indirect
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334 // indirect
@@ -86,16 +88,17 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	go.opentelemetry.io/otel v0.9.0
-	golang.org/x/build v0.0.0-20190201181641-63986c177d1f
+	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
+	golang.org/x/build v0.0.0-20200730154719-cb64255c8b23
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1 // indirect
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	golang.org/x/tools v0.0.0-20200728190822-edd3c8e9e279 // indirect
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+	golang.org/x/tools v0.0.0-20200729194436-6467de6f59a7 // indirect
 	google.golang.org/api v0.29.0
-	google.golang.org/genproto v0.0.0-20200728010541-3dc8dca74b7b
+	google.golang.org/genproto v0.0.0-20200730144737-007c33dbd381
 	google.golang.org/grpc v1.30.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
@@ -115,6 +118,6 @@ replace github.com/GoogleCloudPlatform/devrel-services/sprvsr => ../sprvsr
 
 replace github.com/GoogleCloudPlatform/devrel-services/repos => ../repos
 
-replace golang.org/x/build => github.com/orthros/build v0.0.0-20200302225533-7e3bb2ce768e
+replace golang.org/x/build => github.com/orthros/build v0.0.0-20200730160535-a45e4470b022
 
 go 1.13

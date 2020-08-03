@@ -17,6 +17,8 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +38,8 @@ import (
 var _ drghs_v1.IssueServiceServer = &IssueServiceV1{}
 
 const defaultFilter = "true"
+
+var issueNumReg = regexp.MustCompile(`^[\w-]+\/[\w-]+\/issues/(\d+)$`)
 
 // IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
 type IssueServiceV1 struct {
@@ -226,7 +230,7 @@ func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 // GetIssue returns the issue specified in the GetIssueRequest
 func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
 	resp := &drghs_v1.GetIssueResponse{}
-
+	issueID := int32(getIssueID(r.Name))
 	var issueResp *drghs_v1.Issue = nil
 	err := s.corpus.GitHub().ForeachRepo(func(repo *maintner.GitHubRepo) error {
 		repoID := getRepoPath(repo)
@@ -236,16 +240,17 @@ func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 			return nil
 		}
 
-		return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-			if r.Name == getIssueName(repo, issue) && !issue.NotExist {
-				re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
-				if err != nil {
-					return err
-				}
-				issueResp = re
-			}
+		issue := repo.GetIssue(issueID)
+		if issue == nil || issue.NotExist {
 			return nil
-		})
+		}
+
+		re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
+		if err != nil {
+			return err
+		}
+		issueResp = re
+		return nil
 	})
 
 	if err != nil {
@@ -307,4 +312,17 @@ func getRepoPath(ta *maintner.GitHubRepo) string {
 
 func getIssueName(ta *maintner.GitHubRepo, iss *maintner.GitHubIssue) string {
 	return fmt.Sprintf("%v/%v/issues/%v", ta.ID().Owner, ta.ID().Repo, iss.Number)
+}
+
+func getIssueID(issueName string) int {
+	sm := issueNumReg.FindAllStringSubmatch(issueName, -1)
+	if sm == nil {
+		return -1
+	}
+	id := sm[0][1]
+	i, err := strconv.Atoi(id)
+	if err != nil {
+		return -1
+	}
+	return i
 }
