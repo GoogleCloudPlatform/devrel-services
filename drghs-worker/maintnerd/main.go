@@ -108,7 +108,7 @@ func main() {
 	}
 
 	cfg := profiler.Config{
-		Service:        fmt.Sprintf("maintnerd-%v-%v", *owner, *repo),
+		Service:        fmt.Sprintf("maintnerd-%v-%v", strings.ToLower(*owner), strings.ToLower(*repo)),
 		ServiceVersion: "0.0.3",
 		ProjectID:      *projectID,
 
