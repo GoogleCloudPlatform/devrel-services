@@ -30,6 +30,54 @@ func TestValidatesFiles(t *testing.T) {
 	}{
 		{
 			file: &git.File{
+				Name: ".github/workflows/ci.yaml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: ".gitignore",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "codecov.yaml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "license-checks.xml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "renovate.json",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "synth.py",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "bar/.kokoro/config.yaml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "samples/.gitignore",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
 				Name: "foo.c",
 			},
 			expected: true,
