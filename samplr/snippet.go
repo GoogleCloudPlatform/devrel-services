@@ -72,6 +72,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.ru$"),          // ruby
 	regexp.MustCompile("^.+\\.swift$"),       // swift
 	regexp.MustCompile("^.+\\.sh$"),          // bash
+	regexp.MustCompile("^.+\\.ts$"),          // TypeScript
 	regexp.MustCompile("^.+\\.xml$"),         // pmx.xml etc.
 	regexp.MustCompile("^.+\\.yaml$"),        // app.yaml, etc.
 	regexp.MustCompile("^.+\\.yml$"),         // app.yml, etc.
