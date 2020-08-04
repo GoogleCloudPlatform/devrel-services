@@ -20,7 +20,6 @@ import (
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"google.golang.org/genproto/protobuf/field_mask"
-	proto "google.golang.org/protobuf/runtime/protoimpl"
 
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
@@ -229,7 +228,7 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error from makeIssuePB. Wanted nil, Got %v", err)
 		}
-		if diff := cmp.Diff(test.want, got, cmpopts.IgnoreUnexported(tspb.Timestamp{}, proto.MessageState{})); diff != "" {
+		if diff := cmp.Diff(test.want, got, cmpopts.IgnoreUnexported(tspb.Timestamp{}, drghs_v1.Issue{}, drghs_v1.GitHubUser{})); diff != "" {
 			t.Errorf("makeIssuePB() mismatch (-want +got):\n%s", diff)
 		}
 	}
