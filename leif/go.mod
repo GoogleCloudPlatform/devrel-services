@@ -18,3 +18,5 @@ require (
 	google.golang.org/grpc v1.27.1
 	google.golang.org/protobuf v1.25.0
 )
+
+replace github.com/GoogleCloudPlatform/devrel-services/drghs => ../drghs
