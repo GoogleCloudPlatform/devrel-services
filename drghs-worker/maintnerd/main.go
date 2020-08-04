@@ -41,7 +41,7 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/instrumentation/grpctrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
