@@ -16,7 +16,6 @@ syntax = "proto3";
 
 package drghs.v1;
 
-import "google/api/annotations.proto";
 import "resources.proto";
 
 // Request message for [SampleService.ListRepositories][].
@@ -56,7 +55,7 @@ message ListRepositoriesRequest {
   string order_by = 5;
 }
 
-//Response message for [SampleService.ListRepositories][].
+// Response message for [SampleService.ListRepositories][].
 message ListRepositoriesResponse {
   // The list of [Repositories][Repository].
   repeated drghs.v1.Repository repositories = 1;
@@ -65,7 +64,7 @@ message ListRepositoriesResponse {
   // more results in the list. Pass this value in
   // [ListRepositoriesRequest.page_token][] to retrieve the next page of
   // results.
-  string next_page_token =2;
+  string next_page_token = 2;
 
   // The total number of repositories that matched the query.
   int32 total = 3;

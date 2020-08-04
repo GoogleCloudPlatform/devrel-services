@@ -18,20 +18,23 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"github.com/GoogleCloudPlatform/devrel-services/leif"
 	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
+	"github.com/GoogleCloudPlatform/devrel-services/leif/leifd/leifapi"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
 
 	"github.com/gregjones/httpcache"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 const gitHubEnvVar = "GITHUB_TOKEN"
@@ -138,8 +141,26 @@ func main() {
 		return corpus.SyncLoop(ctx, *syncInterval, &ghClient)
 	})
 
-	err = group.Wait()
+	group.Go(func() error {
+		lis, err := net.Listen("tcp", *listen)
+		if err != nil {
+			log.Fatalf("failed to listen %v", err)
+		}
 
+		grpcServer := grpc.NewServer()
+		drghs_v1.RegisterSLOServiceServer(grpcServer, leifapi.NewSLOServiceServer(corpus))
+
+		go func() {
+			select {
+			case <-ctx.Done():
+				grpcServer.GracefulStop()
+			}
+		}()
+
+		log.Printf("gRPC server listening on: %s", *listen)
+		return grpcServer.Serve(lis)
+	})
+
+	err = group.Wait()
 	log.Fatal(err)
-	return
 }
