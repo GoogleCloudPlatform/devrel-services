@@ -25,44 +25,44 @@ import (
 func TestFilterIssue(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Issue   drghs_v1.Issue
-		Request drghs_v1.ListIssuesRequest
+		Issue   *drghs_v1.Issue
+		Request *drghs_v1.ListIssuesRequest
 		Want    bool
 		WantErr bool
 	}{
 		{
 			Name:    "Empty Filter Passes",
-			Issue:   drghs_v1.Issue{},
-			Request: drghs_v1.ListIssuesRequest{},
+			Issue:   &drghs_v1.Issue{},
+			Request: &drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Null Pull Request Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Name: "foo",
 				IsPr: true,
 			},
-			Request: drghs_v1.ListIssuesRequest{},
+			Request: &drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Null Not Pull Request Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Name: "foo",
 				IsPr: false,
 			},
-			Request: drghs_v1.ListIssuesRequest{},
+			Request: &drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "True Pull Request Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				IsPr: true,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
 					PullRequest: true,
 				},
@@ -72,10 +72,10 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "False Pull Request Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				IsPr: true,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
 					PullRequest: false,
 				},
@@ -85,10 +85,10 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "True Not Pull Request Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				IsPr: false,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
 					PullRequest: true,
 				},
@@ -98,10 +98,10 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "False Not Pull Request Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				IsPr: false,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				PullRequestNullable: &drghs_v1.ListIssuesRequest_PullRequest{
 					PullRequest: false,
 				},
@@ -111,30 +111,30 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "Null Closed Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Name:   "foo",
 				Closed: true,
 			},
-			Request: drghs_v1.ListIssuesRequest{},
+			Request: &drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Null Not Closed Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Name:   "foo",
 				Closed: false,
 			},
-			Request: drghs_v1.ListIssuesRequest{},
+			Request: &drghs_v1.ListIssuesRequest{},
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "True Closed Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Closed: true,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
 					Closed: true,
 				},
@@ -144,10 +144,10 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "False Closed Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Closed: true,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
 					Closed: false,
 				},
@@ -157,10 +157,10 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "True Not Closed Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Closed: false,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
 					Closed: true,
 				},
@@ -170,10 +170,10 @@ func TestFilterIssue(t *testing.T) {
 		},
 		{
 			Name: "False Not Closed Passes",
-			Issue: drghs_v1.Issue{
+			Issue: &drghs_v1.Issue{
 				Closed: false,
 			},
-			Request: drghs_v1.ListIssuesRequest{
+			Request: &drghs_v1.ListIssuesRequest{
 				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
 					Closed: false,
 				},
@@ -184,7 +184,7 @@ func TestFilterIssue(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, goterr := FilterIssue(&test.Issue, &test.Request)
+		got, goterr := FilterIssue(test.Issue, test.Request)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -197,21 +197,21 @@ func TestFilterIssue(t *testing.T) {
 func TestFilterRepo(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Repo    drghs_v1.Repository
+		Repo    *drghs_v1.Repository
 		Filter  string
 		Want    bool
 		WantErr bool
 	}{
 		{
 			Name:    "Empty Filter Passes",
-			Repo:    drghs_v1.Repository{},
+			Repo:    &drghs_v1.Repository{},
 			Filter:  "",
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Filter Name Passes",
-			Repo: drghs_v1.Repository{
+			Repo: &drghs_v1.Repository{
 				Name: "foo",
 			},
 			Filter:  "repository.name == 'foo'",
@@ -220,7 +220,7 @@ func TestFilterRepo(t *testing.T) {
 		},
 		{
 			Name: "Wrong Name Fails",
-			Repo: drghs_v1.Repository{
+			Repo: &drghs_v1.Repository{
 				Name: "foo",
 			},
 			Filter:  "repository.name == 'bar'",
@@ -230,7 +230,7 @@ func TestFilterRepo(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, goterr := FilterRepository(&test.Repo, test.Filter)
+		got, goterr := FilterRepository(test.Repo, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -243,21 +243,21 @@ func TestFilterRepo(t *testing.T) {
 func TestFilterComment(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Comment drghs_v1.GitHubComment
+		Comment *drghs_v1.GitHubComment
 		Filter  string
 		Want    bool
 		WantErr bool
 	}{
 		{
 			Name:    "Empty Filter Passes",
-			Comment: drghs_v1.GitHubComment{},
+			Comment: &drghs_v1.GitHubComment{},
 			Filter:  "",
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Filter Body Passes",
-			Comment: drghs_v1.GitHubComment{
+			Comment: &drghs_v1.GitHubComment{
 				Body: "foo",
 			},
 			Filter:  "comment.body == 'foo'",
@@ -266,7 +266,7 @@ func TestFilterComment(t *testing.T) {
 		},
 		{
 			Name: "Wrong Body Fails",
-			Comment: drghs_v1.GitHubComment{
+			Comment: &drghs_v1.GitHubComment{
 				Body: "foo",
 			},
 			Filter:  "comment.body == 'bar'",
@@ -275,7 +275,7 @@ func TestFilterComment(t *testing.T) {
 		},
 		{
 			Name: "Deep check passes",
-			Comment: drghs_v1.GitHubComment{
+			Comment: &drghs_v1.GitHubComment{
 				User: &drghs_v1.GitHubUser{
 					Login: "foo",
 				},
@@ -287,7 +287,7 @@ func TestFilterComment(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, goterr := FilterComment(&test.Comment, test.Filter)
+		got, goterr := FilterComment(test.Comment, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}

@@ -228,7 +228,7 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error from makeIssuePB. Wanted nil, Got %v", err)
 		}
-		if diff := cmp.Diff(*test.want, *got, cmpopts.IgnoreUnexported(tspb.Timestamp{})); diff != "" {
+		if diff := cmp.Diff(test.want, got, cmpopts.IgnoreUnexported(tspb.Timestamp{}, drghs_v1.Issue{}, drghs_v1.GitHubUser{})); diff != "" {
 			t.Errorf("makeIssuePB() mismatch (-want +got):\n%s", diff)
 		}
 	}
