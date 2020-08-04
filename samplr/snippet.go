@@ -40,7 +40,16 @@ const (
 	linesFormat      = `L%v-L%v`
 )
 
-var fileWhitelist = []*regexp.Regexp{
+var fileDenylist = []*regexp.Regexp{
+	regexp.MustCompile("^\\."),                   // Dotfiles and Dotfolders at the root of the repo, e.g. .github/, .gitignore, etc.
+	regexp.MustCompile("/\\."),                   // Dotfiles and Dotfolders outside of the root of the repo, e.g. samples/.gitignore, etc.
+	regexp.MustCompile("^codecov\\.yaml$"),       // codecov.yaml
+	regexp.MustCompile("^license-checks\\.xml$"), // license-checks.xml
+	regexp.MustCompile("^renovate\\.json$"),      // renovate.json
+	regexp.MustCompile("^synth\\.py$"),           // synth.py
+}
+
+var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.c$"),           // c
 	regexp.MustCompile("^.+\\.cpp$"),         // cpp
 	regexp.MustCompile("^.+\\.cc$"),          // cpp
@@ -65,6 +74,7 @@ var fileWhitelist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.sh$"),          // bash
 	regexp.MustCompile("^.+\\.xml$"),         // pmx.xml etc.
 	regexp.MustCompile("^.+\\.yaml$"),        // app.yaml, etc.
+	regexp.MustCompile("^.+\\.yml$"),         // app.yml, etc.
 }
 
 // Snippet represents a snippet of code
@@ -325,7 +335,12 @@ func detectRegionTags(content string) []string {
 }
 
 func isValidFile(file *git.File) bool {
-	for _, pattern := range fileWhitelist {
+	for _, pattern := range fileDenylist {
+		if pattern.MatchString(file.Name) {
+			return false
+		}
+	}
+	for _, pattern := range fileAllowlist {
 		if pattern.MatchString(file.Name) {
 			return true
 		}
