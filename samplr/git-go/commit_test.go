@@ -28,7 +28,7 @@ func TestFilesReturnsAFileIter(t *testing.T) {
 	}
 }
 
-func TestsliceCommitIterForEachReturnsInProperOrder(t *testing.T) {
+func TestSliceCommitIterForEachReturnsInProperOrder(t *testing.T) {
 	commits := []*Commit{
 		&Commit{},
 		&Commit{},
@@ -50,7 +50,7 @@ func TestsliceCommitIterForEachReturnsInProperOrder(t *testing.T) {
 	})
 }
 
-func TestsliceCommitIterNextReturnsInProperOrder(t *testing.T) {
+func TestSliceCommitIterNextReturnsInProperOrder(t *testing.T) {
 	commits := []*Commit{
 		&Commit{},
 		&Commit{},
@@ -74,7 +74,7 @@ func TestsliceCommitIterNextReturnsInProperOrder(t *testing.T) {
 	}
 }
 
-func TestsliceCommitIterForEachReturnsEarlyOnError(t *testing.T) {
+func TestSliceCommitIterForEachReturnsEarlyOnError(t *testing.T) {
 	commits := []*Commit{
 		&Commit{},
 		&Commit{},
@@ -101,7 +101,7 @@ func TestsliceCommitIterForEachReturnsEarlyOnError(t *testing.T) {
 	}
 }
 
-func TestsliceCommitIterForEachReturnsEarlyOnErrorSignal(t *testing.T) {
+func TestSliceCommitIterForEachReturnsEarlyOnErrorSignal(t *testing.T) {
 	commits := []*Commit{
 		&Commit{},
 		&Commit{},
