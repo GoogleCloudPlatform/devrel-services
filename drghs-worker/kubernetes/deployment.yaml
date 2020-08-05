@@ -19,7 +19,7 @@ metadata:
   labels:
     app: maintnerd-rtr
 spec:
-  replicas: 1
+  replicas: 5
   strategy:
     type: Recreate
   selector:
@@ -30,6 +30,16 @@ spec:
       labels:
         app: maintnerd-rtr
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - maintnerd-rtr
+            topologyKey: kubernetes.io/hostname
       serviceAccountName: maintner-rtr-sa
       containers:
       - name: esp
