@@ -15,9 +15,10 @@
 package filter
 
 import (
-	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"testing"
 	"time"
+
+	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/go-cmp/cmp"
@@ -26,21 +27,21 @@ import (
 func TestSnippet(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Snippet drghs_v1.Snippet
+		Snippet *drghs_v1.Snippet
 		Filter  string
 		Want    bool
 		WantErr bool
 	}{
 		{
 			Name:    "Empty Filter Passes",
-			Snippet: drghs_v1.Snippet{},
+			Snippet: &drghs_v1.Snippet{},
 			Filter:  "",
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Filter name Passes",
-			Snippet: drghs_v1.Snippet{
+			Snippet: &drghs_v1.Snippet{
 				Name: "foo",
 			},
 			Filter:  "snippet.name == 'foo' ",
@@ -49,7 +50,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			Name: "Deep filter Passes",
-			Snippet: drghs_v1.Snippet{
+			Snippet: &drghs_v1.Snippet{
 				Name: "foo",
 				Primary: &drghs_v1.SnippetVersion{
 					Lines: []string{
@@ -64,7 +65,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			Name: "Filter language Passes",
-			Snippet: drghs_v1.Snippet{
+			Snippet: &drghs_v1.Snippet{
 				Name:     "foo",
 				Language: "bar",
 			},
@@ -74,7 +75,7 @@ func TestSnippet(t *testing.T) {
 		},
 		{
 			Name: "Unsupported Fields fail",
-			Snippet: drghs_v1.Snippet{
+			Snippet: &drghs_v1.Snippet{
 				Name: "foo",
 			},
 			Filter:  "baz == 'foo'",
@@ -83,7 +84,7 @@ func TestSnippet(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := Snippet(&test.Snippet, test.Filter)
+		got, goterr := Snippet(test.Snippet, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -96,21 +97,21 @@ func TestSnippet(t *testing.T) {
 func TestSnippetVersion(t *testing.T) {
 	tests := []struct {
 		Name           string
-		SnippetVersion drghs_v1.SnippetVersion
+		SnippetVersion *drghs_v1.SnippetVersion
 		Filter         string
 		Want           bool
 		WantErr        bool
 	}{
 		{
 			Name:           "Empty Filter Passes",
-			SnippetVersion: drghs_v1.SnippetVersion{},
+			SnippetVersion: &drghs_v1.SnippetVersion{},
 			Filter:         "",
 			Want:           true,
 			WantErr:        false,
 		},
 		{
 			Name: "Filter name Passes",
-			SnippetVersion: drghs_v1.SnippetVersion{
+			SnippetVersion: &drghs_v1.SnippetVersion{
 				Name: "foo",
 			},
 			Filter:  "version.name == 'foo' ",
@@ -119,7 +120,7 @@ func TestSnippetVersion(t *testing.T) {
 		},
 		{
 			Name: "Filter meta Passes",
-			SnippetVersion: drghs_v1.SnippetVersion{
+			SnippetVersion: &drghs_v1.SnippetVersion{
 				Name: "foo",
 				Meta: &drghs_v1.SnippetVersionMeta{
 					Title: "bar",
@@ -131,7 +132,7 @@ func TestSnippetVersion(t *testing.T) {
 		},
 		{
 			Name: "Filter file Passes",
-			SnippetVersion: drghs_v1.SnippetVersion{
+			SnippetVersion: &drghs_v1.SnippetVersion{
 				Name: "foo",
 				File: &drghs_v1.File{
 					Size: 10,
@@ -143,7 +144,7 @@ func TestSnippetVersion(t *testing.T) {
 		},
 		{
 			Name: "Unsupported Fields fail",
-			SnippetVersion: drghs_v1.SnippetVersion{
+			SnippetVersion: &drghs_v1.SnippetVersion{
 				Name: "foo",
 			},
 			Filter:  "baz == 'foo'",
@@ -152,7 +153,7 @@ func TestSnippetVersion(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := SnippetVersion(&test.SnippetVersion, test.Filter)
+		got, goterr := SnippetVersion(test.SnippetVersion, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -165,21 +166,21 @@ func TestSnippetVersion(t *testing.T) {
 func TestRepository(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Repo    drghs_v1.Repository
+		Repo    *drghs_v1.Repository
 		Filter  string
 		Want    bool
 		WantErr bool
 	}{
 		{
 			Name:    "Empty Filter Passes",
-			Repo:    drghs_v1.Repository{},
+			Repo:    &drghs_v1.Repository{},
 			Filter:  "",
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Filter name Passes",
-			Repo: drghs_v1.Repository{
+			Repo: &drghs_v1.Repository{
 				Name: "foo",
 			},
 			Filter:  "repository.name == 'foo' ",
@@ -188,7 +189,7 @@ func TestRepository(t *testing.T) {
 		},
 		{
 			Name: "Unsupported Fields fail",
-			Repo: drghs_v1.Repository{
+			Repo: &drghs_v1.Repository{
 				Name: "foo",
 			},
 			Filter:  "baz == 'foo'",
@@ -197,7 +198,7 @@ func TestRepository(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := Repository(&test.Repo, test.Filter)
+		got, goterr := Repository(test.Repo, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
@@ -210,21 +211,21 @@ func TestRepository(t *testing.T) {
 func TestGitCommit(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Commit  drghs_v1.GitCommit
+		Commit  *drghs_v1.GitCommit
 		Filter  string
 		Want    bool
 		WantErr bool
 	}{
 		{
 			Name:    "Empty Filter Passes",
-			Commit:  drghs_v1.GitCommit{},
+			Commit:  &drghs_v1.GitCommit{},
 			Filter:  "",
 			Want:    true,
 			WantErr: false,
 		},
 		{
 			Name: "Filter name Passes",
-			Commit: drghs_v1.GitCommit{
+			Commit: &drghs_v1.GitCommit{
 				Name: "foo",
 			},
 			Filter:  "commit.name == 'foo' ",
@@ -233,7 +234,7 @@ func TestGitCommit(t *testing.T) {
 		},
 		{
 			Name: "Filter committer_email Passes",
-			Commit: drghs_v1.GitCommit{
+			Commit: &drghs_v1.GitCommit{
 				CommitterEmail: "foo",
 			},
 			Filter:  "commit.committer_email == 'foo' ",
@@ -242,7 +243,7 @@ func TestGitCommit(t *testing.T) {
 		},
 		{
 			Name: "Unsupported Fields fail",
-			Commit: drghs_v1.GitCommit{
+			Commit: &drghs_v1.GitCommit{
 				Name: "foo",
 			},
 			Filter:  "baz == 'foo'",
@@ -251,7 +252,7 @@ func TestGitCommit(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, goterr := GitCommit(&test.Commit, test.Filter)
+		got, goterr := GitCommit(test.Commit, test.Filter)
 		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
 		}
