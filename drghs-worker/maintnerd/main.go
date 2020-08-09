@@ -50,14 +50,15 @@ import (
 )
 
 var (
-	listen    = flag.String("listen", "0.0.0.0:6343", "listen address")
-	intListen = flag.String("intListen", "0.0.0:6344", "listen for internal service")
-	verbose   = flag.Bool("verbose", false, "enable verbose debug output")
-	bucket    = flag.String("bucket", "cdpe-maintner", "Google Cloud Storage bucket to use for log storage")
-	token     = flag.String("token", "", "Token to Access GitHub with")
-	projectID = flag.String("gcp-project", "", "The GCP Project this is using")
-	owner     = flag.String("owner", "", "The owner of the GitHub repository")
-	repo      = flag.String("repo", "", "The repository to track")
+	listen     = flag.String("listen", "0.0.0.0:6343", "listen address")
+	intListen  = flag.String("intListen", "0.0.0:6344", "listen for internal service")
+	sloAddress = flag.String("sloServer", "0.0.0:3009", "address of slo service")
+	verbose    = flag.Bool("verbose", false, "enable verbose debug output")
+	bucket     = flag.String("bucket", "cdpe-maintner", "Google Cloud Storage bucket to use for log storage")
+	token      = flag.String("token", "", "Token to Access GitHub with")
+	projectID  = flag.String("gcp-project", "", "The GCP Project this is using")
+	owner      = flag.String("owner", "", "The owner of the GitHub repository")
+	repo       = flag.String("repo", "", "The repository to track")
 )
 
 var (
@@ -228,6 +229,50 @@ func main() {
 		log.Printf("internal gRPC server listening on: %s", *intListen)
 		return grpcServer.Serve(lis)
 	})
+
+	group.Go(
+		// Get SLO rules for the repo
+		func() error {
+			parent := fmt.Sprintf("owners/%s/repositories/%s", *owner, *repo)
+
+			ticker := time.NewTicker(10 * time.Minute)
+
+			for t := range ticker.C {
+				log.Printf("Slo sync at %v", t)
+
+				dialCtx, cancel := context.WithTimeout(ctx, time.Second)
+				defer cancel()
+
+				conn, err := grpc.DialContext(dialCtx, *sloAddress, grpc.WithInsecure(), grpc.WithBlock())
+				if err != nil {
+					log.Fatalf("Did not connect to SLO server: %v", err)
+				}
+				defer conn.Close()
+
+				sloClient := drghs_v1.NewSLOServiceClient(conn)
+
+				response, err := sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent})
+				if err != nil {
+					log.Fatalf("Error getting SLOs: %v", err)
+				}
+
+				slos := response.GetSlos()
+				nextPage := response.GetNextPageToken()
+
+				for nextPage != "" {
+					response, err = sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent, PageToken: nextPage})
+					if err != nil {
+						log.Fatalf("Error getting SLOs: %v", err)
+					}
+
+					slos = append(slos, response.GetSlos()...)
+					nextPage = response.GetNextPageToken()
+				}
+
+			}
+			return nil
+		})
+
 	err = group.Wait()
 	log.Fatal(err)
 }
