@@ -240,41 +240,51 @@ func main() {
 			for t := range ticker.C {
 				log.Printf("Slo sync at %v", t)
 
-				dialCtx, cancel := context.WithTimeout(ctx, time.Second)
-				defer cancel()
-
-				conn, err := grpc.DialContext(dialCtx, *sloAddress, grpc.WithInsecure(), grpc.WithBlock())
+				_, err := getSlos(ctx, parent)
 				if err != nil {
-					log.Fatalf("Did not connect to SLO server: %v", err)
+					logAndPrintError(err)
+					log.Printf("Slo sync err: %v", err)
 				}
-				defer conn.Close()
-
-				sloClient := drghs_v1.NewSLOServiceClient(conn)
-
-				response, err := sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent})
-				if err != nil {
-					log.Fatalf("Error getting SLOs: %v", err)
-				}
-
-				slos := response.GetSlos()
-				nextPage := response.GetNextPageToken()
-
-				for nextPage != "" {
-					response, err = sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent, PageToken: nextPage})
-					if err != nil {
-						log.Fatalf("Error getting SLOs: %v", err)
-					}
-
-					slos = append(slos, response.GetSlos()...)
-					nextPage = response.GetNextPageToken()
-				}
-
 			}
 			return nil
 		})
 
 	err = group.Wait()
 	log.Fatal(err)
+}
+
+func getSlos(ctx context.Context, parent string) ([]*drghs_v1.SLO, error) {
+	dialCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(dialCtx, *sloAddress, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return nil, fmt.Errorf("Error connecting to SLO server: %v", err)
+	}
+	defer conn.Close()
+
+	sloClient := drghs_v1.NewSLOServiceClient(conn)
+
+	response, err := sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent})
+	if err != nil {
+		return nil, fmt.Errorf("Error getting SLOs: %v", err)
+	}
+
+	slos := response.GetSlos()
+	nextPage := response.GetNextPageToken()
+
+	for nextPage != "" {
+		response, err = sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent, PageToken: nextPage})
+		if err != nil {
+			logAndPrintError(err)
+			log.Printf("Error getting SLOs: %v", err)
+			continue
+		}
+
+		slos = append(slos, response.GetSlos()...)
+		nextPage = response.GetNextPageToken()
+	}
+	return slos, nil
 }
 
 func logAndPrintError(err error) {
