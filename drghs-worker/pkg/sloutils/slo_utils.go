@@ -15,12 +15,14 @@
 package sloutils
 
 import (
+	"time"
+
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"golang.org/x/build/maintner"
 )
 
 // DoesSloApply determines if the given SLO applies to the given issue
-func DoesSloApply(slo *drghs_v1.SLO, issue *maintner.GitHubIssue) bool {
+func DoesSloApply(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) bool {
 
 	if issue == nil || slo == nil {
 		return false
@@ -48,4 +50,71 @@ func DoesSloApply(slo *drghs_v1.SLO, issue *maintner.GitHubIssue) bool {
 	}
 
 	return true
+}
+
+// IsCompliant determines if the given issue is compliant with the given SLO rule
+func IsCompliant(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) bool {
+
+	if issue.Closed || issue.NotExist {
+		return true
+	}
+
+	now := time.Now()
+	validResponders := getValidResponders(issue, slo)
+
+	// check response time
+	shouldBeRepliedBy := issue.Created.Add(slo.GetResponseTime().AsDuration())
+	if slo.GetResponseTime().AsDuration() > 0 && now.After(shouldBeRepliedBy) {
+		//check if a valid person has replied
+
+		validResponderReplied := false
+
+		issue.ForeachComment(func(comment *maintner.GitHubComment) error {
+			if validResponderReplied {
+				return nil
+			}
+
+			_, isResponder := validResponders[comment.User.Login]
+			if isResponder {
+				validResponderReplied = true
+			}
+			return nil
+		})
+
+		if !validResponderReplied {
+			return false
+		}
+	}
+
+	// check resolution time
+	shouldBeResolvedBy := issue.Created.Add(slo.GetResolutionTime().AsDuration())
+
+	if slo.GetResolutionTime().AsDuration() > 0 && now.After(shouldBeResolvedBy) {
+		return false
+	}
+
+	if slo.GetRequiresAssignee() {
+
+		for _, assignee := range issue.Assignees {
+			_, isResponder := validResponders[assignee.Login]
+
+			if isResponder {
+				return true
+			}
+		}
+		// went through all assignees, none are valid responders
+		return false
+	}
+
+	return true
+}
+
+func getValidResponders(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) map[string]struct{} {
+	responders := make(map[string]struct{})
+
+	for _, r := range slo.GetResponders() {
+		responders[r] = struct{}{}
+	}
+
+	return responders
 }
