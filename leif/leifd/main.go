@@ -135,6 +135,11 @@ func main() {
 		}
 	}
 
+	err = corpus.Initialize(ctx, &ghClient)
+	if err != nil {
+		log.Fatalf("Could not initialize corpus: %v", err)
+	}
+
 	group, ctx := errgroup.WithContext(ctx)
 
 	group.Go(func() error {
