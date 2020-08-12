@@ -28,6 +28,7 @@ import (
 type MockGithubRepositoryService struct {
 	Content    *github.RepositoryContent
 	DirContent []*github.RepositoryContent
+	Users      []*github.User
 	Response   *github.Response
 	Error      error
 	Owner      string
@@ -63,5 +64,5 @@ func (mgc *MockGithubRepositoryService) ListCollaborators(ctx context.Context, o
 	if owner != mgc.Owner {
 		return nil, nil, errors.New("org did not equal expected owner: was: " + owner)
 	}
-	return nil, nil, mgc.Error
+	return mgc.Users, nil, mgc.Error
 }
