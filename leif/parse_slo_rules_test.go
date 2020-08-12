@@ -15,13 +15,16 @@
 package leif
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
 )
 
-var defaultSLO = SLORule{AppliesTo: AppliesTo{Issues: true, PRs: false}, ComplianceSettings: ComplianceSettings{RequiresAssignee: false, Responders: Responders{Contributors: "WRITE"}}}
+var defaultSLO = SLORule{AppliesTo: AppliesTo{Issues: true, PRs: false}, ComplianceSettings: ComplianceSettings{RequiresAssignee: false, Responders: []string{"MyOwner"}}}
 
 var oneDay = 24 * time.Hour
 
@@ -90,7 +93,11 @@ func TestParseSLORules(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, err := unmarshalSLOs([]byte(test.jsonInput))
+
+		mock := new(githubservices.MockGithubRepositoryService)
+		client := githubservices.NewClient(nil, mock, nil)
+
+		got, err := unmarshalSLOs(context.Background(), []byte(test.jsonInput), "MyOwner", "repo", &client)
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
@@ -136,7 +143,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   time.Hour,
 					ResolutionTime: time.Second,
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -158,7 +165,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   (time.Duration(time.Hour + time.Minute + time.Second)),
 					ResolutionTime: (time.Duration(time.Second + time.Hour + oneDay)),
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -180,7 +187,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   (time.Duration((24 * time.Hour) + time.Hour + time.Minute + time.Second)),
 					ResolutionTime: (time.Duration(30 * 24 * time.Hour)),
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -202,7 +209,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: time.Duration(43200 * time.Second),
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -227,7 +234,7 @@ func TestParseSLORule(t *testing.T) {
 					"responseTime": 0,
 					"resolutionTime": 0,
 					"responders": {
-						"users": ["@jeff"]
+						"users": ["jeff"]
 					}
 				}
 			}`,
@@ -239,7 +246,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Users: []string{"@jeff"}},
+					Responders:     []string{"jeff", "MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -264,7 +271,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -289,7 +296,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -314,15 +321,19 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Users: []string{}},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
 		},
 	}
 	for _, test := range tests {
+		mock := new(githubservices.MockGithubRepositoryService)
+		client := githubservices.NewClient(nil, mock, nil)
+
 		e := json.RawMessage(test.jsonInput)
-		got, err := parseSLORule(&e)
+		got, err := parseSLORule(context.Background(), &e, "MyOwner", "repo", &client)
+
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
@@ -681,13 +692,13 @@ func TestSetResponderDefault(t *testing.T) {
 			current: &sloRuleJSON{
 				AppliesToJSON: AppliesToJSON{},
 				ComplianceSettingsJSON: ComplianceSettingsJSON{
-					RespondersJSON: RespondersJSON{OwnersRaw: []string{}},
+					RespondersJSON: RespondersJSON{Owners: []string{}},
 				},
 			},
 			expected: &sloRuleJSON{
 				AppliesToJSON: AppliesToJSON{},
 				ComplianceSettingsJSON: ComplianceSettingsJSON{
-					RespondersJSON: RespondersJSON{OwnersRaw: []string{}},
+					RespondersJSON: RespondersJSON{Owners: []string{}},
 				},
 			},
 		},

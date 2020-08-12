@@ -56,3 +56,12 @@ func (mgc *MockGithubRepositoryService) ListByOrg(ctx context.Context, org strin
 	}
 	return nil, nil, mgc.Error
 }
+
+// ListCollaborators mocks the original github.RepositoriesService.ListCollaborators()
+// Checks whether the owner is correct and returns the mocked error
+func (mgc *MockGithubRepositoryService) ListCollaborators(ctx context.Context, owner, repo string, opts *github.ListCollaboratorsOptions) ([]*github.User, *github.Response, error) {
+	if owner != mgc.Owner {
+		return nil, nil, errors.New("org did not equal expected owner: was: " + owner)
+	}
+	return nil, nil, mgc.Error
+}

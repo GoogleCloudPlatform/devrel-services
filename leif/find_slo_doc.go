@@ -85,7 +85,7 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 		if err != nil {
 			return nil, fmt.Errorf("Error finding SLO config: %w", err)
 		}
-		return unmarshalSLOs([]byte(file))
+		return unmarshalSLOs(ctx, []byte(file), owner.name, repoName, ghClient)
 	}
 
 	p := path.Join(gitHubDir, sloConfigFileName)
@@ -93,14 +93,14 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 	file, err := fetchFile(ctx, owner.name, repoName, p, ghClient)
 
 	if errors.As(err, &ghErrorResponse) && ghErrorResponse.Response.StatusCode == 404 {
-		log.Infof("Repository %s does not have SLO config file %s; using the owner's SLO rules", repoName, p)
+		log.Debugf("Repository %s does not have SLO config file %s; using the owner's SLO rules", repoName, p)
 		return owner.SLORules, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("Error finding SLO config: %w", err)
 	}
 
-	return unmarshalSLOs([]byte(file))
+	return unmarshalSLOs(ctx, []byte(file), owner.name, repoName, ghClient)
 }
 
 func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *githubservices.Client) (string, error) {

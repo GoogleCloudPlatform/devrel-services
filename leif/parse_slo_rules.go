@@ -15,15 +15,19 @@
 package leif
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
 )
 
 var dayReg = regexp.MustCompile(`[0-9]+d`)
+var ownersReg = regexp.MustCompile(`@([^\s|,]+)`)
 
 type stringOrArray []string
 
@@ -105,14 +109,14 @@ func newSLORuleJSON() *sloRuleJSON {
 // Applies the default value to the Responders field in the ComplianceSettings
 // Only applies it if none of the values in the Responders fiel have been initialized
 func (rule *sloRuleJSON) applyResponderDefault() {
-	if rule.ComplianceSettingsJSON.RespondersJSON.OwnersRaw == nil &&
+	if rule.ComplianceSettingsJSON.RespondersJSON.Owners == nil &&
 		len(rule.ComplianceSettingsJSON.RespondersJSON.Contributors) < 1 &&
 		rule.ComplianceSettingsJSON.RespondersJSON.Users == nil {
 		rule.ComplianceSettingsJSON.RespondersJSON.Contributors = "WRITE"
 	}
 }
 
-func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
+func parseSLORule(ctx context.Context, rawRule *json.RawMessage, owner string, repo string, ghClient *githubservices.Client) (*SLORule, error) {
 	jsonRule := newSLORuleJSON()
 
 	err := json.Unmarshal(*rawRule, &jsonRule)
@@ -121,6 +125,7 @@ func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
 	}
 
 	jsonRule.applyResponderDefault()
+	jsonRule.ComplianceSettingsJSON.RespondersJSON.prepareForMarshalling(ctx, owner, repo, ghClient)
 
 	marshaled, err := json.Marshal(jsonRule)
 	if err != nil {
@@ -133,7 +138,7 @@ func parseSLORule(rawRule *json.RawMessage) (*SLORule, error) {
 	return parsedRule, err
 }
 
-func unmarshalSLOs(data []byte) ([]*SLORule, error) {
+func unmarshalSLOs(ctx context.Context, data []byte, owner string, repo string, ghClient *githubservices.Client) ([]*SLORule, error) {
 	var sloRules []*SLORule
 	var rawSLORules []*json.RawMessage
 
@@ -147,7 +152,7 @@ func unmarshalSLOs(data []byte) ([]*SLORule, error) {
 	}
 
 	for _, rawRule := range rawSLORules {
-		rule, err := parseSLORule(rawRule)
+		rule, err := parseSLORule(ctx, rawRule, owner, repo, ghClient)
 		if err != nil {
 			return sloRules, err
 		}
@@ -178,9 +183,62 @@ type ComplianceSettingsJSON struct {
 // RespondersJSON is the intermediary struct between the JSON representation and the structured leif representation
 // that stores structured data on the responders to the issue or pull request the SLO applies to
 type RespondersJSON struct {
-	OwnersRaw    stringOrArray `json:"owners"`
+	Owners       stringOrArray `json:"owners"`
 	Contributors string        `json:"contributors"`
 	Users        []string      `json:"users"`
+}
+
+// MarshalJSON for responders marshals only the users field
+// into a single array of strings
+// Call prepareForMarshalling before marshalling
+// to get all responders in the marshalled data
+func (r RespondersJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.Users)
+}
+
+// adds all valid responders to RespondersJSON.Users so that it can be marshalled into a seingle value
+func (r *RespondersJSON) prepareForMarshalling(ctx context.Context, owner string, repo string, ghClient *githubservices.Client) {
+
+	allResp := r.Users
+
+	// The owner of the repository is always a valid responder:
+	allResp = append(allResp, owner)
+
+	// Add owners to valid responders
+	for _, filePath := range r.Owners {
+
+		file, err := fetchFile(ctx, owner, repo, filePath, ghClient)
+		if err != nil {
+			log.Debugf("Error getting file of owners for %s/%s at %s: %v", owner, repo, filePath, err)
+			continue
+		}
+
+		matches := ownersReg.FindAllStringSubmatch(file, -1)
+		for _, match := range matches {
+			allResp = append(allResp, match[1])
+		}
+	}
+
+	// Add contributors to valid responders
+	if r.Contributors != "" && r.Contributors != "OWNER" {
+		collaborators, _, err := ghClient.Repositories.ListCollaborators(ctx, owner, repo, nil)
+		if err != nil {
+			log.Debugf("Error getting collaborators for %s/%s : %v", owner, repo, err)
+		}
+
+		for _, user := range collaborators {
+
+			permissions := *user.Permissions
+
+			if (r.Contributors == "ADMIN" && permissions["admin"]) ||
+				(r.Contributors == "WRITE" && permissions["pull"] && permissions["push"]) {
+				allResp = append(allResp, *user.Login)
+			}
+
+		}
+	}
+
+	r.Users = allResp
 }
 
 func parseDurationWithDays(duration string) (time.Duration, error) {

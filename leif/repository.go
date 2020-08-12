@@ -72,12 +72,5 @@ type ComplianceSettings struct {
 	ResponseTime     time.Duration `json:"responseTime"`
 	ResolutionTime   time.Duration `json:"resolutionTime"`
 	RequiresAssignee bool          `json:"requiresAssignee"`
-	Responders       Responders    `json:"responders"`
-}
-
-// Responders stores structured data on the responders to the issue or pull request the SLO applies to
-type Responders struct {
-	Owners       []string `json:"owners"`
-	Contributors string   `json:"contributors"`
-	Users        []string `json:"users"`
+	Responders       []string      `json:"responders"`
 }
