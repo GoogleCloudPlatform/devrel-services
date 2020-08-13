@@ -47,10 +47,35 @@ func FormatLog(f logrus.Formatter) {
 // Corpus holds all of a project's metadata.
 type Corpus struct {
 	mu      sync.RWMutex // guards the sync state
+	didInit bool
 	syncing bool
 
 	watchedOwners []*Owner
 	ownersToAdd   chan *Owner
+}
+
+// Initialize should be the first call to the corpus to
+// do the initial synchronization of the corpus's repos
+func (c *Corpus) Initialize(ctx context.Context, ghClient *githubservices.Client) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.didInit {
+		return fmt.Errorf("Multiple calls to initialize")
+	}
+
+	log.Info("Corpus Initializing")
+
+	for _, o := range c.watchedOwners {
+		err := o.Update(ctx, ghClient)
+		if err != nil {
+			log.Errorf("Unable to update owner %s: %s", o.name, err)
+		}
+	}
+
+	c.didInit = true
+	log.Info("Corpus finished Initializing")
+	return nil
 }
 
 // SyncLoop instructs the Corpus to update all the tracked repos every given amount of minutes
