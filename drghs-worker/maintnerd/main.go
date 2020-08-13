@@ -38,10 +38,12 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/instrumentation/grpctrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -254,10 +256,19 @@ func main() {
 }
 
 func getSlos(ctx context.Context, parent string) ([]*drghs_v1.SLO, error) {
-	dialCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
 
-	conn, err := grpc.DialContext(dialCtx, *sloAddress, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(
+		*sloAddress,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpctrace.UnaryClientInterceptor(global.Tracer("maintner-leif")),
+				buildRetryInterceptor(),
+			),
+		),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("Error connecting to SLO server: %v", err)
 	}
@@ -265,7 +276,7 @@ func getSlos(ctx context.Context, parent string) ([]*drghs_v1.SLO, error) {
 
 	sloClient := drghs_v1.NewSLOServiceClient(conn)
 
-	response, err := sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent})
+	response, err := sloClient.ListSLOs(ctx, &drghs_v1.ListSLOsRequest{Parent: parent})
 	if err != nil {
 		return nil, fmt.Errorf("Error getting SLOs: %v", err)
 	}
@@ -274,7 +285,7 @@ func getSlos(ctx context.Context, parent string) ([]*drghs_v1.SLO, error) {
 	nextPage := response.GetNextPageToken()
 
 	for nextPage != "" {
-		response, err = sloClient.ListSLOs(dialCtx, &drghs_v1.ListSLOsRequest{Parent: parent, PageToken: nextPage})
+		response, err = sloClient.ListSLOs(ctx, &drghs_v1.ListSLOsRequest{Parent: parent, PageToken: nextPage})
 		if err != nil {
 			logAndPrintError(err)
 			log.Printf("Error getting SLOs: %v", err)
@@ -311,4 +322,13 @@ func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryS
 
 	log.Printf("Finishing RPC: %v. Took: %v", info.FullMethod, time.Now().Sub(start))
 	return m, err
+}
+
+func buildRetryInterceptor() grpc.UnaryClientInterceptor {
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(500 * time.Millisecond)),
+		grpc_retry.WithCodes(codes.NotFound, codes.Aborted, codes.Unavailable, codes.DeadlineExceeded),
+		grpc_retry.WithMax(5),
+	}
+	return grpc_retry.UnaryClientInterceptor(opts...)
 }
