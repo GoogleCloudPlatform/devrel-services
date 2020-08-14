@@ -52,61 +52,81 @@ func DoesSloApply(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) bool {
 	return true
 }
 
-// IsCompliant determines if the given issue is compliant with the given SLO rule
-func IsCompliant(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) bool {
+// CompliantUntil returns the seconds until the given issue is no longer compliant with the given SLO rule
+// If the given issue is OOSLO (not compliant with the given SLO rule), then it will return
+// a negative value representing the seconds since it became OOSLO
+// If the issue will always be compliant, this returns 0
+func CompliantUntil(issue *maintner.GitHubIssue, slo *drghs_v1.SLO, now time.Time) int64 {
 
-	if issue.Closed || issue.NotExist {
-		return true
+	if issue == nil || slo == nil || issue.Closed || issue.NotExist {
+		return 0
 	}
 
-	now := time.Now()
 	validResponders := getValidResponders(issue, slo)
 
-	// check response time
-	shouldBeRepliedBy := issue.Created.Add(slo.GetResponseTime().AsDuration())
-	if slo.GetResponseTime().AsDuration() > 0 && now.After(shouldBeRepliedBy) {
-		//check if a valid person has replied
+	var inSloUntil time.Time
 
-		validResponderReplied := false
-
-		issue.ForeachComment(func(comment *maintner.GitHubComment) error {
-			if validResponderReplied {
-				return nil
-			}
-
-			_, isResponder := validResponders[comment.User.Login]
-			if isResponder {
-				validResponderReplied = true
-			}
-			return nil
-		})
-
-		if !validResponderReplied {
-			return false
-		}
-	}
-
-	// check resolution time
-	shouldBeResolvedBy := issue.Created.Add(slo.GetResolutionTime().AsDuration())
-
-	if slo.GetResolutionTime().AsDuration() > 0 && now.After(shouldBeResolvedBy) {
-		return false
-	}
-
+	// check assignees
 	if slo.GetRequiresAssignee() {
-
+		hasValidAssignee := false
 		for _, assignee := range issue.Assignees {
 			_, isResponder := validResponders[assignee.Login]
 
 			if isResponder {
-				return true
+				hasValidAssignee = true
+				break
 			}
 		}
-		// went through all assignees, none are valid responders
-		return false
+
+		if !hasValidAssignee {
+			inSloUntil = issue.Created
+		}
 	}
 
-	return true
+	// check resolution time
+	if slo.GetResolutionTime().AsDuration() > 0 {
+		shouldBeResolvedBy := issue.Created.Add(slo.GetResolutionTime().AsDuration())
+		inSloUntil = earliest(inSloUntil, shouldBeResolvedBy)
+	}
+
+	// check response time
+	if slo.GetResponseTime().AsDuration() > 0 {
+		shouldBeRepliedBy := issue.Created.Add(slo.GetResponseTime().AsDuration())
+
+		if shouldBeRepliedBy.After(now) {
+			//in slo for response time
+			inSloUntil = earliest(inSloUntil, shouldBeRepliedBy)
+		} else if inSloUntil.IsZero() || inSloUntil.After(shouldBeRepliedBy) {
+			//check if a valid person has replied
+			validResponderReplied := false
+
+			issue.ForeachComment(func(comment *maintner.GitHubComment) error {
+				if validResponderReplied {
+					return nil
+				}
+
+				_, isResponder := validResponders[comment.User.Login]
+				if isResponder {
+					validResponderReplied = true
+				}
+				return nil
+			})
+
+			if !validResponderReplied {
+				inSloUntil = shouldBeRepliedBy
+			}
+		}
+
+	}
+
+	if inSloUntil.IsZero() {
+		return 0
+	}
+
+	//get seconds between now and inslotime
+	sec := inSloUntil.Sub(now)
+
+	return int64(sec.Seconds())
 }
 
 func getValidResponders(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) map[string]struct{} {
@@ -117,4 +137,12 @@ func getValidResponders(issue *maintner.GitHubIssue, slo *drghs_v1.SLO) map[stri
 	}
 
 	return responders
+}
+
+// returns earliest non-zero time
+func earliest(t1 time.Time, t2 time.Time) time.Time {
+	if t1.IsZero() || (!t2.IsZero() && t1.After(t2)) {
+		return t2
+	}
+	return t1
 }
