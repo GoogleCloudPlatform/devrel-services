@@ -220,7 +220,7 @@ func (r *RespondersJSON) prepareForMarshalling(ctx context.Context, owner string
 	}
 
 	// Add contributors to valid responders
-	if r.Contributors != "" && r.Contributors != "OWNER" {
+	if r.Contributors != "" && r.Contributors != "OWNER" && len(repo) > 0 {
 		collaborators, _, err := ghClient.Repositories.ListCollaborators(ctx, owner, repo, nil)
 		if err != nil {
 			log.Debugf("Error getting collaborators for %s/%s : %v", owner, repo, err)
