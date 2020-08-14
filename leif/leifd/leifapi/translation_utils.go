@@ -41,9 +41,6 @@ func makeSloPB(slo *leif.SLORule) (*drghs_v1.SLO, error) {
 		ResponseTime:         ptypes.DurationProto(slo.ComplianceSettings.ResponseTime),
 		ResolutionTime:       ptypes.DurationProto(slo.ComplianceSettings.ResolutionTime),
 		RequiresAssignee:     slo.ComplianceSettings.RequiresAssignee,
-		Responders: &drghs_v1.Responders{
-			Owners:       slo.ComplianceSettings.Responders.Owners,
-			Contributors: drghs_v1.Responders_ContributorsType(drghs_v1.Responders_ContributorsType_value[slo.ComplianceSettings.Responders.Contributors]),
-			Users:        slo.ComplianceSettings.Responders.Users},
+		Responders:           slo.ComplianceSettings.Responders,
 	}, nil
 }
