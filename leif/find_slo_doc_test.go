@@ -52,8 +52,8 @@ var sloRulesSampleParsed = []*SLORule{&SLORule{
 	ComplianceSettings: ComplianceSettings{
 		ResponseTime:     0,
 		ResolutionTime:   0,
-		Responders:       Responders{Contributors: "WRITE"},
 		RequiresAssignee: true,
+		Responders:       []string{"MyOwner"},
 	},
 }}
 
@@ -192,7 +192,7 @@ func TestFindSLODoc(t *testing.T) {
 		},
 		{
 			name:     "File with SLO rules returns them",
-			owner:    Owner{name: "MyOrg"},
+			owner:    Owner{name: "MyOwner"},
 			repoName: "MyRepo",
 			mockContent: &github.RepositoryContent{
 				Type:    &file,
@@ -228,7 +228,6 @@ func TestFindSLODoc(t *testing.T) {
 					ComplianceSettings: ComplianceSettings{
 						ResponseTime:   time.Hour,
 						ResolutionTime: time.Second,
-						Responders:     Responders{Contributors: "WRITE"},
 					},
 				}},
 			},
@@ -254,7 +253,6 @@ func TestFindSLODoc(t *testing.T) {
 					ComplianceSettings: ComplianceSettings{
 						ResponseTime:   time.Hour,
 						ResolutionTime: time.Second,
-						Responders:     Responders{Contributors: "WRITE"},
 					},
 				}},
 			},
@@ -276,7 +274,6 @@ func TestFindSLODoc(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   time.Hour,
 					ResolutionTime: time.Second,
-					Responders:     Responders{Contributors: "WRITE"},
 				},
 			}},
 			wantErr: false,
@@ -310,7 +307,6 @@ func TestFindSLODoc(t *testing.T) {
 					ComplianceSettings: ComplianceSettings{
 						ResponseTime:   time.Hour,
 						ResolutionTime: time.Second,
-						Responders:     Responders{Contributors: "WRITE"},
 					},
 				}},
 			},
@@ -339,7 +335,6 @@ func TestFindSLODoc(t *testing.T) {
 					ComplianceSettings: ComplianceSettings{
 						ResponseTime:   time.Hour,
 						ResolutionTime: time.Second,
-						Responders:     Responders{Contributors: "WRITE"},
 					},
 				}},
 			},

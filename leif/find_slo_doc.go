@@ -85,7 +85,7 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 		if err != nil {
 			return nil, fmt.Errorf("Error finding SLO config: %w", err)
 		}
-		return unmarshalSLOs([]byte(file))
+		return unmarshalSLOs(ctx, []byte(file), owner.name, repoName, ghClient)
 	}
 
 	p := path.Join(gitHubDir, sloConfigFileName)
@@ -100,7 +100,7 @@ func findSLODoc(ctx context.Context, owner Owner, repoName string, ghClient *git
 		return nil, fmt.Errorf("Error finding SLO config: %w", err)
 	}
 
-	return unmarshalSLOs([]byte(file))
+	return unmarshalSLOs(ctx, []byte(file), owner.name, repoName, ghClient)
 }
 
 func fetchFile(ctx context.Context, ownerName string, repoName string, filePath string, ghClient *githubservices.Client) (string, error) {

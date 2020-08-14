@@ -236,21 +236,6 @@ func TestSlo(t *testing.T) {
 			wantBuildErr: false,
 		},
 		{
-			name: "Deep filter passes",
-			slo: &drghs_v1.SLO{
-				GithubLabels:     []string{"label"},
-				RequiresAssignee: true,
-				AppliesToPrs:     true,
-				Responders: &drghs_v1.Responders{
-					Contributors: 1,
-				},
-			},
-			filter:       "slo.responders.contributors == 1",
-			want:         true,
-			wantErr:      false,
-			wantBuildErr: false,
-		},
-		{
 			name: "Filters several fields passes",
 			slo: &drghs_v1.SLO{
 				RequiresAssignee: true,
