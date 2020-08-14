@@ -224,7 +224,7 @@ func TestMakeIssuePBFieldMask(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, err := makeIssuePB(ghIss, rID, false, false, test.fm)
+		got, err := makeIssuePB(ghIss, rID, false, false, test.fm, nil)
 		if err != nil {
 			t.Errorf("Unexpected error from makeIssuePB. Wanted nil, Got %v", err)
 		}
