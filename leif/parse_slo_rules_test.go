@@ -15,13 +15,18 @@
 package leif
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/GoogleCloudPlatform/devrel-services/leif/githubservices"
+	"github.com/google/go-github/github"
 )
 
-var defaultSLO = SLORule{AppliesTo: AppliesTo{Issues: true, PRs: false}, ComplianceSettings: ComplianceSettings{RequiresAssignee: false, Responders: Responders{Contributors: "WRITE"}}}
+var defaultSLO = SLORule{AppliesTo: AppliesTo{Issues: true, PRs: false}, ComplianceSettings: ComplianceSettings{RequiresAssignee: false, Responders: []string{"MyOwner"}}}
 
 var oneDay = 24 * time.Hour
 
@@ -90,7 +95,11 @@ func TestParseSLORules(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, err := unmarshalSLOs([]byte(test.jsonInput))
+
+		mock := new(githubservices.MockGithubRepositoryService)
+		client := githubservices.NewClient(nil, mock, nil)
+
+		got, err := unmarshalSLOs(context.Background(), []byte(test.jsonInput), "MyOwner", "repo", &client)
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
@@ -136,7 +145,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   time.Hour,
 					ResolutionTime: time.Second,
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -158,7 +167,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   (time.Duration(time.Hour + time.Minute + time.Second)),
 					ResolutionTime: (time.Duration(time.Second + time.Hour + oneDay)),
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -180,7 +189,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   (time.Duration((24 * time.Hour) + time.Hour + time.Minute + time.Second)),
 					ResolutionTime: (time.Duration(30 * 24 * time.Hour)),
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -202,7 +211,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: time.Duration(43200 * time.Second),
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -227,7 +236,7 @@ func TestParseSLORule(t *testing.T) {
 					"responseTime": 0,
 					"resolutionTime": 0,
 					"responders": {
-						"users": ["@jeff"]
+						"users": ["jeff"]
 					}
 				}
 			}`,
@@ -239,7 +248,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Users: []string{"@jeff"}},
+					Responders:     []string{"jeff", "MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -264,7 +273,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -289,7 +298,7 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Contributors: "WRITE"},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
@@ -314,15 +323,19 @@ func TestParseSLORule(t *testing.T) {
 				ComplianceSettings: ComplianceSettings{
 					ResponseTime:   0,
 					ResolutionTime: 0,
-					Responders:     Responders{Users: []string{}},
+					Responders:     []string{"MyOwner"},
 				},
 			},
 			wantErr: false,
 		},
 	}
 	for _, test := range tests {
+		mock := new(githubservices.MockGithubRepositoryService)
+		client := githubservices.NewClient(nil, mock, nil)
+
 		e := json.RawMessage(test.jsonInput)
-		got, err := parseSLORule(&e)
+		got, err := parseSLORule(context.Background(), &e, "MyOwner", "repo", &client)
+
 		if !reflect.DeepEqual(got, test.expected) {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.expected, got)
 		}
@@ -681,19 +694,222 @@ func TestSetResponderDefault(t *testing.T) {
 			current: &sloRuleJSON{
 				AppliesToJSON: AppliesToJSON{},
 				ComplianceSettingsJSON: ComplianceSettingsJSON{
-					RespondersJSON: RespondersJSON{OwnersRaw: []string{}},
+					RespondersJSON: RespondersJSON{Owners: []string{}},
 				},
 			},
 			expected: &sloRuleJSON{
 				AppliesToJSON: AppliesToJSON{},
 				ComplianceSettingsJSON: ComplianceSettingsJSON{
-					RespondersJSON: RespondersJSON{OwnersRaw: []string{}},
+					RespondersJSON: RespondersJSON{Owners: []string{}},
 				},
 			},
 		},
 	}
 	for _, c := range cases {
 		c.current.applyResponderDefault()
+		if !reflect.DeepEqual(c.current, c.expected) {
+			t.Errorf("%v did not pass. \n\tGot:\t%v\n\tWant:\t%v", c.name, c.current, c.expected)
+		}
+
+	}
+}
+
+func TestPrepareResponders(t *testing.T) {
+	userA := "userA"
+	userB := "userB"
+
+	ownerFileSample := `# This is a file for CODEOWNERS
+	# some comment
+	   @userA, @userB`
+
+	cases := []struct {
+		name        string
+		current     *RespondersJSON
+		owner       string
+		mockContent *github.RepositoryContent
+		mockUsers   []*github.User
+		mockError   error
+		expected    *RespondersJSON
+	}{
+		{
+			name:        "Owner is always a valid user",
+			current:     &RespondersJSON{},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers:   nil,
+			mockError:   nil,
+			expected:    &RespondersJSON{Users: []string{"kitty"}},
+		},
+		{
+			name:        "Does not add extra users",
+			current:     &RespondersJSON{Users: []string{"dog"}},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers:   nil,
+			mockError:   nil,
+			expected:    &RespondersJSON{Users: []string{"dog", "kitty"}},
+		},
+		{
+			name:        "Contributors = WRITE without users",
+			current:     &RespondersJSON{Contributors: "WRITE"},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers:   nil,
+			mockError:   nil,
+			expected: &RespondersJSON{
+				Contributors: "WRITE",
+				Users:        []string{"kitty"},
+			},
+		},
+		{
+			name:    "Contributors = WRITE without valid users",
+			current: &RespondersJSON{Contributors: "WRITE"},
+			owner:   "kitty",
+			mockUsers: []*github.User{
+				&github.User{
+					Login:       &userA,
+					Permissions: &map[string]bool{"admin": false, "pull": false, "push": false},
+				},
+				&github.User{
+					Login:       &userB,
+					Permissions: &map[string]bool{"admin": false, "pull": true, "push": false},
+				},
+			},
+			mockError: nil,
+			expected: &RespondersJSON{
+				Contributors: "WRITE",
+				Users:        []string{"kitty"},
+			},
+		},
+		{
+			name:        "Contributors = WRITE adds valid users",
+			current:     &RespondersJSON{Contributors: "WRITE"},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers: []*github.User{
+				&github.User{
+					Login:       &userA,
+					Permissions: &map[string]bool{"admin": false, "pull": true, "push": true},
+				},
+				&github.User{
+					Login:       &userB,
+					Permissions: &map[string]bool{"admin": false, "pull": true, "push": false},
+				},
+			},
+			mockError: nil,
+			expected: &RespondersJSON{
+				Contributors: "WRITE",
+				Users:        []string{"kitty", userA},
+			},
+		},
+		{
+			name:        "Contributors = ADMIN without valid users",
+			current:     &RespondersJSON{Contributors: "ADMIN"},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers: []*github.User{
+				&github.User{
+					Login:       &userA,
+					Permissions: &map[string]bool{"admin": false, "pull": true, "push": true},
+				},
+				&github.User{
+					Login:       &userB,
+					Permissions: &map[string]bool{"admin": false, "pull": true, "push": false},
+				},
+			},
+			mockError: nil,
+			expected: &RespondersJSON{
+				Contributors: "ADMIN",
+				Users:        []string{"kitty"},
+			},
+		},
+		{
+			name:        "Contributors = ADMIN adds valid users",
+			current:     &RespondersJSON{Contributors: "ADMIN"},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers: []*github.User{
+				&github.User{
+					Login:       &userA,
+					Permissions: &map[string]bool{"admin": true, "pull": false, "push": false},
+				},
+				&github.User{
+					Login:       &userB,
+					Permissions: &map[string]bool{"admin": true, "pull": true, "push": true},
+				},
+			},
+			mockError: nil,
+			expected: &RespondersJSON{
+				Contributors: "ADMIN",
+				Users:        []string{"kitty", userA, userB},
+			},
+		},
+		{
+			name:        "Error from GitHub for contributors is ok",
+			current:     &RespondersJSON{Contributors: "ADMIN"},
+			owner:       "kitty",
+			mockContent: nil,
+			mockUsers:   nil,
+			mockError: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: 404,
+					Status:     "404 Not Found",
+					Request:    &http.Request{},
+				},
+				Message: "Not Found",
+			},
+			expected: &RespondersJSON{
+				Contributors: "ADMIN",
+				Users:        []string{"kitty"},
+			},
+		},
+		{
+			name:      "Owner file not found is ok",
+			current:   &RespondersJSON{Users: []string{"A", "B"}, Owners: []string{"filepath"}},
+			owner:     "kitty",
+			mockUsers: nil,
+			mockError: &github.ErrorResponse{
+				Response: &http.Response{
+					StatusCode: 404,
+					Status:     "404 Not Found",
+					Request:    &http.Request{},
+				},
+				Message: "Not Found",
+			},
+			expected: &RespondersJSON{
+				Owners: []string{"filepath"},
+				Users:  []string{"A", "B", "kitty"},
+			},
+		},
+		{
+			name:    "Owner file is parsed",
+			current: &RespondersJSON{Owners: []string{"filepath"}},
+			owner:   "kitty",
+			mockContent: &github.RepositoryContent{
+				Type:    &file,
+				Content: &ownerFileSample,
+			},
+			mockUsers: nil,
+			mockError: nil,
+			expected: &RespondersJSON{
+				Owners: []string{"filepath"},
+				Users:  []string{"kitty", userA, userB},
+			},
+		},
+	}
+	for _, c := range cases {
+
+		mock := new(githubservices.MockGithubRepositoryService)
+		mock.Owner = c.owner
+		mock.Repo = "repo"
+		mock.Users = c.mockUsers
+		mock.Content = c.mockContent
+		mock.Error = c.mockError
+
+		client := githubservices.NewClient(nil, mock, nil)
+
+		c.current.prepareForMarshalling(context.Background(), c.owner, "repo", &client)
+
 		if !reflect.DeepEqual(c.current, c.expected) {
 			t.Errorf("%v did not pass. \n\tGot:\t%v\n\tWant:\t%v", c.name, c.current, c.expected)
 		}
