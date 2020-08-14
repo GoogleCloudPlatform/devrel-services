@@ -4,6 +4,8 @@
 find and track their configuration files for service level objective (SLO) rules,
 periodically syncing to update the SLO rules, which are exposed over an API.
 
+![leif](https://vignette.wikia.nocookie.net/animalcrossing/images/1/1c/Leif_NH.png/revision/latest/top-crop/width/360/height/360?cb=20200630055201)
+
 
 ### SLO rules configuration
 
