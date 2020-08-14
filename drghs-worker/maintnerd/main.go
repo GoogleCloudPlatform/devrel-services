@@ -263,7 +263,7 @@ func getSlos(ctx context.Context, parent string) ([]*drghs_v1.SLO, error) {
 		grpc.WithBlock(),
 		grpc.WithUnaryInterceptor(
 			grpc_middleware.ChainUnaryClient(
-				grpctrace.UnaryClientInterceptor(global.Tracer("maintner-leif")),
+				grpctrace.UnaryClientInterceptor(global.Tracer("leif")),
 				buildRetryInterceptor(),
 			),
 		),
