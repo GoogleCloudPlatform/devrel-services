@@ -16,8 +16,10 @@ package sloutils
 
 import (
 	"testing"
+	"time"
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
+	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/build/maintner"
 )
 
@@ -233,7 +235,338 @@ func TestDoesSloApply(t *testing.T) {
 
 	for _, test := range tests {
 
-		got := DoesSloApply(test.slo, test.issue)
+		got := DoesSloApply(test.issue, test.slo)
+
+		if got != test.want {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.want, got)
+		}
+	}
+}
+
+func TestCompliantUntil(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name  string
+		slo   *drghs_v1.SLO
+		issue *maintner.GitHubIssue
+		want  int64
+	}{
+		{
+			name:  "Test nils",
+			slo:   nil,
+			issue: nil,
+			want:  0,
+		},
+		{
+			name: "Issue does not exist",
+			slo: &drghs_v1.SLO{
+				ResponseTime: ptypes.DurationProto(time.Second),
+			},
+			issue: &maintner.GitHubIssue{
+				NotExist: true,
+				Created:  time.Now().Add(-time.Minute),
+			},
+			want: 0,
+		},
+		{
+			name: "Issue requires assignee and has valid assignee",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				Responders:       []string{"user1"},
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Assignees: []*maintner.GitHubUser{
+					&maintner.GitHubUser{Login: "user2"},
+					&maintner.GitHubUser{Login: "user1"},
+				},
+			},
+			want: 0,
+		},
+		{
+			name: "Issue requires assignee and does not have a valid assignee",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				Responders:       []string{"user1"},
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Assignees: []*maintner.GitHubUser{
+					&maintner.GitHubUser{Login: "user2"},
+				},
+			},
+			want: -60,
+		},
+		{
+			name: "Issue has resolution time within SLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResolutionTime:   ptypes.DurationProto(time.Minute),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Second),
+				Closed:  false,
+			},
+			want: 59,
+		},
+		{
+			name: "Issue has resolution time OOSLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResolutionTime:   ptypes.DurationProto(time.Minute),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  false,
+			},
+			want: -60,
+		},
+		{
+			name: "Issue has resolution time OOSLO but is closed",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResolutionTime:   ptypes.DurationProto(time.Minute),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  true,
+			},
+			want: 0,
+		},
+		{
+			name: "Issue has response time within SLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Second),
+				Closed:  false,
+			},
+			want: 59,
+		},
+		{
+			name: "Issue has response time OOSLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  false,
+			},
+			want: -60,
+		},
+		{
+			name: "Issue has response time within SLO but resolution time OOSLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Hour),
+				ResolutionTime:   ptypes.DurationProto(time.Minute),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  false,
+			},
+			want: -60,
+		},
+		{
+			name: "Issue has resolution time within SLO but response time OOSLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute),
+				ResolutionTime:   ptypes.DurationProto(time.Hour),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  false,
+			},
+			want: -60,
+		},
+		{
+			name: "Both resolution and response time are OOSLO, OOSLO from response time first",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  false,
+			},
+			want: -60,
+		},
+		{
+			name: "Both resolution and response time are OOSLO, OOSLO from resolution time first",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute * 2),
+				Closed:  false,
+			},
+			want: -59,
+		},
+		{
+			name: "Both resolution and response time are in SLO, OOSLO from resolution time will happen first",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+			},
+			want: 1,
+		},
+		{
+			name: "Both resolution and response time are in SLO, OOSLO from response time will happen first",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: false,
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second*4),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+			},
+			want: 2,
+		},
+		{
+			name: "Requires and has assignee, with response and resolution time in SLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				Responders:       []string{"user1"},
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second*4),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+				Assignees: []*maintner.GitHubUser{
+					&maintner.GitHubUser{Login: "user1"},
+				},
+			},
+			want: 2,
+		},
+		{
+			name: "Requires and has assignee, with response time in SLO and resolution time OOSLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				Responders:       []string{"user1"},
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute - time.Second*4),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+				Assignees: []*maintner.GitHubUser{
+					&maintner.GitHubUser{Login: "user1"},
+				},
+			},
+			want: -4,
+		},
+		{
+			name: "Requires and has assignee, with response time OOSLO and resolution time in SLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				Responders:       []string{"user1"},
+				ResponseTime:     ptypes.DurationProto(time.Minute - time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second*4),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+				Assignees: []*maintner.GitHubUser{
+					&maintner.GitHubUser{Login: "user1"},
+				},
+			},
+			want: -2,
+		},
+		{
+			name: "No valid assignee but both resolution and response time are in SLO, OOSLO from response time will happen first",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute + time.Second*4),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+			},
+			want: -60,
+		},
+		{
+			name: "No valid assignee, with response time in SLO and resolution time OOSLO",
+			slo: &drghs_v1.SLO{
+				RequiresAssignee: true,
+				Responders:       []string{"user1"},
+				ResponseTime:     ptypes.DurationProto(time.Minute + time.Second*2),
+				ResolutionTime:   ptypes.DurationProto(time.Minute - time.Second*4),
+			},
+			issue: &maintner.GitHubIssue{
+				Created: now.Add(-time.Minute),
+				Closed:  false,
+				Assignees: []*maintner.GitHubUser{
+					&maintner.GitHubUser{Login: "user2"},
+				},
+			},
+			want: -60,
+		},
+	}
+
+	for _, test := range tests {
+
+		got := CompliantUntil(test.issue, test.slo, now)
+
+		if got != test.want {
+			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.want, got)
+		}
+	}
+}
+
+func TestEarliest(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name string
+		t1   time.Time
+		t2   time.Time
+		want time.Time
+	}{
+		{
+			name: "All zeroes",
+		},
+		{
+			name: "t1 before t2",
+			t1:   now,
+			t2:   now.Add(time.Second),
+			want: now,
+		},
+		{
+			name: "t2 before t1",
+			t1:   now.Add(time.Second),
+			t2:   now,
+			want: now,
+		},
+		{
+			name: "Zero value t1",
+			t2:   now,
+			want: now,
+		},
+		{
+			name: "Zero value t2",
+			t1:   now,
+			want: now,
+		},
+	}
+	for _, test := range tests {
+
+		got := earliest(test.t1, test.t2)
 
 		if got != test.want {
 			t.Errorf("%v did not pass.\n\tWant:\t%v\n\tGot:\t%v", test.name, test.want, got)
