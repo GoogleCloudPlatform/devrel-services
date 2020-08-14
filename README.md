@@ -21,6 +21,11 @@ to read a list of repositories, synchronize all the Issues and Pull Requests
 for each repository and expose an API to query these issues.
 It can be thought of as a giant in-memory cache.
 
+## leif
+
+This service takes a set of GitHub repositories and scans them for service-level objective (SLO) rules and exposes an API to query them. It is designed to be deployed to a
+[Kubernetes](https://kubernetes.io) cluster.
+
 ## magic-github-proxy
 
 This service is a slight fork of [Thea Flowers](https://github.com/theacodes)'s
