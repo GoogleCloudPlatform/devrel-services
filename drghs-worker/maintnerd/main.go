@@ -40,6 +40,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 
 	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -203,6 +204,9 @@ func main() {
 					grpctrace.UnaryServerInterceptor(global.Tracer("maintnerd")),
 					unaryInterceptorLog),
 			),
+			grpc.KeepaliveParams(keepalive.ServerParameters{
+				MaxConnectionIdle: 5 * time.Minute,
+			}),
 		)
 		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver)
 		drghs_v1.RegisterIssueServiceServer(grpcServer, s)
