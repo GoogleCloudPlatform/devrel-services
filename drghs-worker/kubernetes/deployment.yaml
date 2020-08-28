@@ -19,7 +19,7 @@ metadata:
   labels:
     app: maintnerd-rtr
 spec:
-  replicas: 1
+  replicas: 5
   strategy:
     type: Recreate
   selector:
@@ -72,11 +72,13 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:80"]
           initialDelaySeconds: 10
           periodSeconds: 3
+          timeoutSeconds: 10
         livenessProbe:
           exec:
             command: ["/bin/grpc_health_probe", "-addr=:80"]
           initialDelaySeconds: 10
           periodSeconds: 3
+          timeoutSeconds: 10
         ports:
         - containerPort: 80
         env:
