@@ -19,7 +19,7 @@ metadata:
   labels:
     app: maintnerd-rtr
 spec:
-  replicas: 1
+  replicas: 5
   strategy:
     type: Recreate
   selector:
