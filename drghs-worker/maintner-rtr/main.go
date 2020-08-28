@@ -337,7 +337,7 @@ func (s *reverseProxyServer) checkRepoIsTracked(mr *repos.TrackedRepository) boo
 		if !r.IsTrackingIssues {
 			continue
 		}
-		if mrs == tr.String() {
+		if mrs == r.String() {
 			tr = &r
 			break
 		}
