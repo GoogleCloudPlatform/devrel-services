@@ -21,7 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestbuildTR(t *testing.T) {
+func TestBuildTR(t *testing.T) {
 	tests := []struct {
 		Name  string
 		Input string
