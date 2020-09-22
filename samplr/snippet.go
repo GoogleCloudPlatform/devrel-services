@@ -172,12 +172,7 @@ func CalculateSnippets(o, r string, iter git.CommitIter) ([]*Snippet, error) {
 			}
 
 			language := enry.GetLanguage(file.Name, []byte(content))
-			if language == "C#" {
-				language = "CSHARP"
-			} else if language == "C++" {
-				language = "CPP"
-			}
-			language = strings.ToUpper(language)
+			language = cleanLanguage(language)
 
 			fle := File{
 				FilePath:  file.Name,
@@ -535,4 +530,16 @@ func snippetsEquivalent(a SnippetVersion, b SnippetVersion) bool {
 	}
 	// Last case, check the file paths are the same
 	return a.File.FilePath == b.File.FilePath && strEq(a.Lines, b.Lines)
+}
+
+func cleanLanguage(language string) string {
+	if language == "C#" {
+		language = "CSHARP"
+	} else if language == "C++" {
+		language = "CPP"
+	}
+	language = strings.ToUpper(language)
+	language = strings.ReplaceAll(language, " ", "_")
+
+	return language
 }
