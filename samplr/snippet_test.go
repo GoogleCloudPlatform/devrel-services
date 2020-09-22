@@ -1240,8 +1240,13 @@ func TestCleanLanguage(t *testing.T) {
 		},
 		{
 			Name:     "Spaces to underscores",
-			Language: "Maven Pom",
-			Want:     "MAVEN_POM",
+			Language: "Ma ven Pom",
+			Want:     "MA_VEN_POM",
+		},
+		{
+			Name:     "Hyphens to underscores",
+			Language: "Ma-ven-Pom",
+			Want:     "MA_VEN_POM",
 		},
 	}
 	for _, c := range cases {

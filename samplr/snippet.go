@@ -540,6 +540,7 @@ func cleanLanguage(language string) string {
 	}
 	language = strings.ToUpper(language)
 	language = strings.ReplaceAll(language, " ", "_")
+	language = strings.ReplaceAll(language, "-", "_")
 
 	return language
 }
