@@ -95,6 +95,12 @@ REPOS_FILE_NAME ?= public_repos.json
 
 These defaults are largely the same for dev and prod, but there are noteable differences
 
+---
+> __**Important!**__ After Deploying, it is necessary to find the container that is responsible for
+running googleapis/google-cloud-java and manually editing the Memory Requests and Limits to be
+3.5G and 4G respectively. This Repository has much higher memory requirements than all others.
+---
+
 ### Deploy to DEV
 
 ```bash
