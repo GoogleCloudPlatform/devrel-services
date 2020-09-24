@@ -104,6 +104,7 @@ running googleapis/google-cloud-java and manually editing the Memory Requests an
 ### Deploy to DEV
 
 ```bash
+# Ensure you are using the dev project
 export GCP_CLUSTER_NAME=devrel-dev-cluster
 make deploy
 ```
@@ -111,6 +112,7 @@ make deploy
 ### Deploy to PROD
 
 ```bash
+# Ensure you are using the prod project
 export GCS_BUCKET_NAME=devrel-prod-settings
 make deploy
 ```
