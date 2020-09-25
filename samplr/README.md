@@ -54,7 +54,7 @@ samplrctl snippets list /tmp/local-repository
 
 ## Testing
 
-To test the samplr code `cd` into the samplr directory and run
+To test the `samplr` code `cd` into the `samplr` directory and run
 
 ```bash
 go test -v -race ./...
@@ -140,7 +140,22 @@ kubectl deployments list -l owner=foo,repository=bar,samplr-sprvsr-autogen=true
 
 That should return the singular Deployment responsible for that Repository.
 
-Head over to the GKE Cloud Console to do further inspection and analysis
+Go to the Kubernetes Engine Section of the Cloud Console, click the
+"Workloads" tab and search for `Name:{DEPLOYMENT_NAME}`. Clicking on it
+will bring you to a drill down view where you can see certain metrics about
+the Deployment (most interesting are CPU and Memory utilization). There are also
+links to the Container's logs.
+
+#### Key Things to Look At
+
+* The number of times a Pod has been restarted. If that number is
+relatively high (more than about 10), this might indicate a deeper
+issue with either Memory Consumption or resource allocation
+* `CrashLoopBackoff` Errors indicate that the Pod started successfully
+an ran for a while, but encountered an error and returned a non-zero exit
+code, was restarted and **continued** to return non-zero exit codes.
+This usually indicates a code-related problem that can be reproduced
+by running `samplr` locally.
 
 ### Restarting Problematic Pods
 
@@ -181,10 +196,10 @@ kubectl delete pod {POD_NAME}
 
 ### Running Locally
 
-When running locally, its usually best to run samplr in a container (though it is
+When running locally, its usually best to run `samplr` in a container (though it is
 possible to run it without it)
 
-To build the images, `cd` into the samplr directory and run `make build` to build
+To build the images, `cd` into the `samplr` directory and run `make build` to build
 the Docker images locally, then run
 
 ```bash
@@ -211,6 +226,6 @@ docker stats
 ```
 
 This will bring up a TUI which displays statistics over your running containers.
-For samplr, the most interesting (and important) is the RAM and memory usage.
+For `samplr`, the most interesting (and important) is the RAM and memory usage.
 
 This is best run in a seperate window or `tmux` session.
