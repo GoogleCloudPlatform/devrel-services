@@ -15,6 +15,7 @@
 package git
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -41,6 +42,10 @@ const (
 
 // ReferenceName reference name's
 type ReferenceName string
+
+func FullyQualifiedReferenceName(n string) ReferenceName {
+	return ReferenceName(fmt.Sprintf("refs/heads/%v", n))
+}
 
 // Reference represents a Git Reference
 type Reference struct {
