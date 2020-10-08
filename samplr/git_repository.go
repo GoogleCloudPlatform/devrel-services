@@ -29,12 +29,13 @@ import (
 var urlReg = regexp.MustCompile("https://github.com/([\\w-_]+)/([\\w-_]+)")
 
 type watchedGitRepo struct {
-	id         string
-	repository *git.Repository
-	c          *Corpus
-	snippets   map[string][]*Snippet
-	commits    map[string][]*GitCommit
-	mu         sync.RWMutex
+	id          string
+	repository  *git.Repository
+	branch_name git.ReferenceName
+	c           *Corpus
+	snippets    map[string][]*Snippet
+	commits     map[string][]*GitCommit
+	mu          sync.RWMutex
 }
 
 func (w *watchedGitRepo) ID() string {
@@ -60,12 +61,12 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 	}
 
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.Master {
+		if ref.Name() != w.branch_name {
 			return nil
 		}
 
 		// Explicitly pull origin/master
-		err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin", ReferenceName: git.Master})
+		err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin", ReferenceName: w.branch_name})
 		if err != nil && err != git.ErrAlreadyUpToDate {
 			log.Errorf("got error pulling commits: %v", err)
 			return err
@@ -83,7 +84,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		return err
 	}
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.Master {
+		if ref.Name() != w.branch_name {
 			return nil
 		}
 
@@ -121,7 +122,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		return err
 	}
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.Master {
+		if ref.Name() != w.branch_name {
 			return nil
 		}
 		name := ref.Name()
@@ -201,14 +202,16 @@ func (w *watchedGitRepo) ForEachGitCommitF(fn func(g *GitCommit) error, filter f
 }
 
 // TrackGit instructs the Corpus to track a Git Repository at the given url
-func (c *Corpus) TrackGit(url string) error {
+// and branch
+func (c *Corpus) TrackGit(url string, branch string) error {
 	dirname, err := ioutil.TempDir("", "samplr-")
 	if err != nil {
 		log.Errorf("Could not get a temp dir when cloning %v. Err: %v", url, err)
 		return err
 	}
 	r, err := git.PlainClone(dirname, false, &git.CloneOptions{
-		URL: url,
+		URL:    url,
+		Branch: branch,
 	})
 	if err != nil {
 		log.Errorf("Error cloning: %v\n%v", url, err)
@@ -217,11 +220,12 @@ func (c *Corpus) TrackGit(url string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	wgh := &watchedGitRepo{
-		repository: r,
-		c:          c,
-		id:         url,
-		snippets:   make(map[string][]*Snippet),
-		commits:    make(map[string][]*GitCommit),
+		repository:  r,
+		c:           c,
+		id:          url,
+		branch_name: git.FullyQualifiedReferenceName(branch),
+		snippets:    make(map[string][]*Snippet),
+		commits:     make(map[string][]*GitCommit),
 	}
 	c.watchedGitRepos = append(c.watchedGitRepos, wgh)
 	if c.gitReposToAdd != nil {

@@ -33,10 +33,11 @@ import (
 )
 
 var (
-	listen  = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
-	owner   = flag.String("owner", "", "Google Cloud Storage bucket to use for settings storage")
-	repo    = flag.String("repo", "", "File that contains the list of repositories")
-	verbose = flag.Bool("verbose", false, "Verbose logs")
+	listen         = flag.String("listen", "0.0.0.0:3009", "gRPC listen address")
+	owner          = flag.String("owner", "", "Google Cloud Storage bucket to use for settings storage")
+	repo           = flag.String("repo", "", "File that contains the list of repositories")
+	default_branch = flag.String("branch", "master", "Branch to track snippets from")
+	verbose        = flag.Bool("verbose", false, "Verbose logs")
 )
 
 var log *logrus.Logger
@@ -91,7 +92,7 @@ func main() {
 	repoPath := fmt.Sprintf("https://github.com/%v/%v", *owner, *repo)
 	loadGroup.Go(func() error {
 		log.Printf("Tracking repo: %s", repoPath)
-		return corpus.TrackGit(repoPath)
+		return corpus.TrackGit(repoPath, *default_branch)
 	})
 
 	if err := loadGroup.Wait(); err != nil {
