@@ -7,11 +7,10 @@ require (
 	github.com/GoogleCloudPlatform/devrel-services/repos v0.0.0
 	github.com/GoogleCloudPlatform/devrel-services/rtr v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/devrel-services/sprvsr v0.0.0
-
 	github.com/cespare/trie v0.0.0-20150610204604-3fe1a95cbba9 // indirect
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/protobuf v1.4.2
 	github.com/google/cel-go v0.3.0
-	github.com/google/go-cmp v0.3.0
+	github.com/google/go-cmp v0.5.0
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
