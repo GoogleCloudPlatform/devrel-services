@@ -29,13 +29,13 @@ import (
 var urlReg = regexp.MustCompile("https://github.com/([\\w-_]+)/([\\w-_]+)")
 
 type watchedGitRepo struct {
-	id          string
-	repository  *git.Repository
-	branch_name git.ReferenceName
-	c           *Corpus
-	snippets    map[string][]*Snippet
-	commits     map[string][]*GitCommit
-	mu          sync.RWMutex
+	id         string
+	repository *git.Repository
+	branchName git.ReferenceName
+	c          *Corpus
+	snippets   map[string][]*Snippet
+	commits    map[string][]*GitCommit
+	mu         sync.RWMutex
 }
 
 func (w *watchedGitRepo) ID() string {
@@ -61,12 +61,12 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 	}
 
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != w.branch_name {
+		if ref.Name() != w.branchName {
 			return nil
 		}
 
 		// Explicitly pull origin/master
-		err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin", ReferenceName: w.branch_name})
+		err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin", ReferenceName: w.branchName})
 		if err != nil && err != git.ErrAlreadyUpToDate {
 			log.Errorf("got error pulling commits: %v", err)
 			return err
@@ -84,7 +84,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		return err
 	}
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != w.branch_name {
+		if ref.Name() != w.branchName {
 			return nil
 		}
 
@@ -122,7 +122,7 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		return err
 	}
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != w.branch_name {
+		if ref.Name() != w.branchName {
 			return nil
 		}
 		name := ref.Name()
@@ -220,12 +220,12 @@ func (c *Corpus) TrackGit(url string, branch string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	wgh := &watchedGitRepo{
-		repository:  r,
-		c:           c,
-		id:          url,
-		branch_name: git.FullyQualifiedReferenceName(branch),
-		snippets:    make(map[string][]*Snippet),
-		commits:     make(map[string][]*GitCommit),
+		repository: r,
+		c:          c,
+		id:         url,
+		branchName: git.FullyQualifiedReferenceName(branch),
+		snippets:   make(map[string][]*Snippet),
+		commits:    make(map[string][]*GitCommit),
 	}
 	c.watchedGitRepos = append(c.watchedGitRepos, wgh)
 	if c.gitReposToAdd != nil {

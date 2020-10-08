@@ -43,6 +43,8 @@ const (
 // ReferenceName reference name's
 type ReferenceName string
 
+// FullyQualifiedReferenceName takes a simple branch name and returns
+// a ReferenceName appropriate for it. e.g. "main" => "refs/heads/main"
 func FullyQualifiedReferenceName(n string) ReferenceName {
 	return ReferenceName(fmt.Sprintf("refs/heads/%v", n))
 }
