@@ -264,7 +264,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 								fmt.Sprintf("--listen=:%v", samplrbackendport),
 								fmt.Sprintf("--owner=%v", ta.Owner),
 								fmt.Sprintf("--repo=%v", ta.Name),
-								fmt.Sprintf("--default_branch=%v", defaultBranch),
+								fmt.Sprintf("--branch=%v", defaultBranch),
 							},
 							Ports: []apiv1.ContainerPort{
 								{
