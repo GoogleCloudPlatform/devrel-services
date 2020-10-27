@@ -24,8 +24,9 @@ import (
 
 const defaultFilter = "true"
 
-// Snippet checks if the Snippet passes the given CEL expression.
-func Snippet(s *drghs_v1.Snippet, filter string) (bool, error) {
+// BuildSnippetFilter creates a cel Program based off of the given filter string
+func BuildSnippetFilter(filter string) (cel.Program, error) {
+
 	if filter == "" {
 		filter = defaultFilter
 	}
@@ -36,24 +37,32 @@ func Snippet(s *drghs_v1.Snippet, filter string) (bool, error) {
 			decls.NewIdent("snippet", decls.NewObjectType("drghs.v1.Snippet"), nil),
 		))
 
+	if err != nil {
+		return nil, err
+	}
+
 	parsed, issues := env.Parse(filter)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
 	checked, issues := env.Check(parsed)
 	if issues != nil && issues.Err() != nil {
-		return false, issues.Err()
+		return nil, issues.Err()
 	}
-	prg, err := env.Program(checked)
-	if err != nil {
-		return false, err
+	return env.Program(checked)
+}
+
+// Snippet checks if the Snippet passes the given CEL program.
+func Snippet(s *drghs_v1.Snippet, p cel.Program) (bool, error) {
+	if s == nil || p == nil {
+		return false, nil
 	}
 
 	// The `out` var contains the output of a successful evaluation.
 	// The `details' var would contain intermediate evalaution state if enabled as
 	// a cel.ProgramOption. This can be useful for visualizing how the `out` value
 	// was arrive at.
-	out, _, err := prg.Eval(map[string]interface{}{
+	out, _, err := p.Eval(map[string]interface{}{
 		"snippet": s,
 	})
 
