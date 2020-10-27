@@ -227,6 +227,10 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 	if err != nil {
 		return nil, err
 	}
+	defaultBranch := "master"
+	if ta.DefaultBranch != "" {
+		defaultBranch = ta.DefaultBranch
+	}
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dep,
@@ -244,7 +248,8 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": dep,
+						"app":    dep,
+						"branch": defaultBranch,
 					},
 				},
 				Spec: apiv1.PodSpec{
@@ -259,6 +264,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 								fmt.Sprintf("--listen=:%v", samplrbackendport),
 								fmt.Sprintf("--owner=%v", ta.Owner),
 								fmt.Sprintf("--repo=%v", ta.Name),
+								fmt.Sprintf("--branch=%v", defaultBranch),
 							},
 							Ports: []apiv1.ContainerPort{
 								{

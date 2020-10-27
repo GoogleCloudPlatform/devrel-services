@@ -76,7 +76,6 @@ require (
 	github.com/matryer/is v1.2.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mjibson/appstats v0.0.0-20151004071057-0542d5f0e87e // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d // indirect
 	github.com/pkg/sftp v1.11.0 // indirect
