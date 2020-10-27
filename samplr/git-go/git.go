@@ -105,8 +105,21 @@ func PlainClone(directory string, plain bool, options *CloneOptions) (repository
 	}
 
 	url := options.URL
+	branch := options.Branch
 
-	cloneCmd := exec.Command("git", "clone", "--single-branch", url, directory)
+	cmdargs := []string{
+		"clone",
+		"--single-branch",
+	}
+	if branch != "" {
+		cmdargs = append(cmdargs, "--branch", branch)
+	}
+
+	cmdargs = append(cmdargs, url, directory)
+
+	log.Infof("git clone-ing with args: %v", cmdargs)
+
+	cloneCmd := exec.Command("git", cmdargs...)
 	_, err = cloneCmd.Output()
 	if err != nil {
 		return nil, err
@@ -117,5 +130,6 @@ func PlainClone(directory string, plain bool, options *CloneOptions) (repository
 
 // CloneOptions stores options for cloning a Repository
 type CloneOptions struct {
-	URL string
+	URL    string
+	Branch string
 }
