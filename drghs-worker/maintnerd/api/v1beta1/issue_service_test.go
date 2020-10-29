@@ -171,6 +171,7 @@ func TestGetIssueID(t *testing.T) {
 		{"/api/v1/foo/bar/issues/1", -1},
 		{"/foo/bar/issues/1", -1},
 		{"foo/bar/issues/13", 13},
+		{"foo.bar/baz.biz/issues/12", 12},
 	}
 	for _, tt := range tests {
 		got := getIssueID(tt.id)
