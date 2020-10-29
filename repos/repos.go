@@ -32,7 +32,7 @@ type RepoList interface {
 type TrackedRepository struct {
 	Owner              string `json:"owner"`
 	Name               string `json:"name"`
-	DefaultBranch      string `json:"default_branch"`
+	DefaultBranch      string `json:"defaultBranch"`
 	IsTrackingIssues   bool   `json:"isTrackingIssues"`
 	IsTrackingSnippets bool   `json:"isTrackingSnippets"`
 }
