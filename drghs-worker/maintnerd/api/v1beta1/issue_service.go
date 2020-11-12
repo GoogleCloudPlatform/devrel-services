@@ -39,7 +39,7 @@ var _ drghs_v1.IssueServiceServer = &IssueServiceV1{}
 
 const defaultFilter = "true"
 
-var issueNumReg = regexp.MustCompile(`^[\w-]+\/[\w-]+\/issues/(\d+)$`)
+var issueNumReg = regexp.MustCompile(`^[\w.-]+\/[\w.-]+\/issues/(\d+)$`)
 
 // IssueServiceV1 is an implementation of the gRPC service drghs_v1.IssueServiceServer
 type IssueServiceV1 struct {
