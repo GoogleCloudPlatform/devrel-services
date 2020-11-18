@@ -25,7 +25,7 @@
 #
 
 # The (gcloud) test cluster that is being worked against
-GCP_CLUSTER_NAME ?= devrel-services
+GCP_CLUSTER_NAME ?= devrel-dev-cluster
 GCP_CLUSTER_ZONE ?= us-central1-a
 # The service account to run as
 SERVICE_ACCOUNT_SECRET_NAME ?= service-account-maintnerd
