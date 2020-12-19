@@ -51,3 +51,181 @@ e.g.
 ```bash
 samplrctl snippets list /tmp/local-repository
 ```
+
+## Testing
+
+To test the `samplr` code `cd` into the `samplr` directory and run
+
+```bash
+go test -v -race ./...
+```
+
+This will run the tests in the `samplr` directory as well as all subdirectories in it, recursively.
+
+### Integration Tests
+
+The integration tests take a bit longer to run, and require network access, so they require a special
+command line option to run: `-tags integration`
+
+```bash
+go test -v -tags integration ./...
+```
+
+This uses the Go `tag` feature, which is enabled by putting a comment in a file of form
+
+```go
+// +build TAGNAME
+```
+
+## Deploying
+
+The `Makefile` has several variables that can be overridden via environment variables
+in order to customize how the deployment occurs.
+
+```makefile
+# The (gcloud) test cluster that is being worked against
+GCP_CLUSTER_NAME ?= devrel-dev-cluster
+GCP_CLUSTER_ZONE ?= us-central1-a
+# The service account to run as
+SERVICE_ACCOUNT_SECRET_NAME ?= service-account-maintnerd
+# Bucket settings for Repositories
+GCS_BUCKET_NAME ?= devrel-dev-settings
+REPOS_FILE_NAME ?= public_repos.json
+```
+
+These defaults are largely the same for dev and prod, but there are noteable differences
+
+---
+> __**Important!**__ After Deploying, it is necessary to find the container that is responsible for
+running googleapis/google-cloud-java and manually editing the Memory Requests and Limits to be
+3.5G and 4G respectively. This Repository has much higher memory requirements than all others.
+---
+
+### Deploy to DEV
+
+```bash
+# Ensure you are using the dev project
+make deploy
+```
+
+### Deploy to PROD
+
+```bash
+# Ensure you are using the prod project
+# Override the Cluster Name
+export GCP_CLUSTER_NAME=devrel-services
+# Override the bucket name
+export GCS_BUCKET_NAME=devrel-prod-settings
+make deploy
+```
+
+### Notes
+
+The Deployment process is done via Cloud Build.
+
+The Deployment process is also done using the source code on your machine, as
+such local, potentially uncommitted or unreviewed changes may be pushed.
+
+## Debugging
+
+### Finding Problematic Deployments
+
+If you know that repository `bar` in organization `foo` is experiencing problems,
+finding the deployment that is responsible for handling that Repository can be
+done by running:
+
+```bash
+kubectl deployments list -l owner=foo,repository=bar,samplr-sprvsr-autogen=true
+```
+
+That should return the singular Deployment responsible for that Repository.
+
+Go to the Kubernetes Engine Section of the Cloud Console, click the
+"Workloads" tab and search for `Name:{DEPLOYMENT_NAME}`. Clicking on it
+will bring you to a drill down view where you can see certain metrics about
+the Deployment (most interesting are CPU and Memory utilization). There are also
+links to the Container's logs.
+
+#### Key Things to Look At
+
+* The number of times a Pod has been restarted. If that number is
+relatively high (more than about 10), this might indicate a deeper
+issue with either Memory Consumption or resource allocation
+* `CrashLoopBackoff` Errors indicate that the Pod started successfully
+an ran for a while, but encountered an error and returned a non-zero exit
+code, was restarted and **continued** to return non-zero exit codes.
+This usually indicates a code-related problem that can be reproduced
+by running `samplr` locally.
+
+### Restarting Problematic Pods
+
+There are two ways to "restart" a problematic pod.
+
+#### Scaling
+
+This is the "more correct" way to restart them, which is to scale
+the Deployment to 0, then re-scale it to one.
+
+```bash
+kubectl scale deployment --replicas=0 {DEPLOYMENT_NAME}
+```
+
+Wait for the scale to complete. Then run
+
+```bash
+kubectl scale deployment --replicas=1 {DEPLOYMENT_NAME}
+```
+
+#### Deleting Pods
+
+Because the replicas for a deployment is set to 1, simply 
+deleting the pod will cause Kubernetes to create a new one
+to satisfy the desired state of "1 Replicas".
+
+Get pod name
+
+```bash
+kubectl get pods -l owner=foo,repository=bar,samplr-sprvsr-autogen=true
+```
+
+Delete pod
+
+```bash
+kubectl delete pod {POD_NAME}
+```
+
+### Running Locally
+
+When running locally, its usually best to run `samplr` in a container (though it is
+possible to run it without it)
+
+To build the images, `cd` into the `samplr` directory and run `make build` to build
+the Docker images locally, then run
+
+```bash
+docker run -p 3009:3009 -it samplrd:dev samplrd --owner=foo --repository=bar
+```
+
+In order to run an instance of `samplr` in a container on your local machine.
+This command also forwards port 3009 on your machine to 3009 on the container's
+instance, which allows you to use tools such as BloomRPC in order to inspect the
+state of the container.
+
+If you are debugging issues with history parsing, it might be useful to mount
+your `/tmp/samplr` directory to the `/tmp` directory in the container in order
+to debug how the git repositories are being parsed.
+
+```bash
+docker run -p 3009:3009 -v /tmp/samplr:/tmp -it samplrd:dev samplrd --owner=foo --repository=bar
+```
+
+A useful tool to run while the container is running is the `docker stats` command.
+
+```bash
+docker stats
+```
+
+This will bring up a TUI which displays statistics over your running containers.
+For `samplr`, the most interesting (and important) is the RAM and memory usage.
+
+This is best run in a seperate window or `tmux` session.

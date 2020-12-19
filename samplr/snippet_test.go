@@ -1216,3 +1216,43 @@ func TestProcessPreviouslySeenSnippets(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanLanguage(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Language string
+		Want     string
+	}{
+		{
+			Name:     "Converts C#",
+			Language: "C#",
+			Want:     "CSHARP",
+		},
+		{
+			Name:     "Converts C++",
+			Language: "C++",
+			Want:     "CPP",
+		},
+		{
+			Name:     "Puts to uppercase",
+			Language: "Javascript",
+			Want:     "JAVASCRIPT",
+		},
+		{
+			Name:     "Spaces to underscores",
+			Language: "Ma ven Pom",
+			Want:     "MA_VEN_POM",
+		},
+		{
+			Name:     "Hyphens to underscores",
+			Language: "Ma-ven-Pom",
+			Want:     "MA_VEN_POM",
+		},
+	}
+	for _, c := range cases {
+		got := cleanLanguage(c.Language)
+		if diff := cmp.Diff(c.Want, got); diff != "" {
+			t.Errorf("%v failed. Diff (-want, +got)\n%v", c.Name, diff)
+		}
+	}
+}

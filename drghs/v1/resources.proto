@@ -151,19 +151,6 @@ message Owner {
   string name = 1;
 }
 
-message Responders {
-  repeated string owners = 1;
-
-  enum ContributorsType {
-    WRITE = 0;
-    ADMIN = 1;
-    OWNER = 2;
-  }
-
-  drghs.v1.Responders.ContributorsType contributors = 2;
-  repeated string users = 3;
-}
-
 message SLO {
   repeated string github_labels = 1;
   repeated string excluded_github_labels = 2;
@@ -172,5 +159,5 @@ message SLO {
   google.protobuf.Duration response_time = 5;
   google.protobuf.Duration resolution_time = 6;
   bool requires_assignee = 7;
-  Responders responders = 8;
+  repeated string responders = 8;
 }

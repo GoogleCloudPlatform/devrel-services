@@ -29,12 +29,14 @@ func TestRepositoryHasSnippet(t *testing.T) {
 	cases := []struct {
 		Name                string
 		URL                 string
+		Branch              string
 		SnippetName         string
 		WantMinimumVersions int
 	}{
 		{
 			Name:                "Handles Merges",
 			URL:                 "https://github.com/GoogleCloudPlatform/dotnet-docs-samples",
+			Branch:              "master",
 			SnippetName:         "owners/GoogleCloudPlatform/repositories/dotnet-docs-samples/snippets/bigtable_hw_imports/languages/CSHARP",
 			WantMinimumVersions: 2,
 		},
@@ -59,6 +61,7 @@ func TestRepositoryHasSnippet(t *testing.T) {
 			repository: r,
 			c:          cor,
 			id:         c.URL,
+			branchName: git.FullyQualifiedReferenceName(c.Branch),
 			snippets:   make(map[string][]*Snippet),
 			commits:    make(map[string][]*GitCommit),
 		}

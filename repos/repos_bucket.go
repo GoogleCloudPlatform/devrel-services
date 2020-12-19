@@ -66,6 +66,7 @@ func (r *bucketRepoList) GetTrackedRepos() []TrackedRepository {
 
 type bucketRepo struct {
 	Repo               string `json:"repo"`
+	DefaultBranch      string `json:"default_branch"`
 	IsTrackingIssues   bool   `json:"is_tracking_issues"`
 	IsTrackingSnippets bool   `json:"is_tracking_snippets"`
 }
@@ -111,6 +112,7 @@ func (r *bucketRepoList) getRepos(ctx context.Context) ([]TrackedRepository, err
 			Name:               parts[1],
 			IsTrackingIssues:   re.IsTrackingIssues,
 			IsTrackingSnippets: re.IsTrackingSnippets,
+			DefaultBranch:      re.DefaultBranch,
 		}
 		reps[i] = tr
 	}

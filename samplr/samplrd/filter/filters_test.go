@@ -26,27 +26,30 @@ import (
 
 func TestSnippet(t *testing.T) {
 	tests := []struct {
-		Name    string
-		Snippet *drghs_v1.Snippet
-		Filter  string
-		Want    bool
-		WantErr bool
+		Name         string
+		Snippet      *drghs_v1.Snippet
+		Filter       string
+		Want         bool
+		WantBuildErr bool
+		WantErr      bool
 	}{
 		{
-			Name:    "Empty Filter Passes",
-			Snippet: &drghs_v1.Snippet{},
-			Filter:  "",
-			Want:    true,
-			WantErr: false,
+			Name:         "Empty Filter Passes",
+			Snippet:      &drghs_v1.Snippet{},
+			Filter:       "",
+			Want:         true,
+			WantBuildErr: false,
+			WantErr:      false,
 		},
 		{
 			Name: "Filter name Passes",
 			Snippet: &drghs_v1.Snippet{
 				Name: "foo",
 			},
-			Filter:  "snippet.name == 'foo' ",
-			Want:    true,
-			WantErr: false,
+			Filter:       "snippet.name == 'foo' ",
+			Want:         true,
+			WantBuildErr: false,
+			WantErr:      false,
 		},
 		{
 			Name: "Deep filter Passes",
@@ -59,9 +62,10 @@ func TestSnippet(t *testing.T) {
 					},
 				},
 			},
-			Filter:  "snippet.primary.lines.size() > 1 ",
-			Want:    true,
-			WantErr: false,
+			Filter:       "snippet.primary.lines.size() > 1 ",
+			Want:         true,
+			WantBuildErr: false,
+			WantErr:      false,
 		},
 		{
 			Name: "Filter language Passes",
@@ -69,24 +73,31 @@ func TestSnippet(t *testing.T) {
 				Name:     "foo",
 				Language: "bar",
 			},
-			Filter:  "snippet.language == 'bar' ",
-			Want:    true,
-			WantErr: false,
+			Filter:       "snippet.language == 'bar' ",
+			Want:         true,
+			WantBuildErr: false,
+			WantErr:      false,
 		},
 		{
 			Name: "Unsupported Fields fail",
 			Snippet: &drghs_v1.Snippet{
 				Name: "foo",
 			},
-			Filter:  "baz == 'foo'",
-			Want:    false,
-			WantErr: true,
+			Filter:       "baz == 'foo'",
+			Want:         false,
+			WantBuildErr: true,
+			WantErr:      false,
 		},
 	}
 	for _, test := range tests {
-		got, goterr := Snippet(test.Snippet, test.Filter)
-		if (test.WantErr && goterr == nil) || (!test.WantErr && goterr != nil) {
-			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, goterr)
+		prgm, gotBuildErr := BuildSnippetFilter(test.Filter)
+
+		got, gotErr := Snippet(test.Snippet, prgm)
+		if (test.WantBuildErr && gotBuildErr == nil) || (!test.WantBuildErr && gotBuildErr != nil) {
+			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantBuildErr, gotBuildErr)
+		}
+		if (test.WantErr && gotErr == nil) || (!test.WantErr && gotErr != nil) {
+			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", test.Name, test.WantErr, gotErr)
 		}
 		if diff := cmp.Diff(test.Want, got); diff != "" {
 			t.Errorf("test: %v, values diff. match (-want +got)\n%s", test.Name, diff)
