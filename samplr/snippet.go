@@ -55,7 +55,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.cc$"),          // cpp
 	regexp.MustCompile("^.+\\.cs$"),          // csharp
 	regexp.MustCompile("^.+\\.css$"),         // css
-	regexp.MustCompile("^(?i)(dockerfile)$"), // dockerfile
+	regexp.MustCompile("^(?i).*dockerfile$"), // dockerfile
 	regexp.MustCompile("^.+\\.go$"),          // go
 	regexp.MustCompile("^.+\\.gs$"),          // apps_script
 	regexp.MustCompile("^.+\\.html$"),        // index.html, etc.
