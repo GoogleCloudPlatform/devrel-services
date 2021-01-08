@@ -165,6 +165,7 @@ func main() {
 		ServiceBuilder:    buildService,
 		DeploymentBuilder: bd,
 		PreDeploy:         preDeploy,
+		ShouldDeploy:      shouldDeploy,
 	}
 
 	super, err := sprvsr.NewK8sSupervisor(log, cs, kcfg, repoList, "samplr")
@@ -296,6 +297,10 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 
 func preDeploy(ta repos.TrackedRepository) error {
 	return nil
+}
+
+func shouldDeploy(ta repos.TrackedRepository) bool {
+	return ta.IsTrackingSamples
 }
 
 func int32Ptr(i int32) *int32 { return &i }

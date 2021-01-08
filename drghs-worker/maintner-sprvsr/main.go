@@ -418,4 +418,8 @@ func bucketName(t repos.TrackedRepository) string {
 	return path.Join(*mutationBucket)
 }
 
+func shouldDeploy(ta repos.TrackedRepository) bool {
+	return ta.IsTrackingIssues
+}
+
 func int32Ptr(i int32) *int32 { return &i }
