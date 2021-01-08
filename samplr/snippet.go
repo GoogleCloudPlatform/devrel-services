@@ -230,7 +230,7 @@ func extractSnippetVersionsFromFile(content string, nfmt string) (map[string]Sni
 
 	sampleMeta, err := parseSampleMetadata(content)
 	if err != nil {
-		return versionTags, err
+		log.Warnf("sample metadata invalid: %v", err)
 	}
 
 	for _, tag := range detectRegionTags(content) {

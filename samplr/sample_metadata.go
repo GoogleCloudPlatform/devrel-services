@@ -83,5 +83,8 @@ func parseSampleMetadata(content string) (*SampleMetadata, error) {
 	var sm SampleMetadata
 
 	err := yaml.Unmarshal([]byte(ymlcom.String()), &sm)
-	return &sm, err
+	if err != nil {
+		return nil, err
+	}
+	return &sm, nil
 }
