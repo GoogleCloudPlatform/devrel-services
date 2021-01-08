@@ -175,6 +175,7 @@ func main() {
 		ServiceBuilder:    buildService,
 		DeploymentBuilder: cdeployment,
 		PreDeploy:         preDeploy,
+		ShouldDeploy:      shouldDeploy,
 	}
 
 	super, err := sprvsr.NewK8sSupervisor(log, cs, kcfg, repoList, "maintner")
