@@ -114,6 +114,18 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo/Dockerfile",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "/bar/foo/dockerfile",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "DOCKERFILE",
 			},
 			expected: true,
