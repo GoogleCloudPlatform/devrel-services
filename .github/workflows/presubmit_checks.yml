@@ -10,13 +10,11 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Add GOPATH/bin to PATH
-      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Lint
       run: |
         go get -u golang.org/x/lint/golint
@@ -31,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -49,7 +47,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -62,8 +60,6 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Add GOPATH/bin to PATH
-      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Install dependencies
       run: ./go.get.sh
     # Unit Tests
@@ -86,7 +82,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -99,8 +95,6 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Add GOPATH/bin to PATH
-      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Install dependencies
       run: ./go.get.sh
     # Integration Tests
