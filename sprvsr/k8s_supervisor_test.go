@@ -184,6 +184,7 @@ func TestUpdateMultipleLeavesThingsAlone(t *testing.T) {
 					Owner:             "foo",
 					Name:              "bar",
 					IsTrackingSamples: true,
+					DefaultBranch:     "master",
 				},
 				// Should be skipped
 				repos.TrackedRepository{
@@ -249,11 +250,13 @@ func TestNewReposAreAdded(t *testing.T) {
 					Owner:             "foo",
 					Name:              "bar",
 					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
 					Owner:             "beep",
 					Name:              "boop",
 					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 			},
 			{
@@ -261,16 +264,19 @@ func TestNewReposAreAdded(t *testing.T) {
 					Owner:             "foo",
 					Name:              "bar",
 					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
 					Owner:             "beep",
 					Name:              "boop",
 					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
 					Owner:             "baz",
 					Name:              "biz",
 					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 			},
 		},
@@ -358,16 +364,19 @@ func TestDeletedReposAreRemoved(t *testing.T) {
 					Owner:             "foo",
 					Name:              "bar",
 					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
 					Owner:             "baz",
 					Name:              "biz",
 					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
 					Owner:             "beep",
 					Name:              "boop",
 					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 			},
 			{
@@ -375,11 +384,13 @@ func TestDeletedReposAreRemoved(t *testing.T) {
 					Owner:             "foo",
 					Name:              "bar",
 					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
 					Owner:             "beep",
 					Name:              "boop",
 					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 			},
 		},

@@ -355,6 +355,13 @@ func createDeployment(cs kubernetes.Interface, ns string, lblkey string, db Depl
 	d.ObjectMeta.Labels["owner"] = ta.Owner
 	d.ObjectMeta.Labels["repository"] = ta.Name
 
+	// Add the branch to the deployment labels
+	defaultBranch := "master"
+	if ta.DefaultBranch != "" {
+		defaultBranch = ta.DefaultBranch
+	}
+	d.ObjectMeta.Labels["branch"] = defaultBranch
+
 	// Give the pods our uinque label
 	if d.Spec.Template.ObjectMeta.Labels == nil {
 		d.Spec.Template.ObjectMeta.Labels = make(map[string]string, 0)

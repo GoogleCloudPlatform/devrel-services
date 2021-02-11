@@ -235,9 +235,6 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dep,
-			Labels: map[string]string{
-				"branch": defaultBranch,
-			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: int32Ptr(1),
