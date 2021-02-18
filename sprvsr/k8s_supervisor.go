@@ -190,7 +190,7 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 		for _, i := range d.Spec.Template.Spec.Containers {
 			imgs = append(imgs, i.Image)
 		}
-		name := fmt.Sprintf("%v-%v", tr.String(), strings.Join(imgs, "/"))
+		name := fmt.Sprintf("%v-%v-%v", tr.String(), strings.Join(imgs, "/"), tr.DefaultBranch)
 		trSet[name] = tr
 	}
 
@@ -236,11 +236,14 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 			Owner: o,
 			Name:  r,
 		}
+		if db, ok := deployment.Labels["branch"]; ok {
+			tr.DefaultBranch = db
+		}
 		imgs := make([]string, 0)
 		for _, c := range deployment.Spec.Template.Spec.Containers {
 			imgs = append(imgs, c.Image)
 		}
-		name := fmt.Sprintf("%v-%v", tr.String(), strings.Join(imgs, "/"))
+		name := fmt.Sprintf("%v-%v-%v", tr.String(), strings.Join(imgs, "/"), tr.DefaultBranch)
 		deploymentsSet[name] = tr
 	}
 
@@ -351,6 +354,13 @@ func createDeployment(cs kubernetes.Interface, ns string, lblkey string, db Depl
 	// Add Owner and repository labels to the deployment
 	d.ObjectMeta.Labels["owner"] = ta.Owner
 	d.ObjectMeta.Labels["repository"] = ta.Name
+
+	// Add the branch to the deployment labels
+	defaultBranch := "master"
+	if ta.DefaultBranch != "" {
+		defaultBranch = ta.DefaultBranch
+	}
+	d.ObjectMeta.Labels["branch"] = defaultBranch
 
 	// Give the pods our uinque label
 	if d.Spec.Template.ObjectMeta.Labels == nil {
