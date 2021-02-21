@@ -16,9 +16,12 @@ package v1beta1
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
+	"time"
 
+	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/sloutils"
 	"github.com/GoogleCloudPlatform/devrel-services/drghs-worker/pkg/utils"
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"google.golang.org/genproto/protobuf/field_mask"
@@ -70,7 +73,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, includeComments bool, includeReviews bool, fm *field_mask.FieldMask) (*drghs_v1.Issue, error) {
+func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, includeComments bool, includeReviews bool, fm *field_mask.FieldMask, slos []*drghs_v1.SLO) (*drghs_v1.Issue, error) {
 	paths := fm.GetPaths()
 	riss := &drghs_v1.Issue{}
 
@@ -217,6 +220,22 @@ func makeIssuePB(issue *maintner.GitHubIssue, rID maintner.GitHubRepoID, include
 			return nil, err
 		}
 	}
+
+	var sloBudget int64
+	sloBudget = math.MaxInt64
+	for _, slo := range slos {
+		if sloutils.DoesSloApply(issue, slo) {
+			compliantUntil := sloutils.CompliantUntil(issue, slo, time.Now())
+			if compliantUntil < sloBudget {
+				sloBudget = compliantUntil
+			}
+		}
+	}
+	if sloBudget == math.MaxInt64 {
+		sloBudget = 0
+	}
+
+	riss.SloBudget = sloBudget
 
 	return riss, nil
 }

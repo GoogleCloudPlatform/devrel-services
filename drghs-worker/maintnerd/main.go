@@ -68,6 +68,7 @@ var (
 	corpus          = &maintner.Corpus{}
 	googlerResolver googlers.Resolver
 	errorClient     *errorreporting.Client
+	slos            = &[]*drghs_v1.SLO{}
 )
 
 func main() {
@@ -208,7 +209,7 @@ func main() {
 				MaxConnectionIdle: 5 * time.Minute,
 			}),
 		)
-		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver)
+		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver, slos)
 		drghs_v1.RegisterIssueServiceServer(grpcServer, s)
 		healthpb.RegisterHealthServer(grpcServer, s)
 

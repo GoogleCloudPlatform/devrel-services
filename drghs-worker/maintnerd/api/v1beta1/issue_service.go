@@ -47,11 +47,12 @@ type IssueServiceV1 struct {
 	rp              *repoPaginator
 	ip              *issuePaginator
 	googlerResolver googlers.Resolver
+	slos            *[]*drghs_v1.SLO
 }
 
 // NewIssueServiceV1 returns a service that implements
 // drghs_v1.IssueServiceServer
-func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *IssueServiceV1 {
+func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver, slos *[]*drghs_v1.SLO) *IssueServiceV1 {
 	return &IssueServiceV1{
 		corpus: corpus,
 		rp: &repoPaginator{
@@ -60,6 +61,7 @@ func NewIssueServiceV1(corpus *maintner.Corpus, resolver googlers.Resolver) *Iss
 		ip: &issuePaginator{
 			set: make(map[time.Time]issuePage),
 		},
+		slos: slos,
 	}
 }
 
@@ -181,7 +183,7 @@ func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 					return nil
 				}
 
-				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
+				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask, *s.slos)
 				if err != nil {
 					return err
 				}
@@ -245,7 +247,7 @@ func (s *IssueServiceV1) GetIssue(ctx context.Context, r *drghs_v1.GetIssueReque
 			return nil
 		}
 
-		re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
+		re, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask, *s.slos)
 		if err != nil {
 			return err
 		}

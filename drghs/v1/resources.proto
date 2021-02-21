@@ -104,6 +104,7 @@ message Issue {
   string repo = 23;
   bool blocked = 24;
   bool release_blocking = 25;
+  int64 slo_budget = 26;
 }
 
 message File {
