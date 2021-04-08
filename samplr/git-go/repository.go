@@ -35,14 +35,14 @@ const (
 )
 
 var (
-	commitItemRegExp = regexp.MustCompile(`(?m)Commit: (\w{40})\nAuthor: (.*)\nAuthor Email: (.*)\nAuthor Date: (.*)\nCommitter: (.*)\nCommitter Email: (.*)\nCommitter Date: (.*)\nSubject: (.*)\nBody:(.*)\nFiles:\n((^[ADRMC](\d{3})?\s+[\w-\.\/]+(\s+[\w-\.\/]+)?\n)+)*`)
-	fileNameRegex    = regexp.MustCompile(`^([\w\/\.-]+)$`)
+	commitItemRegExp = regexp.MustCompile(`(?m)Commit: (\w{40})\nAuthor: (.*)\nAuthor Email: (.*)\nAuthor Date: (.*)\nCommitter: (.*)\nCommitter Email: (.*)\nCommitter Date: (.*)\nSubject: (.*)\nBody:(.*)\nFiles:\n((^[ADRMC](\d{3})?\s+[\w-\.\/ ]+(\s+[\w-\.\/ ]+)?\n)+)*`)
+	fileNameRegex    = regexp.MustCompile(`^([\w \/\.-]+)$`)
 	refsRegex        = regexp.MustCompile(`(\w{40}) ([\w\/\-\.]+)`)
-	newRegex         = regexp.MustCompile(`^A\s+(?P<from>[\w\/\.-]+)$`)
-	goneRegex        = regexp.MustCompile(`^D\s+(?P<from>[\w\/\.-]+)$`)
-	modifiedRegex    = regexp.MustCompile(`^M\s+(?P<from>[\w\/\.-]+)$`)
-	renamedRegex     = regexp.MustCompile(`^R\d{3}\s+(?P<from>[\w\/\.-]+)\s+(?P<to>[\w/\.-]+)$`)
-	copyRegex        = regexp.MustCompile(`^C\d{3}\s+(?P<from>[\w\/\.-]+)\s+(?P<to>[\w/\.-]+)$`)
+	newRegex         = regexp.MustCompile(`^A\s+(?P<from>[\w \/\.-]+)$`)
+	goneRegex        = regexp.MustCompile(`^D\s+(?P<from>[\w \/\.-]+)$`)
+	modifiedRegex    = regexp.MustCompile(`^M\s+(?P<from>[\w \/\.-]+)$`)
+	renamedRegex     = regexp.MustCompile(`^R\d{3}\s+(?P<from>[\w \/\.-]+)\t(?P<to>[\w /\.-]+)$`)
+	copyRegex        = regexp.MustCompile(`^C\d{3}\s+(?P<from>[\w \/\.-]+)\t+(?P<to>[\w /\.-]+)$`)
 )
 
 // Repository stores information about a Git repository
