@@ -58,6 +58,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^(?i).*dockerfile$"), // dockerfile
 	regexp.MustCompile("^.+\\.go$"),          // go
 	regexp.MustCompile("^.+\\.gs$"),          // apps_script
+	regexp.MustCompile("^.+\\.groovy$"),      // groovy
 	regexp.MustCompile("^.+\\.html$"),        // index.html, etc.
 	regexp.MustCompile("^.+\\.jade$"),        // Node.js jade template files
 	regexp.MustCompile("^.+\\.java$"),        // java
@@ -70,6 +71,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.py$"),          // python
 	regexp.MustCompile("^.+\\.rb$"),          // ruby
 	regexp.MustCompile("^.+\\.ru$"),          // ruby
+	regexp.MustCompile("^.+\\.scala$"),       // scala
 	regexp.MustCompile("^.+\\.swift$"),       // swift
 	regexp.MustCompile("^.+\\.sh$"),          // bash
 	regexp.MustCompile("^.+\\.ts$"),          // TypeScript

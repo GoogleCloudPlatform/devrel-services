@@ -418,6 +418,18 @@ func TestValidatesFiles(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			file: &git.File{
+				Name: "bar/foo.scala",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.groovy",
+			},
+			expected: true,
+		},
 	}
 	for _, test := range tests {
 		if got := isValidFile(test.file); got != test.expected {
