@@ -215,14 +215,16 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 		)
 
 		if err != nil {
-			return nil, err
+			log.Warnf("got error dialing to repo: %v path: %v err: %v", tr.String(), pth, err)
+			continue
 		}
 
 		client := drghs_v1.NewIssueServiceClient(conn)
 		// Naive right now... every service has exactly one repo
 		srepos, err := getTrackedRepositories(ctx, client)
 		if err != nil {
-			return nil, err
+			log.Warnf("got error listing repositories for repo: %v path: %v err: %v", tr.String(), pth, err)
+			continue
 		}
 
 		resp.Repositories = append(resp.Repositories, srepos...)
