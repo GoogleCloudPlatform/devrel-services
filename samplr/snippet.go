@@ -74,6 +74,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.scala$"),       // scala
 	regexp.MustCompile("^.+\\.swift$"),       // swift
 	regexp.MustCompile("^.+\\.sh$"),          // bash
+	regexp.MustCompile("^.+\\.tf$"),          // Terraform (aka HCL)
 	regexp.MustCompile("^.+\\.ts$"),          // TypeScript
 	regexp.MustCompile("^.+\\.xml$"),         // pmx.xml etc.
 	regexp.MustCompile("^.+\\.yaml$"),        // app.yaml, etc.

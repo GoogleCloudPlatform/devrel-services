@@ -246,6 +246,12 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo.tf",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "foo.ts",
 			},
 			expected: true,
@@ -391,6 +397,12 @@ func TestValidatesFiles(t *testing.T) {
 		{
 			file: &git.File{
 				Name: "bar/foo.swift",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.tf",
 			},
 			expected: true,
 		},
