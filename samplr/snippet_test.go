@@ -150,6 +150,12 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo.hcl",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "foo.html",
 			},
 			expected: true,
@@ -204,6 +210,12 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo.nomad",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "foo.php",
 			},
 			expected: true,
@@ -252,7 +264,19 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo.tfvars",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "foo.ts",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "foo.workflow",
 			},
 			expected: true,
 		},
@@ -301,6 +325,12 @@ func TestValidatesFiles(t *testing.T) {
 		{
 			file: &git.File{
 				Name: "bar/foo.gs",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.hcl",
 			},
 			expected: true,
 		},
@@ -360,6 +390,12 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "bar/foo.nomad",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "bar/foo.php",
 			},
 			expected: true,
@@ -408,7 +444,19 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "bar/foo.tfvars",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "bar/foo.ts",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.workflow",
 			},
 			expected: true,
 		},

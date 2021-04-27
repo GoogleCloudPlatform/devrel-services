@@ -59,6 +59,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.go$"),          // go
 	regexp.MustCompile("^.+\\.gs$"),          // apps_script
 	regexp.MustCompile("^.+\\.groovy$"),      // groovy
+	regexp.MustCompile("^.+\\.hcl"),          // HCL
 	regexp.MustCompile("^.+\\.html$"),        // index.html, etc.
 	regexp.MustCompile("^.+\\.jade$"),        // Node.js jade template files
 	regexp.MustCompile("^.+\\.java$"),        // java
@@ -66,6 +67,7 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.json$"),        // package.json, etc.
 	regexp.MustCompile("^.+\\.(kt|kts)$"),    // kotlin
 	regexp.MustCompile("^.+\\.m$"),           // ios_objc
+	regexp.MustCompile("^.+\\.nomad$"),       // HCL
 	regexp.MustCompile("^.+\\.php$"),         // php
 	regexp.MustCompile("^.+\\.pug$"),         // Node.js pug template files
 	regexp.MustCompile("^.+\\.py$"),          // python
@@ -75,7 +77,9 @@ var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.swift$"),       // swift
 	regexp.MustCompile("^.+\\.sh$"),          // bash
 	regexp.MustCompile("^.+\\.tf$"),          // Terraform (aka HCL)
+	regexp.MustCompile("^.+\\.tfvars$"),      // Terraform (aka HCL)
 	regexp.MustCompile("^.+\\.ts$"),          // TypeScript
+	regexp.MustCompile("^.+\\.workflow$"),    // Workflow files (HCL)
 	regexp.MustCompile("^.+\\.xml$"),         // pmx.xml etc.
 	regexp.MustCompile("^.+\\.yaml$"),        // app.yaml, etc.
 	regexp.MustCompile("^.+\\.yml$"),         // app.yml, etc.
