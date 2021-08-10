@@ -20,7 +20,9 @@ import (
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/build/maintner"
+	"google.golang.org/genproto/protobuf/field_mask"
 )
 
 func TestIssueFilters(t *testing.T) {
@@ -158,6 +160,95 @@ func TestIssueFilters(t *testing.T) {
 		}
 		if diff := cmp.Diff(test.Want, got); diff != "" {
 			t.Errorf("test: %v, values diff. match (-want +got)\n%s", test.Name, diff)
+		}
+	}
+}
+
+func TestHandlesIssue(t *testing.T) {
+	cases := []struct {
+		Name    string
+		Issue   *maintner.GitHubIssue
+		RepoID  maintner.GitHubRepoID
+		Request *drghs_v1.ListIssuesRequest
+		Issues  []*drghs_v1.Issue
+		Want    []*drghs_v1.Issue
+		WantErr bool
+	}{
+		{
+			Name:  "Skips Not Exist",
+			Issue: &maintner.GitHubIssue{NotExist: true},
+			RepoID: maintner.GitHubRepoID{
+				Owner: "foo",
+				Repo:  "bar",
+			},
+			Request: &drghs_v1.ListIssuesRequest{},
+			Issues:  []*drghs_v1.Issue{},
+			Want:    []*drghs_v1.Issue{},
+			WantErr: false,
+		},
+		{
+			Name: "Adds with field mask",
+			Issue: &maintner.GitHubIssue{
+				Title:    "Foobar",
+				NotExist: false,
+				Closed:   true,
+			},
+			RepoID: maintner.GitHubRepoID{
+				Owner: "foo",
+				Repo:  "bar",
+			},
+			Issues: []*drghs_v1.Issue{},
+			Request: &drghs_v1.ListIssuesRequest{
+				Comments: false,
+				Reviews:  false,
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: true,
+				},
+				FieldMask: &field_mask.FieldMask{Paths: []string{"title"}},
+			},
+			Want: []*drghs_v1.Issue{
+				&drghs_v1.Issue{
+					Title: "Foobar",
+				},
+			},
+			WantErr: false,
+		},
+		{
+			Name: "Adds with field mask on false",
+			Issue: &maintner.GitHubIssue{
+				Title:    "Foobar",
+				NotExist: false,
+				Closed:   false,
+			},
+			RepoID: maintner.GitHubRepoID{
+				Owner: "foo",
+				Repo:  "bar",
+			},
+			Issues: []*drghs_v1.Issue{},
+			Request: &drghs_v1.ListIssuesRequest{
+				Comments: false,
+				Reviews:  false,
+				ClosedNullable: &drghs_v1.ListIssuesRequest_Closed{
+					Closed: false,
+				},
+				FieldMask: &field_mask.FieldMask{Paths: []string{"title"}},
+			},
+			Want: []*drghs_v1.Issue{
+				&drghs_v1.Issue{
+					Title: "Foobar",
+				},
+			},
+			WantErr: false,
+		},
+	}
+
+	for _, c := range cases {
+		got, goterr := handleIssue(c.Issue, c.RepoID, c.Request, c.Issues)
+		if (c.WantErr && goterr == nil) || (!c.WantErr && goterr != nil) {
+			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", c.Name, c.WantErr, goterr)
+		}
+		if diff := cmp.Diff(c.Want, got, cmpopts.IgnoreUnexported(drghs_v1.Issue{})); diff != "" {
+			t.Errorf("test: %v, values diff. match (-want +got)\n%s", c.Name, diff)
 		}
 	}
 }

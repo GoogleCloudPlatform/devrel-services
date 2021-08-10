@@ -177,24 +177,9 @@ func (s *IssueServiceV1) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesR
 			}
 
 			return repo.ForeachIssue(func(issue *maintner.GitHubIssue) error {
-				if issue.NotExist {
-					return nil
-				}
-
-				iss, err := makeIssuePB(issue, repo.ID(), r.Comments, r.Reviews, r.FieldMask)
-				if err != nil {
-					return err
-				}
-
-				should, err := filters.FilterIssue(iss, r)
-				if err != nil {
-					return err
-				}
-				if should {
-					// Add
-					issues = append(issues, iss)
-				}
-				return nil
+				i, err := handleIssue(issue, repo.ID(), r, issues)
+				issues = i
+				return err
 			})
 		})
 		if err != nil {
@@ -312,6 +297,28 @@ func getRepoPath(ta *maintner.GitHubRepo) string {
 
 func getIssueName(ta *maintner.GitHubRepo, iss *maintner.GitHubIssue) string {
 	return fmt.Sprintf("%v/%v/issues/%v", ta.ID().Owner, ta.ID().Repo, iss.Number)
+}
+
+func handleIssue(issue *maintner.GitHubIssue, rid maintner.GitHubRepoID, r *drghs_v1.ListIssuesRequest, issues []*drghs_v1.Issue) ([]*drghs_v1.Issue, error) {
+	if issue.NotExist {
+		return issues, nil
+	}
+
+	issClean, err := makeIssuePB(issue, rid, r.Comments, r.Reviews, nil)
+
+	should, err := filters.FilterIssue(issClean, r)
+	if err != nil {
+		return issues, err
+	}
+	if should {
+		// Add
+		iss, err := makeIssuePB(issue, rid, r.Comments, r.Reviews, r.FieldMask)
+		if err != nil {
+			return issues, err
+		}
+		return append(issues, iss), nil
+	}
+	return issues, nil
 }
 
 func getIssueID(issueName string) int {
