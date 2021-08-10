@@ -24,7 +24,6 @@ import (
 	"sync"
 
 	git "github.com/GoogleCloudPlatform/devrel-services/git-go"
-	"golang.org/x/sync/errgroup"
 )
 
 var urlReg = regexp.MustCompile("https://github.com/([\\w-_]+)/([\\w-_]+)")
@@ -32,6 +31,7 @@ var urlReg = regexp.MustCompile("https://github.com/([\\w-_]+)/([\\w-_]+)")
 type watchedGitRepo struct {
 	id         string
 	repository *git.Repository
+	branchName git.ReferenceName
 	c          *Corpus
 	snippets   map[string][]*Snippet
 	commits    map[string][]*GitCommit
@@ -53,56 +53,76 @@ func (w *watchedGitRepo) Update(ctx context.Context) error {
 		log.Trace("already up to date, and we have snippets, skipping update")
 		return nil
 	}
-	// Need to actually pull the remote in to get the new changes
 
-	err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin"})
-	if err != nil && err != git.ErrAlreadyUpToDate {
-		log.Errorf("got error pulling commits: %v", err)
-		return err
-	}
-
-	group, ctx := errgroup.WithContext(ctx)
 	refIter, err := w.repository.Branches()
 	if err != nil {
 		log.Printf("got error iterating branches %v", err)
 		return err
 	}
-	refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.OriginMaster {
+
+	err = refIter.ForEach(func(ref *git.Reference) error {
+		if ref.Name() != w.branchName {
 			return nil
 		}
+
+		// Explicitly pull origin/master
+		err = w.repository.PullContext(ctx, &git.PullOptions{RemoteName: "origin", ReferenceName: w.branchName})
+		if err != nil && err != git.ErrAlreadyUpToDate {
+			log.Errorf("got error pulling commits: %v", err)
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Errorf("got error during initial pull of branches: %v", err)
+	}
+
+	refIter, err = w.repository.Branches()
+	if err != nil {
+		log.Printf("got error iterating branches %v", err)
+		return err
+	}
+	err = refIter.ForEach(func(ref *git.Reference) error {
+		if ref.Name() != w.branchName {
+			return nil
+		}
+
 		name := ref.Name()
 		hash := ref.Hash()
 		log.Debugf("Repo %v... working on reference: %v, %v", w.ID(), name, hash)
-		group.Go(func() error {
-			cIter, err := w.repository.Log(&git.LogOptions{From: hash})
-			if err != nil {
-				log.Errorf("Error %v", err)
-				return err
-			}
-			snips, err := CalculateSnippets(w.Owner(), w.RepositoryName(), cIter)
-			if err != nil {
-				log.Errorf("Error calculating snippets for %s: %v", w.ID(), err)
-				return err
-			}
-			w.mu.Lock()
-			defer w.mu.Unlock()
-			w.snippets[name.String()] = snips
-			cIter = nil
-			return nil
-		})
+
+		cIter, err := w.repository.Log(&git.LogOptions{From: hash})
+		if err != nil {
+			log.Errorf("Error %v", err)
+			return err
+		}
+		snips, err := CalculateSnippets(w.Owner(), w.RepositoryName(), cIter)
+		if err != nil {
+			log.Errorf("Error calculating snippets for %s: %v", w.ID(), err)
+			return err
+		}
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		w.snippets[name.String()] = snips
+		cIter = nil
+
 		return nil
 	})
+	if err != nil {
+		log.Errorf("Error calculating snippets: %v", err)
+		return err
+	}
 	refIter = nil
-	err = group.Wait()
 	debug.FreeOSMemory()
+
 	refIter, err = w.repository.Branches()
 	if err != nil {
 		log.Printf("Error %v", err)
 		return err
 	}
 	err = refIter.ForEach(func(ref *git.Reference) error {
-		if ref.Name() != git.OriginMaster {
+		if ref.Name() != w.branchName {
 			return nil
 		}
 		name := ref.Name()
@@ -182,14 +202,16 @@ func (w *watchedGitRepo) ForEachGitCommitF(fn func(g *GitCommit) error, filter f
 }
 
 // TrackGit instructs the Corpus to track a Git Repository at the given url
-func (c *Corpus) TrackGit(url string) error {
+// and branch
+func (c *Corpus) TrackGit(url string, branch string) error {
 	dirname, err := ioutil.TempDir("", "samplr-")
 	if err != nil {
 		log.Errorf("Could not get a temp dir when cloning %v. Err: %v", url, err)
 		return err
 	}
 	r, err := git.PlainClone(dirname, false, &git.CloneOptions{
-		URL: url,
+		URL:    url,
+		Branch: branch,
 	})
 	if err != nil {
 		log.Errorf("Error cloning: %v\n%v", url, err)
@@ -201,6 +223,7 @@ func (c *Corpus) TrackGit(url string) error {
 		repository: r,
 		c:          c,
 		id:         url,
+		branchName: git.FullyQualifiedReferenceName(branch),
 		snippets:   make(map[string][]*Snippet),
 		commits:    make(map[string][]*GitCommit),
 	}

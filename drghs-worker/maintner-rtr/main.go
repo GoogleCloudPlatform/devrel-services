@@ -27,6 +27,7 @@ import (
 
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 	"github.com/GoogleCloudPlatform/devrel-services/repos"
+	"golang.org/x/sync/errgroup"
 
 	"cloud.google.com/go/errorreporting"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -34,7 +35,15 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"go.opentelemetry.io/otel/instrumentation/grpctrace"
+
+	"go.opentelemetry.io/otel/api/global"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 var (
@@ -104,15 +113,66 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
-	reverseProxy := &reverseProxyServer{
-		reps: rlist,
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(projectID))
+	if err != nil {
+		log.Fatalf("texporter.NewExporter: %v", err)
 	}
-	drghs_v1.RegisterIssueServiceServer(grpcServer, reverseProxy)
-	drghs_v1.RegisterIssueServiceAdminServer(grpcServer, reverseProxy)
-	healthpb.RegisterHealthServer(grpcServer, reverseProxy)
-	log.Printf("gRPC server listening on: %s", *listen)
-	grpcServer.Serve(lis)
+
+	config := sdktrace.Config{DefaultSampler: sdktrace.ProbabilitySampler(0.01)}
+	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(config), sdktrace.WithSyncer(exporter))
+	if err != nil {
+		log.Fatal(err)
+	}
+	global.SetTraceProvider(tp)
+
+	group, ctx := errgroup.WithContext(context.Background())
+
+	group.Go(func() error {
+		ticker := time.NewTicker(10 * time.Minute)
+		for t := range ticker.C {
+			log.Printf("Update tracked repo list at %v", t)
+			// Lock it for writes
+			// Sync
+			if _, err := rlist.UpdateTrackedRepos(ctx); err != nil {
+				log.Printf("Error during tracked repo update %v", err)
+			}
+			// Unlock
+		}
+		return nil
+	})
+
+	group.Go(func() error {
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(
+				grpc_middleware.ChainUnaryServer(
+					grpctrace.UnaryServerInterceptor(global.Tracer("maintner-rtr")),
+					unaryInterceptorLog,
+				),
+			),
+			grpc.KeepaliveParams(keepalive.ServerParameters{
+				MaxConnectionIdle: 5 * time.Minute,
+			}),
+		)
+		reverseProxy := &reverseProxyServer{
+			reps: rlist,
+		}
+
+		go func() {
+			select {
+			case <-ctx.Done():
+				grpcServer.GracefulStop()
+			}
+		}()
+
+		drghs_v1.RegisterIssueServiceServer(grpcServer, reverseProxy)
+		drghs_v1.RegisterIssueServiceAdminServer(grpcServer, reverseProxy)
+		healthpb.RegisterHealthServer(grpcServer, reverseProxy)
+		log.Printf("gRPC server listening on: %s", *listen)
+		return grpcServer.Serve(lis)
+	})
+
+	group.Wait()
 }
 
 type reverseProxyServer struct {
@@ -137,7 +197,7 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 			continue
 		}
 
-		pth, err := calculateHost(tr.String())
+		pth, err := calculateHost(&tr)
 		if err != nil {
 			return nil, err
 		}
@@ -146,17 +206,25 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 		conn, err := grpc.Dial(
 			pth,
 			grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+			grpc.WithUnaryInterceptor(
+				grpc_middleware.ChainUnaryClient(
+					grpctrace.UnaryClientInterceptor(global.Tracer("maintner-rtr")),
+					buildRetryInterceptor(),
+				),
+			),
 		)
+
 		if err != nil {
-			return nil, err
+			log.Warnf("got error dialing to repo: %v path: %v err: %v", tr.String(), pth, err)
+			continue
 		}
 
 		client := drghs_v1.NewIssueServiceClient(conn)
 		// Naive right now... every service has exactly one repo
 		srepos, err := getTrackedRepositories(ctx, client)
 		if err != nil {
-			return nil, err
+			log.Warnf("got error listing repositories for repo: %v path: %v err: %v", tr.String(), pth, err)
+			continue
 		}
 
 		resp.Repositories = append(resp.Repositories, srepos...)
@@ -165,15 +233,31 @@ func (s *reverseProxyServer) ListRepositories(ctx context.Context, r *drghs_v1.L
 }
 
 func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIssuesRequest) (*drghs_v1.ListIssuesResponse, error) {
-	pth, err := calculateHost(r.Parent)
+	tr := buildTR(r.Parent)
+
+	if tr == nil {
+		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("invalid parent: %v", r.Parent))
+	}
+
+	if is := s.checkRepoIsTracked(tr); !is {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("repository %v is not tracking issues", tr.String()))
+	}
+
+	pth, err := calculateHost(tr)
 	if err != nil {
 		return nil, err
 	}
+
 	conn, err := grpc.Dial(
 		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpctrace.UnaryClientInterceptor(global.Tracer("maintner-rtr")),
+				buildRetryInterceptor(),
+			),
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -185,15 +269,31 @@ func (s *reverseProxyServer) ListIssues(ctx context.Context, r *drghs_v1.ListIss
 }
 
 func (s *reverseProxyServer) GetIssue(ctx context.Context, r *drghs_v1.GetIssueRequest) (*drghs_v1.GetIssueResponse, error) {
-	pth, err := calculateHost(r.Name)
+	tr := buildTR(r.Name)
+
+	if tr == nil {
+		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("invalid parent: %v", r.Name))
+	}
+
+	if is := s.checkRepoIsTracked(tr); !is {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("repository %v is not tracking issues", tr.String()))
+	}
+
+	pth, err := calculateHost(tr)
 	if err != nil {
 		return nil, err
 	}
+
 	conn, err := grpc.Dial(
 		pth,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize)),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpctrace.UnaryClientInterceptor(global.Tracer("maintner-rtr")),
+				buildRetryInterceptor(),
+			),
+		),
 	)
 	if err != nil {
 		return nil, err
@@ -232,13 +332,23 @@ func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) 
 	return ret, nil
 }
 
-func calculateHost(path string) (string, error) {
-	// We might need to put some more real "smarts" to this logic
-	// in the event we need to handle the /v1/owners/*/repositories
-	// call, which asks for a list of all repositories in a given org.
-	// We might need to call out to a different API, but for now we can
-	// forward to "null"?
+func (s *reverseProxyServer) checkRepoIsTracked(mr *repos.TrackedRepository) bool {
+	var tr *repos.TrackedRepository
+	mrs := mr.String()
+	for _, r := range s.reps.GetTrackedRepos() {
+		if !r.IsTrackingIssues {
+			continue
+		}
+		if mrs == r.String() {
+			tr = &r
+			break
+		}
+	}
 
+	return tr != nil
+}
+
+func buildTR(path string) *repos.TrackedRepository {
 	// As of right now, this function assumes all calls into the
 	// proxy are of form /v1/owners/OWNERNAME/repositories/REPOSITORYNAME/issues/*
 	log.Tracef("Matching path againtst regex: %v", path)
@@ -252,24 +362,41 @@ func calculateHost(path string) (string, error) {
 			Owner: mtches[0][1],
 			Name:  mtches[0][2],
 		}
+		return &ta
+	}
+	return nil
+}
 
+func calculateHost(ta *repos.TrackedRepository) (string, error) {
+	// We might need to put some more real "smarts" to this logic
+	// in the event we need to handle the /v1/owners/*/repositories
+	// call, which asks for a list of all repositories in a given org.
+	// We might need to call out to a different API, but for now we can
+	// forward to "null"?
+
+	if ta != nil {
 		sn, err := serviceName(ta)
 		if err != nil {
 			return "", err
 		}
 		return sn + ":80", nil
 	}
+
 	log.Tracef("No match... returning null: %v", devnull)
 	return devnull, nil
 }
 
-func serviceName(t repos.TrackedRepository) (string, error) {
+func serviceName(t *repos.TrackedRepository) (string, error) {
 	return strings.ToLower(fmt.Sprintf("mtr-s-%s", t.RepoSha())), nil
 }
 
 func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
 	log.Tracef("Starting RPC: %v at %v", info.FullMethod, start)
+
+	// Used for Debugging incoming context and metadata issues
+	// md, _ := metadata.FromIncomingContext(ctx)
+	// log.Tracef("RPC: %v. Metadata: %v", info.FullMethod, md)
 
 	m, err := handler(ctx, req)
 	if err != nil {

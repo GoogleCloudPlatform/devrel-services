@@ -40,15 +40,26 @@ const (
 	linesFormat      = `L%v-L%v`
 )
 
-var fileWhitelist = []*regexp.Regexp{
+var fileDenylist = []*regexp.Regexp{
+	regexp.MustCompile("^\\."),                   // Dotfiles and Dotfolders at the root of the repo, e.g. .github/, .gitignore, etc.
+	regexp.MustCompile("/\\."),                   // Dotfiles and Dotfolders outside of the root of the repo, e.g. samples/.gitignore, etc.
+	regexp.MustCompile("^codecov\\.yaml$"),       // codecov.yaml
+	regexp.MustCompile("^license-checks\\.xml$"), // license-checks.xml
+	regexp.MustCompile("^renovate\\.json$"),      // renovate.json
+	regexp.MustCompile("^synth\\.py$"),           // synth.py
+}
+
+var fileAllowlist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.c$"),           // c
 	regexp.MustCompile("^.+\\.cpp$"),         // cpp
 	regexp.MustCompile("^.+\\.cc$"),          // cpp
 	regexp.MustCompile("^.+\\.cs$"),          // csharp
 	regexp.MustCompile("^.+\\.css$"),         // css
-	regexp.MustCompile("^(?i)(dockerfile)$"), // dockerfile
+	regexp.MustCompile("^(?i).*dockerfile$"), // dockerfile
 	regexp.MustCompile("^.+\\.go$"),          // go
 	regexp.MustCompile("^.+\\.gs$"),          // apps_script
+	regexp.MustCompile("^.+\\.groovy$"),      // groovy
+	regexp.MustCompile("^.+\\.hcl"),          // HCL
 	regexp.MustCompile("^.+\\.html$"),        // index.html, etc.
 	regexp.MustCompile("^.+\\.jade$"),        // Node.js jade template files
 	regexp.MustCompile("^.+\\.java$"),        // java
@@ -56,15 +67,22 @@ var fileWhitelist = []*regexp.Regexp{
 	regexp.MustCompile("^.+\\.json$"),        // package.json, etc.
 	regexp.MustCompile("^.+\\.(kt|kts)$"),    // kotlin
 	regexp.MustCompile("^.+\\.m$"),           // ios_objc
+	regexp.MustCompile("^.+\\.nomad$"),       // HCL
 	regexp.MustCompile("^.+\\.php$"),         // php
 	regexp.MustCompile("^.+\\.pug$"),         // Node.js pug template files
 	regexp.MustCompile("^.+\\.py$"),          // python
 	regexp.MustCompile("^.+\\.rb$"),          // ruby
 	regexp.MustCompile("^.+\\.ru$"),          // ruby
+	regexp.MustCompile("^.+\\.scala$"),       // scala
 	regexp.MustCompile("^.+\\.swift$"),       // swift
 	regexp.MustCompile("^.+\\.sh$"),          // bash
+	regexp.MustCompile("^.+\\.tf$"),          // Terraform (aka HCL)
+	regexp.MustCompile("^.+\\.tfvars$"),      // Terraform (aka HCL)
+	regexp.MustCompile("^.+\\.ts$"),          // TypeScript
+	regexp.MustCompile("^.+\\.workflow$"),    // Workflow files (HCL)
 	regexp.MustCompile("^.+\\.xml$"),         // pmx.xml etc.
 	regexp.MustCompile("^.+\\.yaml$"),        // app.yaml, etc.
+	regexp.MustCompile("^.+\\.yml$"),         // app.yml, etc.
 }
 
 // Snippet represents a snippet of code
@@ -161,12 +179,7 @@ func CalculateSnippets(o, r string, iter git.CommitIter) ([]*Snippet, error) {
 			}
 
 			language := enry.GetLanguage(file.Name, []byte(content))
-			if language == "C#" {
-				language = "CSHARP"
-			} else if language == "C++" {
-				language = "CPP"
-			}
-			language = strings.ToUpper(language)
+			language = cleanLanguage(language)
 
 			fle := File{
 				FilePath:  file.Name,
@@ -224,7 +237,7 @@ func extractSnippetVersionsFromFile(content string, nfmt string) (map[string]Sni
 
 	sampleMeta, err := parseSampleMetadata(content)
 	if err != nil {
-		return versionTags, err
+		log.Warnf("sample metadata invalid: %v", err)
 	}
 
 	for _, tag := range detectRegionTags(content) {
@@ -325,7 +338,12 @@ func detectRegionTags(content string) []string {
 }
 
 func isValidFile(file *git.File) bool {
-	for _, pattern := range fileWhitelist {
+	for _, pattern := range fileDenylist {
+		if pattern.MatchString(file.Name) {
+			return false
+		}
+	}
+	for _, pattern := range fileAllowlist {
 		if pattern.MatchString(file.Name) {
 			return true
 		}
@@ -519,4 +537,17 @@ func snippetsEquivalent(a SnippetVersion, b SnippetVersion) bool {
 	}
 	// Last case, check the file paths are the same
 	return a.File.FilePath == b.File.FilePath && strEq(a.Lines, b.Lines)
+}
+
+func cleanLanguage(language string) string {
+	if language == "C#" {
+		language = "CSHARP"
+	} else if language == "C++" {
+		language = "CPP"
+	}
+	language = strings.ToUpper(language)
+	language = strings.ReplaceAll(language, " ", "_")
+	language = strings.ReplaceAll(language, "-", "_")
+
+	return language
 }

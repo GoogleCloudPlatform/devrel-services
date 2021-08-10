@@ -165,6 +165,7 @@ func main() {
 		ServiceBuilder:    buildService,
 		DeploymentBuilder: bd,
 		PreDeploy:         preDeploy,
+		ShouldDeploy:      shouldDeploy,
 	}
 
 	super, err := sprvsr.NewK8sSupervisor(log, cs, kcfg, repoList, "samplr")
@@ -227,6 +228,10 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 	if err != nil {
 		return nil, err
 	}
+	defaultBranch := "master"
+	if ta.DefaultBranch != "" {
+		defaultBranch = ta.DefaultBranch
+	}
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dep,
@@ -244,7 +249,8 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": dep,
+						"app":    dep,
+						"branch": defaultBranch,
 					},
 				},
 				Spec: apiv1.PodSpec{
@@ -259,6 +265,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 								fmt.Sprintf("--listen=:%v", samplrbackendport),
 								fmt.Sprintf("--owner=%v", ta.Owner),
 								fmt.Sprintf("--repo=%v", ta.Name),
+								fmt.Sprintf("--branch=%v", defaultBranch),
 							},
 							Ports: []apiv1.ContainerPort{
 								{
@@ -277,7 +284,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 									apiv1.ResourceMemory: resource.MustParse("160M"),
 								},
 								Limits: apiv1.ResourceList{
-									apiv1.ResourceMemory: resource.MustParse("1.5G"),
+									apiv1.ResourceMemory: resource.MustParse("2.5G"),
 								},
 							},
 						},
@@ -290,6 +297,10 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 
 func preDeploy(ta repos.TrackedRepository) error {
 	return nil
+}
+
+func shouldDeploy(ta repos.TrackedRepository) bool {
+	return ta.IsTrackingSamples
 }
 
 func int32Ptr(i int32) *int32 { return &i }

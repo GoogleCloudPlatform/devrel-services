@@ -38,18 +38,30 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/instrumentation/grpctrace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+	"cloud.google.com/go/profiler"
 )
 
 var (
-	listen    = flag.String("listen", "0.0.0.0:6343", "listen address")
-	intListen = flag.String("intListen", "0.0.0:6344", "listen for internal service")
-	verbose   = flag.Bool("verbose", false, "enable verbose debug output")
-	bucket    = flag.String("bucket", "cdpe-maintner", "Google Cloud Storage bucket to use for log storage")
-	token     = flag.String("token", "", "Token to Access GitHub with")
-	projectID = flag.String("gcp-project", "", "The GCP Project this is using")
-	owner     = flag.String("owner", "", "The owner of the GitHub repository")
-	repo      = flag.String("repo", "", "The repository to track")
+	listen     = flag.String("listen", "0.0.0.0:6343", "listen address")
+	intListen  = flag.String("intListen", "0.0.0:6344", "listen for internal service")
+	sloAddress = flag.String("sloServer", "0.0.0:3009", "address of slo service")
+	verbose    = flag.Bool("verbose", false, "enable verbose debug output")
+	bucket     = flag.String("bucket", "cdpe-maintner", "Google Cloud Storage bucket to use for log storage")
+	token      = flag.String("token", "", "Token to Access GitHub with")
+	projectID  = flag.String("gcp-project", "", "The GCP Project this is using")
+	owner      = flag.String("owner", "", "The owner of the GitHub repository")
+	repo       = flag.String("repo", "", "The repository to track")
 )
 
 var (
@@ -98,6 +110,33 @@ func main() {
 		logAndPrintError(err)
 		log.Fatal(err)
 	}
+
+	cfg := profiler.Config{
+		Service:        fmt.Sprintf("maintnerd-%v-%v", strings.ToLower(*owner), strings.ToLower(*repo)),
+		ServiceVersion: "0.0.3",
+		ProjectID:      *projectID,
+
+		// For OpenCensus users:
+		// To see Profiler agent spans in APM backend,
+		// set EnableOCTelemetry to true
+		//EnableOCTelemetry: true,
+	}
+
+	if err := profiler.Start(cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	exporter, err := texporter.NewExporter(texporter.WithProjectID(*projectID))
+	if err != nil {
+		log.Fatalf("texporter.NewExporter: %v", err)
+	}
+
+	config := sdktrace.Config{DefaultSampler: sdktrace.ProbabilitySampler(0.01)}
+	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(config), sdktrace.WithSyncer(exporter))
+	if err != nil {
+		log.Fatal(err)
+	}
+	global.SetTraceProvider(tp)
 
 	const qps = 1
 	limit := rate.Every(time.Second / qps)
@@ -159,7 +198,16 @@ func main() {
 
 	group.Go(func() error {
 		// Add gRPC service for v1beta1
-		grpcServer := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptorLog))
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(
+				grpc_middleware.ChainUnaryServer(
+					grpctrace.UnaryServerInterceptor(global.Tracer("maintnerd")),
+					unaryInterceptorLog),
+			),
+			grpc.KeepaliveParams(keepalive.ServerParameters{
+				MaxConnectionIdle: 5 * time.Minute,
+			}),
+		)
 		s := v1beta1.NewIssueServiceV1(corpus, googlerResolver)
 		drghs_v1.RegisterIssueServiceServer(grpcServer, s)
 		healthpb.RegisterHealthServer(grpcServer, s)
@@ -187,8 +235,71 @@ func main() {
 		log.Printf("internal gRPC server listening on: %s", *intListen)
 		return grpcServer.Serve(lis)
 	})
+
+	group.Go(
+		// Get SLO rules for the repo
+		func() error {
+			parent := fmt.Sprintf("owners/%s/repositories/%s", *owner, *repo)
+
+			ticker := time.NewTicker(10 * time.Minute)
+
+			for t := range ticker.C {
+				log.Printf("Slo sync at %v", t)
+
+				_, err := getSlos(ctx, parent)
+				if err != nil {
+					logAndPrintError(err)
+					log.Printf("Slo sync err: %v", err)
+				}
+			}
+			return nil
+		})
+
 	err = group.Wait()
 	log.Fatal(err)
+}
+
+func getSlos(ctx context.Context, parent string) ([]*drghs_v1.SLO, error) {
+
+	conn, err := grpc.Dial(
+		*sloAddress,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithUnaryInterceptor(
+			grpc_middleware.ChainUnaryClient(
+				grpctrace.UnaryClientInterceptor(global.Tracer("leif")),
+				buildRetryInterceptor(),
+			),
+		),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error connecting to SLO server: %v", err)
+	}
+	defer conn.Close()
+
+	sloClient := drghs_v1.NewSLOServiceClient(conn)
+
+	response, err := sloClient.ListSLOs(ctx, &drghs_v1.ListSLOsRequest{Parent: parent})
+	if err != nil {
+		return nil, fmt.Errorf("Error getting SLOs: %v", err)
+	}
+
+	slos := response.GetSlos()
+	nextPage := response.GetNextPageToken()
+
+	for nextPage != "" {
+		response, err = sloClient.ListSLOs(ctx, &drghs_v1.ListSLOsRequest{Parent: parent, PageToken: nextPage})
+		if err != nil {
+			logAndPrintError(err)
+			log.Printf("Error getting SLOs: %v", err)
+			continue
+		}
+
+		slos = append(slos, response.GetSlos()...)
+		nextPage = response.GetNextPageToken()
+	}
+	return slos, nil
 }
 
 func logAndPrintError(err error) {
@@ -202,6 +313,9 @@ func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryS
 	start := time.Now()
 	log.Printf("Starting RPC: %v at %v", info.FullMethod, start)
 
+	// Used for Debugging incoming context and metadata issues
+	// md, _ := metadata.FromIncomingContext(ctx)
+	// log.Printf("RPC: %v. Metadata: %v", info.FullMethod, md)
 	m, err := handler(ctx, req)
 	if err != nil {
 		errorClient.Report(errorreporting.Entry{
@@ -212,4 +326,13 @@ func unaryInterceptorLog(ctx context.Context, req interface{}, info *grpc.UnaryS
 
 	log.Printf("Finishing RPC: %v. Took: %v", info.FullMethod, time.Now().Sub(start))
 	return m, err
+}
+
+func buildRetryInterceptor() grpc.UnaryClientInterceptor {
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(500 * time.Millisecond)),
+		grpc_retry.WithCodes(codes.NotFound, codes.Aborted, codes.Unavailable, codes.DeadlineExceeded),
+		grpc_retry.WithMax(5),
+	}
+	return grpc_retry.UnaryClientInterceptor(opts...)
 }

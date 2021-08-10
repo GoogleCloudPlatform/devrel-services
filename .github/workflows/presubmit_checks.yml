@@ -1,22 +1,20 @@
-on: [push]
+on: [push, pull_request]
 name: "Presubmit Checks"
 jobs:
   lint:
     name: Lint
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.14.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Add GOPATH/bin to PATH
-      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Lint
       run: |
         go get -u golang.org/x/lint/golint
@@ -26,12 +24,12 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.14.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -44,12 +42,12 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.14.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -62,8 +60,6 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Add GOPATH/bin to PATH
-      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Install dependencies
       run: ./go.get.sh
     # Unit Tests
@@ -81,12 +77,12 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.14.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
@@ -99,8 +95,6 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Add GOPATH/bin to PATH
-      run: echo "::add-path::$(go env GOPATH)/bin"
     - name: Install dependencies
       run: ./go.get.sh
     # Integration Tests

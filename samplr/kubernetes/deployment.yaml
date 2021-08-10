@@ -19,7 +19,7 @@ metadata:
   labels:
     app: samplrd-rtr
 spec:
-  replicas: 1
+  replicas: 5
   strategy:
     type: Recreate
   selector:
@@ -76,10 +76,12 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:80"]
           periodSeconds: 10
           initialDelaySeconds: 5
+          timeoutSeconds: 10
         livenessProbe:
           exec:
             command: ["/bin/grpc_health_probe", "-addr=:80"]
           initialDelaySeconds: 5
+          timeoutSeconds: 10
         resources:
           limits:
             cpu: "200m"
@@ -123,7 +125,7 @@ spec:
       labels:
         app: samplrd-sprvsr
     spec:
-      serviceAccountName: samplr-sprvsr-sa
+      serviceAccountName: maintner-sprvsr-sa
       containers:
       - name: samplrd-sprvsr
         image: gcr.io/PROJECT_ID/samplr-sprvsr:BUILD_ID

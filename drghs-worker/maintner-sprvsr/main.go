@@ -175,6 +175,7 @@ func main() {
 		ServiceBuilder:    buildService,
 		DeploymentBuilder: cdeployment,
 		PreDeploy:         preDeploy,
+		ShouldDeploy:      shouldDeploy,
 	}
 
 	super, err := sprvsr.NewK8sSupervisor(log, cs, kcfg, repoList, "maintner")
@@ -416,6 +417,10 @@ func createBucket(ctx context.Context, ta repos.TrackedRepository, projectID str
 
 func bucketName(t repos.TrackedRepository) string {
 	return path.Join(*mutationBucket)
+}
+
+func shouldDeploy(ta repos.TrackedRepository) bool {
+	return ta.IsTrackingIssues
 }
 
 func int32Ptr(i int32) *int32 { return &i }

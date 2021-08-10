@@ -25,13 +25,13 @@ import (
 
 func TestRepoToTrackedRepo(t *testing.T) {
 	cs := []struct {
-		Repo drghs_v1.Repository
+		Repo *drghs_v1.Repository
 		Want *repos.TrackedRepository
 		Name string
 	}{
 		{
 			Name: "Expected",
-			Repo: drghs_v1.Repository{
+			Repo: &drghs_v1.Repository{
 				Name: "GoogleCloudPlatform/devrel-services",
 			},
 			Want: &repos.TrackedRepository{
@@ -41,14 +41,14 @@ func TestRepoToTrackedRepo(t *testing.T) {
 		},
 		{
 			Name: "Failure",
-			Repo: drghs_v1.Repository{
+			Repo: &drghs_v1.Repository{
 				Name: "owners/GoogleCloudPlatform/repos/devrel-services",
 			},
 			Want: nil,
 		},
 	}
 	for _, c := range cs {
-		got := repoToTrackedRepo(&c.Repo)
+		got := repoToTrackedRepo(c.Repo)
 		if diff := cmp.Diff(c.Want, got); diff != "" {
 			t.Errorf("Test: %v Repositories differ (-want +got)\n%s", c.Name, diff)
 		}

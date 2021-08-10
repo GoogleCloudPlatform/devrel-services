@@ -161,3 +161,22 @@ func TestSliceReferCloseEndsEarly(t *testing.T) {
 		t.Errorf("After closing, sliceRefIter returned unexpected values. Expected nil, io.EOF, got %v, %v", c1, err)
 	}
 }
+
+func TestFullyQualifiedReferenceName(t *testing.T) {
+	cases := []struct {
+		ref  string
+		want ReferenceName
+	}{
+		{
+			ref:  "foo",
+			want: "refs/heads/foo",
+		},
+	}
+
+	for _, tst := range cases {
+		got := FullyQualifiedReferenceName(tst.ref)
+		if got != tst.want {
+			t.Errorf("FullyQualifiedReferenceName(%v). Got: %v Want: %v", tst.ref, got, tst.want)
+		}
+	}
+}

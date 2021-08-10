@@ -52,6 +52,7 @@ type k8supervisor struct {
 	deploymentNamer   DeploymentNamer
 	serviceBuilder    ServiceBuilder
 	deploymentPrep    DeploymentPrep
+	deploymentCheck   DeploymentCheck
 	deploymentBuilder DeploymentBuilder
 
 	// The list of repositories to track
@@ -77,6 +78,10 @@ type ServiceBuilder func(repos.TrackedRepository) (*apiv1.Service, error)
 // used to provision additional resources before the Deployment is applied
 type DeploymentPrep func(repos.TrackedRepository) error
 
+// DeploymentCheck is called to decide whether a deployment should be
+// created for a given TrackedRepository.
+type DeploymentCheck func(repos.TrackedRepository) bool
+
 // K8sConfiguration is a struct to describe the set of operations
 // a K8SSupervisor needs to manage a cluster
 type K8sConfiguration struct {
@@ -85,6 +90,7 @@ type K8sConfiguration struct {
 	ServiceBuilder    ServiceBuilder
 	DeploymentBuilder DeploymentBuilder
 	PreDeploy         DeploymentPrep
+	ShouldDeploy      DeploymentCheck
 }
 
 // NewK8sSupervisor creates a new supervisor backed by Kubernetes
@@ -108,6 +114,7 @@ func newK8sSupervisor(log *logrus.Logger, clientset kubernetes.Interface, kconfi
 		serviceBuilder:    kconfig.ServiceBuilder,
 		deploymentBuilder: kconfig.DeploymentBuilder,
 		deploymentPrep:    kconfig.PreDeploy,
+		deploymentCheck:   kconfig.ShouldDeploy,
 		repoList:          rl,
 		labelgenkey:       lblkey,
 	}, nil
@@ -160,12 +167,20 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	trackedRepos := s.repoList.GetTrackedRepos()
 
-	s.log.Debugf("got n tracked repos: %v", len(trackedRepos))
+	trackedRepos := s.repoList.GetTrackedRepos()
+	filteredRepos := make([]repos.TrackedRepository, 0)
+	for _, tr := range trackedRepos {
+		if !s.deploymentCheck(tr) {
+			continue
+		}
+		filteredRepos = append(filteredRepos, tr)
+	}
+
+	s.log.Debugf("got n tracked repos: %v", len(filteredRepos))
 
 	trSet := make(map[string]repos.TrackedRepository)
-	for _, tr := range trackedRepos {
+	for _, tr := range filteredRepos {
 		d, err := s.deploymentBuilder(tr)
 		if err != nil {
 			handle(err)
@@ -175,14 +190,14 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 		for _, i := range d.Spec.Template.Spec.Containers {
 			imgs = append(imgs, i.Image)
 		}
-		name := fmt.Sprintf("%v-%v", tr.String(), strings.Join(imgs, "/"))
+		name := fmt.Sprintf("%v-%v-%v", tr.String(), strings.Join(imgs, "/"), tr.DefaultBranch)
 		trSet[name] = tr
 	}
 
 	s.log.Debugf("trSet: %v", trSet)
 
 	tServicesSet := make(map[string]repos.TrackedRepository)
-	for _, tr := range trackedRepos {
+	for _, tr := range filteredRepos {
 		tServicesSet[tr.String()] = tr
 	}
 
@@ -221,11 +236,14 @@ func (s *k8supervisor) updateCorpusRepoList(ctx context.Context, handle func(err
 			Owner: o,
 			Name:  r,
 		}
+		if db, ok := deployment.Labels["branch"]; ok {
+			tr.DefaultBranch = db
+		}
 		imgs := make([]string, 0)
 		for _, c := range deployment.Spec.Template.Spec.Containers {
 			imgs = append(imgs, c.Image)
 		}
-		name := fmt.Sprintf("%v-%v", tr.String(), strings.Join(imgs, "/"))
+		name := fmt.Sprintf("%v-%v-%v", tr.String(), strings.Join(imgs, "/"), tr.DefaultBranch)
 		deploymentsSet[name] = tr
 	}
 
@@ -336,6 +354,13 @@ func createDeployment(cs kubernetes.Interface, ns string, lblkey string, db Depl
 	// Add Owner and repository labels to the deployment
 	d.ObjectMeta.Labels["owner"] = ta.Owner
 	d.ObjectMeta.Labels["repository"] = ta.Name
+
+	// Add the branch to the deployment labels
+	defaultBranch := "master"
+	if ta.DefaultBranch != "" {
+		defaultBranch = ta.DefaultBranch
+	}
+	d.ObjectMeta.Labels["branch"] = defaultBranch
 
 	// Give the pods our uinque label
 	if d.Spec.Template.ObjectMeta.Labels == nil {

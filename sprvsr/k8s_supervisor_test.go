@@ -107,15 +107,27 @@ func TestUpdateAddsDeploymentsAndServices(t *testing.T) {
 		DeploymentBuilder: func(repos.TrackedRepository) (*appsv1.Deployment, error) {
 			return &appsv1.Deployment{}, nil
 		},
-		PreDeploy: func(repos.TrackedRepository) error { return nil },
+		PreDeploy:    func(repos.TrackedRepository) error { return nil },
+		ShouldDeploy: func(tr repos.TrackedRepository) bool { return tr.IsTrackingSamples },
 	}
 	repoList := &fakeRepoList{
 		idx: -1,
 		RepoStack: [][]repos.TrackedRepository{
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
+				},
+				repos.TrackedRepository{
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+				},
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "blarp",
+					IsTrackingSamples: false,
 				},
 			},
 		},
@@ -161,15 +173,24 @@ func TestUpdateMultipleLeavesThingsAlone(t *testing.T) {
 		DeploymentBuilder: func(repos.TrackedRepository) (*appsv1.Deployment, error) {
 			return &appsv1.Deployment{}, nil
 		},
-		PreDeploy: func(repos.TrackedRepository) error { return nil },
+		PreDeploy:    func(repos.TrackedRepository) error { return nil },
+		ShouldDeploy: func(tr repos.TrackedRepository) bool { return tr.IsTrackingSamples },
 	}
 	repoList := &fakeRepoList{
 		idx: -1,
 		RepoStack: [][]repos.TrackedRepository{
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+					DefaultBranch:     "master",
+				},
+				// Should be skipped
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
 				},
 			},
 		},
@@ -188,10 +209,17 @@ func TestUpdateMultipleLeavesThingsAlone(t *testing.T) {
 	spr.updateCorpusRepoList(ctx, func(error) {})
 
 	acts := clientSet.Actions()
+
+	ncreate := 0
 	for _, a := range acts {
 		if a.GetVerb() == "delete" {
 			t.Errorf("Did not expect to delete a resource: %v", a)
+		} else if a.GetVerb() == "create" {
+			ncreate++
 		}
+	}
+	if ncreate != 2 {
+		t.Errorf("Wanted %v Created. Got %v", 2, ncreate)
 	}
 }
 
@@ -211,25 +239,44 @@ func TestNewReposAreAdded(t *testing.T) {
 		DeploymentBuilder: func(repos.TrackedRepository) (*appsv1.Deployment, error) {
 			return &appsv1.Deployment{}, nil
 		},
-		PreDeploy: func(repos.TrackedRepository) error { return nil },
+		PreDeploy:    func(repos.TrackedRepository) error { return nil },
+		ShouldDeploy: func(tr repos.TrackedRepository) bool { return tr.IsTrackingSamples },
 	}
 	repoList := &fakeRepoList{
 		idx: -1,
 		RepoStack: [][]repos.TrackedRepository{
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+					DefaultBranch:     "main",
+				},
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 			},
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
-					Owner: "baz",
-					Name:  "biz",
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
+					DefaultBranch:     "main",
+				},
+				repos.TrackedRepository{
+					Owner:             "baz",
+					Name:              "biz",
+					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 			},
 		},
@@ -255,9 +302,9 @@ func TestNewReposAreAdded(t *testing.T) {
 			t.Logf("Got verb %v", a.GetVerb())
 		}
 	}
-	// Want 2*len as we are creating one service and one deployment
-	if ncreate != 2*len(repoList.GetTrackedRepos()) {
-		t.Errorf("Wanted %v Created. Got %v", len(repoList.GetTrackedRepos()), ncreate)
+	// Want 2 as we are creating one service and one deployment
+	if ncreate != 2 {
+		t.Errorf("Wanted %v Created. Got %v", 2, ncreate)
 	}
 	if ndelete != 0 {
 		t.Errorf("Wanted %v Deleted. Got %v", 0, ndelete)
@@ -276,9 +323,9 @@ func TestNewReposAreAdded(t *testing.T) {
 			t.Logf("Got verb %v", a.GetVerb())
 		}
 	}
-	// Want 2*len as we are creating one service and one deployment
-	if ncreate != 2*len(repoList.GetTrackedRepos()) {
-		t.Errorf("Wanted %v Created. Got %v", len(repoList.GetTrackedRepos()), ncreate)
+	// Want 4 as we are created 1 more service and 1 more deployment.
+	if ncreate != 4 {
+		t.Errorf("Wanted %v Created. Got %v", 4, ncreate)
 	}
 	if ndelete != 0 {
 		t.Errorf("Wanted %v Deleted. Got %v", 0, ndelete)
@@ -306,25 +353,44 @@ func TestDeletedReposAreRemoved(t *testing.T) {
 				Name: fmt.Sprintf("d-%v", a.RepoSha()),
 			}}, nil
 		},
-		PreDeploy: func(repos.TrackedRepository) error { return nil },
+		PreDeploy:    func(repos.TrackedRepository) error { return nil },
+		ShouldDeploy: func(tr repos.TrackedRepository) bool { return tr.IsTrackingSamples },
 	}
 	repoList := &fakeRepoList{
 		idx: -1,
 		RepoStack: [][]repos.TrackedRepository{
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+					DefaultBranch:     "main",
 				},
 				repos.TrackedRepository{
-					Owner: "baz",
-					Name:  "biz",
+					Owner:             "baz",
+					Name:              "biz",
+					IsTrackingSamples: true,
+					DefaultBranch:     "main",
+				},
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 			},
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+					DefaultBranch:     "main",
+				},
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
+					DefaultBranch:     "main",
 				},
 			},
 		},
@@ -349,9 +415,9 @@ func TestDeletedReposAreRemoved(t *testing.T) {
 		}
 		t.Logf("Got action: %v %v", a.GetResource(), a.GetVerb())
 	}
-	// Want 2*len as we are creating one service and one deployment
-	if ncreate != 2*len(repoList.GetTrackedRepos()) {
-		t.Errorf("Wanted %v Created. Got %v", len(repoList.GetTrackedRepos()), ncreate)
+	// Want 4 as we are creating 2 services and 2 deployments
+	if ncreate != 4 {
+		t.Errorf("Wanted %v Created. Got %v", 4, ncreate)
 	}
 	if ndelete != 0 {
 		t.Errorf("Wanted %v Deleted. Got %v", 0, ndelete)
@@ -435,15 +501,22 @@ func TestUpdatedImagesAreReplaced(t *testing.T) {
 				},
 			}, nil
 		},
-		PreDeploy: func(repos.TrackedRepository) error { return nil },
+		PreDeploy:    func(repos.TrackedRepository) error { return nil },
+		ShouldDeploy: func(tr repos.TrackedRepository) bool { return tr.IsTrackingSamples },
 	}
 	repoList := &fakeRepoList{
 		idx: -1,
 		RepoStack: [][]repos.TrackedRepository{
 			{
 				repos.TrackedRepository{
-					Owner: "foo",
-					Name:  "bar",
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+				},
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
 				},
 			},
 		},
@@ -468,9 +541,126 @@ func TestUpdatedImagesAreReplaced(t *testing.T) {
 			ndelete++
 		}
 	}
-	// Want 2*len as we are creating one service and one deployment
-	if ncreate != 2*len(repoList.GetTrackedRepos()) {
-		t.Errorf("Wanted %v Created. Got %v", len(repoList.GetTrackedRepos()), ncreate)
+	// Want 2 as we are creating one service and one deployment
+	if ncreate != 2 {
+		t.Errorf("Wanted %v Created. Got %v", 2, ncreate)
+	}
+	// We should delete the existing deployment
+	if ndelete != 1 {
+		t.Errorf("Wanted %v Deleted. Got %v", 1, ndelete)
+	}
+}
+
+func TestChangedBranchesAreReplaced(t *testing.T) {
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+
+	appid := "testapp"
+
+	// This desployment has a branch that is DIFFERENT than the
+	// desired on to be built, so it should be deleted and replaced.
+	existingDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "d-foo-bar",
+			Labels: map[string]string{
+				"owner":                  "foo",
+				"repository":             "bar",
+				"testapp-sprvsr-autogen": "true",
+				"branch":                 "branch0",
+			},
+			Namespace: apiv1.NamespaceDefault,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: apiv1.PodTemplateSpec{
+				Spec: apiv1.PodSpec{
+					Volumes: []apiv1.Volume{},
+					Containers: []apiv1.Container{
+						apiv1.Container{
+							Image: "foo-bar:baz",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	clientSet := fake.NewSimpleClientset(existingDeployment)
+	config := K8sConfiguration{
+		ServiceNamer: func(a repos.TrackedRepository) (string, error) {
+			return fmt.Sprintf("s-%v-%v", a.Owner, a.Name), nil
+		},
+		DeploymentNamer: func(a repos.TrackedRepository) (string, error) {
+			return fmt.Sprintf("d-%v-%v", a.Owner, a.Name), nil
+		},
+		ServiceBuilder: func(repos.TrackedRepository) (*apiv1.Service, error) {
+			return &apiv1.Service{}, nil
+		},
+		DeploymentBuilder: func(repos.TrackedRepository) (*appsv1.Deployment, error) {
+			return &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "d-foo-bar",
+					Labels: map[string]string{
+						"branch": "branch1",
+					},
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: apiv1.PodTemplateSpec{
+						Spec: apiv1.PodSpec{
+							Volumes: []apiv1.Volume{},
+							Containers: []apiv1.Container{
+								apiv1.Container{
+									Image: "foo-bar:baz",
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		},
+		PreDeploy:    func(repos.TrackedRepository) error { return nil },
+		ShouldDeploy: func(tr repos.TrackedRepository) bool { return tr.IsTrackingSamples },
+	}
+	repoList := &fakeRepoList{
+		idx: -1,
+		RepoStack: [][]repos.TrackedRepository{
+			{
+				repos.TrackedRepository{
+					Owner:             "foo",
+					Name:              "bar",
+					IsTrackingSamples: true,
+					DefaultBranch:     "branch1",
+				},
+				repos.TrackedRepository{
+					Owner:             "beep",
+					Name:              "boop",
+					IsTrackingSamples: false,
+				},
+			},
+		},
+	}
+
+	spr, err := newK8sSupervisor(log, clientSet, config, repoList, appid)
+	if err != nil {
+		t.Errorf("Got an error making a new supervisor: %v", err)
+	}
+
+	ctx := context.Background()
+	spr.updateCorpusRepoList(ctx, func(error) {})
+
+	ncreate := 0
+	ndelete := 0
+	for _, a := range clientSet.Actions() {
+		t.Logf("Got verb %v", a.GetVerb())
+
+		if a.GetVerb() == "create" {
+			ncreate++
+		} else if a.GetVerb() == "delete" {
+			ndelete++
+		}
+	}
+	// Want 2 as we are creating one service and one deployment
+	if ncreate != 2 {
+		t.Errorf("Wanted %v Created. Got %v", 2, ncreate)
 	}
 	// We should delete the existing deployment
 	if ndelete != 1 {

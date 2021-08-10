@@ -30,6 +30,54 @@ func TestValidatesFiles(t *testing.T) {
 	}{
 		{
 			file: &git.File{
+				Name: ".github/workflows/ci.yaml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: ".gitignore",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "codecov.yaml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "license-checks.xml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "renovate.json",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "synth.py",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "bar/.kokoro/config.yaml",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "samples/.gitignore",
+			},
+			expected: false,
+		},
+		{
+			file: &git.File{
 				Name: "foo.c",
 			},
 			expected: true,
@@ -66,6 +114,18 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo/Dockerfile",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "/bar/foo/dockerfile",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "DOCKERFILE",
 			},
 			expected: true,
@@ -85,6 +145,12 @@ func TestValidatesFiles(t *testing.T) {
 		{
 			file: &git.File{
 				Name: "foo.gs",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "foo.hcl",
 			},
 			expected: true,
 		},
@@ -144,6 +210,12 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "foo.nomad",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "foo.php",
 			},
 			expected: true,
@@ -181,6 +253,30 @@ func TestValidatesFiles(t *testing.T) {
 		{
 			file: &git.File{
 				Name: "foo.swift",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "foo.tf",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "foo.tfvars",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "foo.ts",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "foo.workflow",
 			},
 			expected: true,
 		},
@@ -229,6 +325,12 @@ func TestValidatesFiles(t *testing.T) {
 		{
 			file: &git.File{
 				Name: "bar/foo.gs",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.hcl",
 			},
 			expected: true,
 		},
@@ -288,6 +390,12 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "bar/foo.nomad",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "bar/foo.php",
 			},
 			expected: true,
@@ -330,6 +438,30 @@ func TestValidatesFiles(t *testing.T) {
 		},
 		{
 			file: &git.File{
+				Name: "bar/foo.tf",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.tfvars",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.ts",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.workflow",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
 				Name: "bar/foo.xml",
 			},
 			expected: true,
@@ -345,6 +477,18 @@ func TestValidatesFiles(t *testing.T) {
 				Name: "baz/foo.bazl",
 			},
 			expected: false,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.scala",
+			},
+			expected: true,
+		},
+		{
+			file: &git.File{
+				Name: "bar/foo.groovy",
+			},
+			expected: true,
 		},
 	}
 	for _, test := range tests {
@@ -1153,6 +1297,46 @@ func TestProcessPreviouslySeenSnippets(t *testing.T) {
 		processPreviouslySeenSnippets(c.cmt, c.snippets, c.snippetVersionsInThisCommit, c.seenSnippets)
 		if diff := cmp.Diff(c.WantSnippets, c.snippets); diff != "" {
 			t.Errorf("%v failed. Diff (-want, +got) \n%v", c.Name, diff)
+		}
+	}
+}
+
+func TestCleanLanguage(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Language string
+		Want     string
+	}{
+		{
+			Name:     "Converts C#",
+			Language: "C#",
+			Want:     "CSHARP",
+		},
+		{
+			Name:     "Converts C++",
+			Language: "C++",
+			Want:     "CPP",
+		},
+		{
+			Name:     "Puts to uppercase",
+			Language: "Javascript",
+			Want:     "JAVASCRIPT",
+		},
+		{
+			Name:     "Spaces to underscores",
+			Language: "Ma ven Pom",
+			Want:     "MA_VEN_POM",
+		},
+		{
+			Name:     "Hyphens to underscores",
+			Language: "Ma-ven-Pom",
+			Want:     "MA_VEN_POM",
+		},
+	}
+	for _, c := range cases {
+		got := cleanLanguage(c.Language)
+		if diff := cmp.Diff(c.Want, got); diff != "" {
+			t.Errorf("%v failed. Diff (-want, +got)\n%v", c.Name, diff)
 		}
 	}
 }

@@ -364,6 +364,10 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 		}, repositoryFilter)
 
 		// Filter Snippets
+		smpFilter, err := filter.BuildSnippetFilter(req.Filter)
+		if err != nil {
+			return nil, err
+		}
 		filteredSnippets := make([]*samplr.Snippet, 0)
 		for _, v := range snippets {
 			pv, err := makeSnippetPB(v)
@@ -372,7 +376,7 @@ func (s *SampleServiceServer) ListSnippets(ctx context.Context, req *drghs_v1.Li
 				return nil, err
 			}
 
-			should, err := filter.Snippet(pv, req.Filter)
+			should, err := filter.Snippet(pv, smpFilter)
 			if err != nil {
 				log.Errorf("Issue filtering repository: %v", err)
 				return nil, err

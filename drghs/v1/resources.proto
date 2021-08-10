@@ -16,12 +16,13 @@ syntax = "proto3";
 
 package drghs.v1;
 
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 message Repository {
   string name = 1;
-  int32  issue_count = 2;
-  int32  pull_request_count = 3;
+  int32 issue_count = 2;
+  int32 pull_request_count = 3;
 }
 
 message GitCommit {
@@ -72,7 +73,7 @@ message Issue {
   }
 
   Priority priority = 4;
-  bool priority_unknown = 5 [deprecated=true];
+  bool priority_unknown = 5 [deprecated = true];
 
   enum IssueType {
     GITHUB_ISSUE_TYPE_UNSPECIFIED = 0;
@@ -115,7 +116,7 @@ message File {
 }
 
 message SnippetVersionMeta {
-  // Output only. Used as metadata information on the [SnipeptVersion[
+  // Output only. Used as metadata information on the [SnippetVersion][]
   string title = 1;
   string description = 2;
   string usage = 3;
@@ -145,4 +146,18 @@ message Snippet {
   // Output only. A copy of the most recent [SnippetVersion][] of the
   // [Snippet][].
   SnippetVersion primary = 3;
+}
+message Owner {
+  string name = 1;
+}
+
+message SLO {
+  repeated string github_labels = 1;
+  repeated string excluded_github_labels = 2;
+  bool applies_to_issues = 3;
+  bool applies_to_prs = 4;
+  google.protobuf.Duration response_time = 5;
+  google.protobuf.Duration resolution_time = 6;
+  bool requires_assignee = 7;
+  repeated string responders = 8;
 }

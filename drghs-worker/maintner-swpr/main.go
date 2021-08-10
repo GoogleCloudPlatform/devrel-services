@@ -256,7 +256,8 @@ func getMaintnerIssuesForRepo(ctx context.Context, tr *repos.TrackedRepository, 
 		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 	defer conn.Close()
 
@@ -298,6 +299,7 @@ func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) 
 			PageSize:  500,
 		})
 		if err != nil {
+			log.Warnf("got error while listing repositories: %v", err)
 			return nil, err
 		}
 		ret = append(ret, rep.Repositories...)
@@ -322,7 +324,7 @@ func flagIssuesTombstoned(ctx context.Context, tr *repos.TrackedRepository, repo
 		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
 	)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer conn.Close()
 

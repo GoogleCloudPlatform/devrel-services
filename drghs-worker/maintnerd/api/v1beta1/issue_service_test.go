@@ -20,6 +20,7 @@ import (
 	drghs_v1 "github.com/GoogleCloudPlatform/devrel-services/drghs/v1"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/build/maintner"
 	"google.golang.org/genproto/protobuf/field_mask"
 )
@@ -246,8 +247,27 @@ func TestHandlesIssue(t *testing.T) {
 		if (c.WantErr && goterr == nil) || (!c.WantErr && goterr != nil) {
 			t.Errorf("test: %v, errors diff. WantErr: %v, GotErr: %v.", c.Name, c.WantErr, goterr)
 		}
-		if diff := cmp.Diff(c.Want, got); diff != "" {
+		if diff := cmp.Diff(c.Want, got, cmpopts.IgnoreUnexported(drghs_v1.Issue{})); diff != "" {
 			t.Errorf("test: %v, values diff. match (-want +got)\n%s", c.Name, diff)
+		}
+	}
+}
+
+func TestGetIssueID(t *testing.T) {
+	tests := []struct {
+		id   string
+		want int
+	}{
+		{"foo", -1},
+		{"/api/v1/foo/bar/issues/1", -1},
+		{"/foo/bar/issues/1", -1},
+		{"foo/bar/issues/13", 13},
+		{"foo.bar/baz.biz/issues/12", 12},
+	}
+	for _, tt := range tests {
+		got := getIssueID(tt.id)
+		if got != tt.want {
+			t.Errorf("getIssueID(%v) = %v; want = %v", tt.id, got, tt.want)
 		}
 	}
 }
