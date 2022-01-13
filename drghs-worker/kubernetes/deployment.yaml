@@ -219,7 +219,8 @@ spec:
           - name: maintner-swpr
             image: gcr.io/PROJECT_ID/maintner-swpr:BUILD_ID
             args: [
-              "--rtr-address=esp-maintnerd-rtr-np:5000",
+              "--settings-bucket=SETTINGS_BUCKET",
+              "--repos-file=REPOS_FILE",
               "--project-id=PROJECT_ID",
             ]
             env:

@@ -47,6 +47,8 @@ var log *logrus.Logger
 var (
 	flRtrAddr   *string
 	flProjectID *string
+	flBucket    = flag.String("settings-bucket", "", "bucket to get repo list")
+	flFile      = flag.String("repos-file", "", "file in bucket to read repos from")
 )
 
 // Constants
@@ -94,10 +96,12 @@ func main() {
 		cancel()
 	}()
 
-	if *flRtrAddr == "" {
-		log.Fatal("--rtr-address is empty")
+	if *flBucket == "" {
+		log.Fatal("error: must specify --settings-bucket")
 	}
-
+	if *flFile == "" {
+		log.Fatal("error: must specify --repos-file")
+	}
 	if os.Getenv(GitHubEnvVar) == "" {
 		log.Fatalf("env var %v is empty", GitHubEnvVar)
 	}
@@ -117,37 +121,27 @@ func main() {
 	}
 	defer errorClient.Close()
 
-	log.Debugf("Setting up and dialing to maintner-rtr: %v", *flRtrAddr)
-	// Setup drghs client
-	var drghsc drghs_v1.IssueServiceClient
-
-	conn, err := grpc.Dial(
-		*flRtrAddr,
-		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
-	)
+	rlist := repos.NewBucketRepo(*flBucket, *flFile)
+	_, err = rlist.UpdateTrackedRepos(ctx)
 	if err != nil {
-		errorClient.Report(errorreporting.Entry{
-			Error: err,
-		})
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	drghsc = drghs_v1.NewIssueServiceClient(conn)
-
-	repos, err := getTrackedRepositories(ctx, drghsc)
-	if err != nil {
-		errorClient.Report(errorreporting.Entry{
-			Error: err,
-		})
-		log.Fatal(err)
+		log.Fatalf("got error updating repos: %v", err)
 	}
 
+	errs := make([]error, 0)
+	repos := rlist.GetTrackedRepos()
 	var nipr int32
 	for _, repo := range repos {
-		nipr = nipr + repo.PullRequestCount
-		nipr = nipr + repo.IssueCount
+		if !repo.IsTrackingIssues {
+			log.Infof("skipping repo: %v as it is not tracking issues", repo.String())
+		}
+		rnipr, err := getIssueAndPRData(ctx, &repo)
+		if err != nil {
+			errorClient.Report(errorreporting.Entry{
+				Error: err,
+			})
+			continue
+		}
+		nipr = nipr + rnipr
 	}
 
 	log.Debugf("have %v repositories to query with a total of %v Issues and PRs", len(repos), nipr)
@@ -171,9 +165,8 @@ func main() {
 	// Then get all the mainter issues for the repo
 	// Finally, compare the two, find the ones in maintner that
 	// are not in GitHub && Flag them as NotExist
-	errs := make([]error, 0)
 	for _, repo := range repos {
-		err := processRepo(ctx, repo, gqlc)
+		err := processRepo(ctx, &repo, gqlc)
 		if err != nil {
 			// Append and report
 			errs = append(errs, err)
@@ -186,10 +179,11 @@ func main() {
 	log.Infof("finished with %v errors: %v", len(errs), errs)
 }
 
-func processRepo(ctx context.Context, repo *drghs_v1.Repository, gqlc *githubv4.Client) error {
+func processRepo(ctx context.Context, tr *repos.TrackedRepository, gqlc *githubv4.Client) error {
+	repo := &drghs_v1.Repository{
+		Name: fmt.Sprintf("%v/%v", tr.Owner, tr.Name),
+	}
 	log.Debugf("processing repo: %v", repo.String())
-
-	tr := repoToTrackedRepo(repo)
 
 	ghIssues, err := getGitHubIssuesForRepo(ctx, gqlc, repo)
 	if err != nil {
@@ -310,6 +304,40 @@ func getTrackedRepositories(ctx context.Context, c drghs_v1.IssueServiceClient) 
 	}
 
 	return ret, nil
+}
+
+func getIssueAndPRData(ctx context.Context, tr *repos.TrackedRepository) (int32, error) {
+	maddr, err := serviceName(tr)
+	if err != nil {
+		return 0, err
+	}
+
+	conn, err := grpc.Dial(
+		maddr+":80",
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(buildRetryInterceptor()),
+	)
+	if err != nil {
+		log.Warnf("got error dialing to repository: %v %v", tr, err)
+		return 0, err
+	}
+	defer conn.Close()
+
+	c := drghs_v1.NewIssueServiceClient(conn)
+
+	repos, err := getTrackedRepositories(ctx, c)
+	if err != nil {
+		log.Warnf("got error getting tracked repositories for repo: %v, %v", tr, err)
+		return 0, err
+	}
+
+	var nipr int32
+	for _, r := range repos {
+		nipr = nipr + r.IssueCount
+		nipr = nipr + r.PullRequestCount
+	}
+
+	return nipr, nil
 }
 
 func flagIssuesTombstoned(ctx context.Context, tr *repos.TrackedRepository, repo *drghs_v1.Repository, issueIds []int32) error {
