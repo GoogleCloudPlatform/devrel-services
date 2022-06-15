@@ -30,6 +30,7 @@ spec:
       labels:
         app: maintnerd-rtr
     spec:
+      enableServiceLinks: false
       serviceAccountName: maintner-rtr-sa
       containers:
       - name: esp
@@ -134,6 +135,7 @@ spec:
         app: maintnerd-sprvsr
     spec:
       serviceAccountName: maintner-sprvsr-sa
+      enableServiceLinks: false
       containers:
       - name: maintnerd-sprvsr
         image: gcr.io/PROJECT_ID/maintner-sprvsr:BUILD_ID
@@ -215,6 +217,7 @@ spec:
     spec:
       template:
         spec:
+          enableServiceLinks: false
           containers:
           - name: maintner-swpr
             image: gcr.io/PROJECT_ID/maintner-swpr:BUILD_ID
