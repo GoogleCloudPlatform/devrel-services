@@ -275,6 +275,7 @@ func buildDeployment(sasecretname, githubsecretname, githubsecretkey string, ta 
 	if err != nil {
 		return nil, err
 	}
+	enableServiceLinks := false
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dep,
@@ -296,6 +297,7 @@ func buildDeployment(sasecretname, githubsecretname, githubsecretkey string, ta 
 					},
 				},
 				Spec: apiv1.PodSpec{
+					EnableServiceLinks: &enableServiceLinks,
 					Volumes: []apiv1.Volume{
 						apiv1.Volume{
 							Name: "gcp-sa",
