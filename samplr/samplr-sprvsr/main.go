@@ -232,6 +232,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 	if ta.DefaultBranch != "" {
 		defaultBranch = ta.DefaultBranch
 	}
+	enableServiceLinks := false
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dep,
@@ -254,6 +255,7 @@ func buildDeployment(ta repos.TrackedRepository) (*appsv1.Deployment, error) {
 					},
 				},
 				Spec: apiv1.PodSpec{
+					EnableServiceLinks: &enableServiceLinks,
 					Volumes: []apiv1.Volume{},
 					Containers: []apiv1.Container{
 						apiv1.Container{
