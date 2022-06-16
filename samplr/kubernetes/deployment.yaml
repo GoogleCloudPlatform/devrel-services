@@ -31,6 +31,7 @@ spec:
         app: samplrd-rtr
     spec:
       serviceAccountName: samplr-rtr-sa
+      enableServiceLinks: false
       containers:
       - name: esp
         image: gcr.io/endpoints-release/endpoints-runtime:1
@@ -126,6 +127,7 @@ spec:
         app: samplrd-sprvsr
     spec:
       serviceAccountName: maintner-sprvsr-sa
+      enableServiceLinks: false
       containers:
       - name: samplrd-sprvsr
         image: gcr.io/PROJECT_ID/samplr-sprvsr:BUILD_ID
@@ -205,6 +207,7 @@ spec:
     spec:
       template:
         spec:
+          enableServiceLinks: false
           containers:
           - name: update
             image: busybox
