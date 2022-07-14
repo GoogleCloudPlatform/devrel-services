@@ -370,8 +370,8 @@ func buildDeployment(sasecretname, githubsecretname, githubsecretkey string, ta 
 								Requests: apiv1.ResourceList{
 									// Our application does not need "that" much CPU.
 									// For context, if unspecified, GKE applies a default request of "100m"
-									apiv1.ResourceCPU:    resource.MustParse("50m"),
-									apiv1.ResourceMemory: resource.MustParse("160M"),
+									apiv1.ResourceCPU:    resource.MustParse("20m"),
+									apiv1.ResourceMemory: resource.MustParse("90M"),
 								},
 								Limits: apiv1.ResourceList{
 									// Limit the CPU ask
