@@ -26,14 +26,6 @@ It can be thought of as a giant in-memory cache.
 This service takes a set of GitHub repositories and scans them for service-level objective (SLO) rules and exposes an API to query them. It is designed to be deployed to a
 [Kubernetes](https://kubernetes.io) cluster.
 
-## magic-github-proxy
-
-This service is a slight fork of [Thea Flowers](https://github.com/theacodes)'s
-[magic-github-proxy](https://github.com/theacodes/magic-github-proxy).
-It is deployed to [Kubernetes](https://kubernetes.io)
-and access to the proxy is secured behind
-[Cloud Endpoints](https://cloud.google.com/endpoints).
-
 ## samplr
 
 This service takes a set of GitHub repositories and scans them for code

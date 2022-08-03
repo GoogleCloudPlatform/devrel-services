@@ -71,30 +71,11 @@ steps:
       sed s/TYPE/$_TYPE/g \
       > target/devrelservices-admin.yaml
 
-# Create magic-github-proxy endpoint
-- name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'bash'
-  id: 'magic-github-proxy-endpoints-prep'
-  waitFor: ['-'] # Start Immediately
-  args:
-  - '-e'
-  - '-c'
-  - |
-    # Get the IP address to fill our spec with
-    IPADDR=`gcloud compute addresses describe magic-github-proxy-ip --global --format=value\(address\)`
-
-    mkdir -p target
-    cat endpoints/magic-github-proxy.yaml | \
-      sed s/PROJECT_ID/$PROJECT_ID/g | \
-      sed s/IP_ADDR/$$IPADDR/g | \
-      sed s/TYPE/$_TYPE/g \
-      > target/magic-github-proxy.yaml
-
 # Deploy to endpoints
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   id: 'endpoints-deploy'
-  waitFor: ['magic-github-proxy-endpoints-prep', 'samplr-endpoints-prep', 'maintner-endpoints-prep', 'devrelservices-admin-endpoints-prep']
+  waitFor: ['samplr-endpoints-prep', 'maintner-endpoints-prep', 'devrelservices-admin-endpoints-prep']
   args:
   - '-e'
   - '-c'
@@ -107,8 +88,5 @@ steps:
 
     # Deploy devrelservices-admin
     gcloud endpoints services deploy v1/api_descriptor.pb target/devrelservices-admin.yaml
-
-    # Deploy magic-github-proxy
-    gcloud endpoints services deploy target/magic-github-proxy.yaml
 
 images:
