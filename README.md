@@ -1,3 +1,7 @@
+<p style="color: red;">
+  UPDATE 2022-09-29: This repo is no longer being maintained or used.
+</p>
+
 # devrel-github-services
 
 DevRel GitHub Services is a collection of tools and services aimed
